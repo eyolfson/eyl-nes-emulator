@@ -86,7 +86,7 @@ check_rom_size_raw(uint8_t *data, size_t size)
 
 	uint16_t expected_size = HEADER_SIZE;
 	expected_size += prg_rom_units * PRG_ROM_SIZE_PER_UNIT;
-  expected_size += chr_rom_units * CHR_ROM_SIZE_PER_UNIT;
+	expected_size += chr_rom_units * CHR_ROM_SIZE_PER_UNIT;
 
 	if (size == expected_size) {
 		return 0;
