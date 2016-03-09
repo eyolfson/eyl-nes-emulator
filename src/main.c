@@ -48,9 +48,9 @@ void init()
 	init_registers(&registers);
 }
 
-static const uint16_t HEADER_SIZE = 16;
-static const uint16_t PRG_ROM_SIZE_PER_UNIT = 0x4000;
-static const uint16_t CHR_ROM_SIZE_PER_UNIT = 0x2000;
+static const uint16_t HEADER_SIZE = 16;               /* 16 B */
+static const uint16_t PRG_ROM_SIZE_PER_UNIT = 0x4000; /* 16 KiB */
+static const uint16_t CHR_ROM_SIZE_PER_UNIT = 0x2000; /*  8 KiB */
 
 static const uint8_t EXIT_CODE_ARG_ERROR_BIT = 1 << 0;
 static const uint8_t EXIT_CODE_OS_ERROR_BIT = 1 << 1;
