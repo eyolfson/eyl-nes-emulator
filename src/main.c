@@ -16,6 +16,7 @@
  */
 
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -48,6 +49,76 @@ void init()
 {
 	struct registers registers;
 	init_registers(&registers);
+}
+
+void set_carry_flag(struct registers *registers, bool c)
+{
+	registers->p |= c << 0;
+}
+
+bool get_carry_flag(struct registers *registers)
+{
+	return registers->p & 1 << 0;
+}
+
+void set_zero_flag(struct registers *registers, bool z)
+{
+	registers->p |= z << 1;
+}
+
+bool get_zero_flag(struct registers *registers)
+{
+	return registers->p & 1 << 1;
+}
+
+void set_interrupt_disable_flag(struct registers *registers, bool i)
+{
+	registers->p |= i << 2;
+}
+
+bool get_interrupt_disable_flag(struct registers *registers)
+{
+	return registers->p & 1 << 2;
+}
+
+void set_decimal_mode_flag(struct registers *registers, bool d)
+{
+	registers->p |= d << 3;
+}
+
+bool get_decimal_mode_flag(struct registers *registers)
+{
+	return registers->p & 1 << 3;
+}
+
+void set_break_command_flag(struct registers *registers, bool b)
+{
+	registers->p |= b << 4;
+}
+
+bool get_break_command_flag(struct registers *registers)
+{
+	return registers->p & 1 << 4;
+}
+
+void set_overflow_flag(struct registers *registers, bool v)
+{
+	registers->p |= v << 6;
+}
+
+bool get_overflow_flag(struct registers *registers)
+{
+	return registers->p & 1 << 6;
+}
+
+void set_sign_flag(struct registers *registers, bool s)
+{
+	registers->p |= s << 7;
+}
+
+bool get_sign_flag(struct registers *registers)
+{
+	return registers->p & 1 << 7;
 }
 
 static const uint16_t HEADER_SIZE = 16;               /* 16 B */
