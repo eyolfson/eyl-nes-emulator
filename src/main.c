@@ -24,7 +24,6 @@
 uint8_t memory[0xFFFF];
 
 struct registers {
-	uint8_t p;
 	uint8_t a;
 	uint8_t x;
 	uint8_t y;
@@ -35,7 +34,6 @@ struct registers {
 
 void init_registers(struct registers *registers)
 {
-	registers->p = 0;
 	registers->a = 0;
 	registers->x = 0;
 	registers->y = 0;
