@@ -24,11 +24,11 @@
 uint8_t memory[0xFFFF];
 
 struct registers {
-	uint8_t a;
-	uint8_t x;
-	uint8_t y;
-	uint8_t s;   /* Status */
-	uint8_t sp;  /* Stack Pointer */
+	uint8_t a;   /* Accumulator */
+	uint8_t x;   /* Index Register 0 */
+	uint8_t y;   /* Index Register 1 */
+	uint8_t p;   /* Processor Status Flag Bits */
+	uint8_t s;   /* Stack Pointer */
 	uint16_t pc; /* Program Counter */
 };
 
@@ -37,8 +37,8 @@ void init_registers(struct registers *registers)
 	registers->a = 0;
 	registers->x = 0;
 	registers->y = 0;
-	registers->s = 0;
-	registers->sp = 0xFF;
+	registers->p = 0;
+	registers->s = 0xFF;
 	registers->pc = 0xC000;
 }
 
