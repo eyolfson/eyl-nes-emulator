@@ -28,8 +28,9 @@ struct registers {
 	uint8_t a;
 	uint8_t x;
 	uint8_t y;
-	uint8_t s;
-	uint16_t pc;
+	uint8_t s;   /* Status */
+	uint8_t sp;  /* Stack Pointer */
+	uint16_t pc; /* Program Counter */
 };
 
 void init_registers(struct registers *registers)
@@ -38,7 +39,8 @@ void init_registers(struct registers *registers)
 	registers->a = 0;
 	registers->x = 0;
 	registers->y = 0;
-	registers->s = 0xFF;
+	registers->s = 0;
+	registers->sp = 0xFF;
 	registers->pc = 0xC000;
 }
 
