@@ -21,7 +21,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-uint8_t memory[0xFFFF];
+#define MEMORY_SIZE 0x10000
+
+uint8_t memory[MEMORY_SIZE];
 
 struct registers {
 	uint8_t a;   /* Accumulator */
