@@ -1,0 +1,49 @@
+% Copyright 2016 Jonathan Eyolfson
+%
+% This work is licensed under a Creative Commons Attribution-ShareAlike 4.0
+% International License. You should have received a copy of the license along
+% with this work. If not, see <http://creativecommons.org/licenses/by-sa/4.0/>.
+
+\documentclass[10pt, draft]{book}
+
+\usepackage{amsmath}
+\usepackage{fontspec}
+\usepackage[a5paper, bindingoffset=10mm, inner=20mm, outer=20mm]{geometry}
+\usepackage{tikz}
+
+\setmainfont[Ligatures=TeX]{Tinos}
+\setsansfont{Arimo}[Scale=MatchLowercase]
+\setmonofont{Cousine}[Scale=MatchLowercase]
+
+\definecolor{solarizedBase03}{RGB}{0, 43, 54}
+\definecolor{solarizedBase0}{RGB}{131, 148, 150}
+\definecolor{solarizedBlue}{RGB}{38, 139, 210}
+
+\usetikzlibrary{arrows, automata, decorations.pathreplacing, positioning}
+
+\begin{document}
+
+  \begin{titlepage}
+    \begin{tikzpicture}[remember picture, overlay]
+      \draw[draw=none, fill=solarizedBase03]
+        (current page.north west) rectangle (current page.south east);
+      \node[color=solarizedBlue, text width=1.75cm, text centered, scale=8]
+        (title) at (current page.center) {\texttt{NES Emulator}};
+      \node[anchor=south west, inner sep=4mm, color=solarizedBase0, scale=2]
+        at (current page.south west) {\textsf{0.0.1-development}};
+      \node[anchor=south east, inner sep=4mm, color=solarizedBase0, scale=2]
+        at (current page.south east) {\textsf{Jonathan Eyolfson}};
+    \end{tikzpicture}
+  \end{titlepage}
+
+  \tableofcontents
+
+  \chapter{CPU}
+
+  The NES CPU is a modified 6502. It is an 8-bit CPU. It has an accumlator
+  register (A), two index registers (X and Y). It has a register for the
+  processor status flag bits (P). It has an 8-bit stack pointer (S) which is
+  256 bytes large and always starts with address $(\texttt{10})_{16}$. The
+  program counter (PC) is 16-bit.
+
+\end{document}
