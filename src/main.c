@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -170,6 +171,14 @@ check_rom_size_raw(uint8_t *data, size_t size)
 }
 
 static
+void
+load_rom_into_memory(uint8_t *data, size_t size)
+{
+	uint8_t prg_rom_units = data[4];
+	memcpy(memory + 0xC000, data + HEADER_SIZE, PRG_ROM_SIZE_PER_UNIT);
+}
+
+static
 uint8_t
 get_rom_raw(const char *path, uint8_t **data, size_t *size)
 {
@@ -228,6 +237,7 @@ uint8_t main(int argc, char **argv)
 		return exit_code;
 	}
 	exit_code |= check_rom_size_raw(rom_data, rom_size);
+	load_rom_into_memory(rom_data, rom_size);
 
 	struct registers registers;
 	init_registers(&registers);
