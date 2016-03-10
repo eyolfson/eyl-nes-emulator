@@ -187,11 +187,17 @@ execute_instruction(struct registers *registers)
 	uint8_t *memory_pc_offset = memory + registers->pc;
 	uint8_t opcode = *(memory_pc_offset);
 
-	uint16_t t1;
-	uint16_t t2;
+	uint16_t t1 = 0;
+	uint16_t t2 = 0;
 
 		/* Processor is little-endian */
 	switch (opcode) {
+	case 0x20:
+		/* JSR - Jump to Subroutine */
+		/* Address is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 6 */
+		return EXIT_CODE_UNIMPLEMENTED_BIT;
 	case 0x4C:
 		/* JMP - Jump */
 		/* Address is absolute */
@@ -208,6 +214,26 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
 		t2 = *(memory + t1) + (*(memory + t1 + 1) << 8);
 		registers->pc = t2;
+		break;
+	case 0x86:
+		/* STX - Store X Register */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		*(memory + t1) = registers->x;
+		registers->pc += 2;
+		break;
+	case 0xA2:
+		/* LDX - Load X Register */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		registers->x = t1;
+		set_zero_flag(registers, t1 == 0);
+		set_negative_flag(registers, t1 & (1 << 7));
+		registers->pc += 2;
 		break;
 	default:
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
