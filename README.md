@@ -9,6 +9,9 @@ All code is licensed under GPLv3+.
 ## Resources
 
 - [Nintendo Entertainment System Architecture] [1]
+- [6502 Instruction Reference] [2]
 
 [1]: http://fms.komkon.org/EMUL8/NES.html
      "Nintendo Entertainment System Architecture"
+[2]: http://obelisk.me.uk/6502/reference.html
+     "6502 Instruction Reference"
