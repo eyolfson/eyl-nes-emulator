@@ -41,8 +41,8 @@ void init_registers(struct registers *registers)
 	registers->a = 0;
 	registers->x = 0;
 	registers->y = 0;
-	registers->p = 0;
-	registers->s = 0xFF;
+	registers->p = 0x34;
+	registers->s = 0xFD;
 	registers->pc = 0xC000;
 }
 
