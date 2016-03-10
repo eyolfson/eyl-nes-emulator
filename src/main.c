@@ -112,12 +112,12 @@ bool get_overflow_flag(struct registers *registers)
 	return registers->p & 1 << 6;
 }
 
-void set_sign_flag(struct registers *registers, bool s)
+void set_negative_flag(struct registers *registers, bool n)
 {
-	registers->p |= s << 7;
+	registers->p |= n << 7;
 }
 
-bool get_sign_flag(struct registers *registers)
+bool get_negative_flag(struct registers *registers)
 {
 	return registers->p & 1 << 7;
 }
