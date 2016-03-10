@@ -128,6 +128,8 @@ static const uint16_t CHR_ROM_SIZE_PER_UNIT = 0x2000; /*  8 KiB */
 
 static const uint8_t EXIT_CODE_ARG_ERROR_BIT = 1 << 0;
 static const uint8_t EXIT_CODE_OS_ERROR_BIT = 1 << 1;
+static const uint8_t EXIT_CODE_UNIMPLEMENTED_BIT = 1 << 2;
+
 
 /* PPU: Picture Processing Unit */
 
@@ -176,6 +178,42 @@ load_rom_into_memory(uint8_t *data, size_t size)
 {
 	uint8_t prg_rom_units = data[4];
 	memcpy(memory + 0xC000, data + HEADER_SIZE, PRG_ROM_SIZE_PER_UNIT);
+}
+
+static
+uint8_t
+execute_instruction(struct registers *registers)
+{
+	uint8_t *memory_pc_offset = memory + registers->pc;
+	uint8_t opcode = *(memory_pc_offset);
+
+	uint16_t t1;
+	uint16_t t2;
+
+		/* Processor is little-endian */
+	switch (opcode) {
+	case 0x4C:
+		/* JMP - Jump */
+		/* Address is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		registers->pc = t1;
+		break;
+	case 0x6C:
+		/* JMP - Jump */
+		/* Address is indirect */
+		/* Bytes: 3 */
+		/* Cycles: 5 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		t2 = *(memory + t1) + (*(memory + t1 + 1) << 8);
+		registers->pc = t2;
+		break;
+	default:
+		return EXIT_CODE_UNIMPLEMENTED_BIT;
+	}
+
+	return 0;
 }
 
 static
@@ -239,8 +277,13 @@ uint8_t main(int argc, char **argv)
 	exit_code |= check_rom_size_raw(rom_data, rom_size);
 	load_rom_into_memory(rom_data, rom_size);
 
-	struct registers registers;
-	init_registers(&registers);
+	if (exit_code == 0) {
+		struct registers registers;
+		init_registers(&registers);
+		while (exit_code == 0) {
+			exit_code = execute_instruction(&registers);
+		}
+	}
 
 	if (munmap(rom_data, rom_size) >= 0) {
 		return exit_code;
