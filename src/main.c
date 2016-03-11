@@ -54,17 +54,27 @@ void init()
 
 void set_carry_flag(struct registers *registers, bool c)
 {
-	registers->p |= c << 0;
+	if (c) {
+		registers->p |= 1 << 0;
+	}
+	else {
+		registers->p &= ~(1 << 0);
+	}
 }
 
 bool get_carry_flag(struct registers *registers)
 {
-	return registers->p & 1 << 0;
+	return registers->p & (1 << 0);
 }
 
 void set_zero_flag(struct registers *registers, bool z)
 {
-	registers->p |= z << 1;
+	if (z) {
+		registers->p |= 1 << 1;
+	}
+	else {
+		registers->p &= ~(1 << 1);
+	}
 }
 
 bool get_zero_flag(struct registers *registers)
@@ -74,7 +84,12 @@ bool get_zero_flag(struct registers *registers)
 
 void set_interrupt_disable_flag(struct registers *registers, bool i)
 {
-	registers->p |= i << 2;
+	if (i) {
+		registers->p |= 1 << 2;
+	}
+	else {
+		registers->p &= ~(1 << 2);
+	}
 }
 
 bool get_interrupt_disable_flag(struct registers *registers)
@@ -84,7 +99,12 @@ bool get_interrupt_disable_flag(struct registers *registers)
 
 void set_decimal_mode_flag(struct registers *registers, bool d)
 {
-	registers->p |= d << 3;
+	if (d) {
+		registers->p |= 1 << 3;
+	}
+	else {
+		registers->p &= ~(1 << 3);
+	}
 }
 
 bool get_decimal_mode_flag(struct registers *registers)
@@ -94,7 +114,12 @@ bool get_decimal_mode_flag(struct registers *registers)
 
 void set_break_command_flag(struct registers *registers, bool b)
 {
-	registers->p |= b << 4;
+	if (b) {
+		registers->p |= 1 << 4;
+	}
+	else {
+		registers->p &= ~(1 << 4);
+	}
 }
 
 bool get_break_command_flag(struct registers *registers)
@@ -104,7 +129,12 @@ bool get_break_command_flag(struct registers *registers)
 
 void set_overflow_flag(struct registers *registers, bool v)
 {
-	registers->p |= v << 6;
+	if (v) {
+		registers->p |= 1 << 6;
+	}
+	else {
+		registers->p &= ~(1 << 6);
+	}
 }
 
 bool get_overflow_flag(struct registers *registers)
@@ -114,7 +144,12 @@ bool get_overflow_flag(struct registers *registers)
 
 void set_negative_flag(struct registers *registers, bool n)
 {
-	registers->p |= n << 7;
+	if (n) {
+		registers->p |= 1 << 7;
+	}
+	else {
+		registers->p &= ~(1 << 7);
+	}
 }
 
 bool get_negative_flag(struct registers *registers)
@@ -181,6 +216,19 @@ load_rom_into_memory(uint8_t *data, size_t size)
 }
 
 static
+void
+push_to_stack(struct registers *registers, uint8_t v)
+{
+	*(memory + 0x0100 + registers->s) = v;
+	if (registers->s == 0x00) {
+		registers->s = 0xFF;
+	}
+	else {
+		registers->s -= 1;
+	}
+}
+
+static
 uint8_t
 execute_instruction(struct registers *registers)
 {
@@ -192,12 +240,33 @@ execute_instruction(struct registers *registers)
 
 		/* Processor is little-endian */
 	switch (opcode) {
+	case 0x18:
+		/* CLC - Clear Carry Flag */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_carry_flag(registers, false);
+		registers->pc += 1;
+		break;
 	case 0x20:
 		/* JSR - Jump to Subroutine */
 		/* Address is absolute */
 		/* Bytes: 3 */
 		/* Cycles: 6 */
-		return EXIT_CODE_UNIMPLEMENTED_BIT;
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+
+		t2 = registers->pc + 3 - 1;
+		push_to_stack(registers, t2 & 0x00FF);
+		push_to_stack(registers, (t2 & 0xFF00) >> 8);
+
+		registers->pc = t1;
+		break;
+	case 0x38:
+		/* SEC - Set Carry Flag */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_carry_flag(registers, true);
+		registers->pc += 1;
+		break;
 	case 0x4C:
 		/* JMP - Jump */
 		/* Address is absolute */
@@ -224,6 +293,17 @@ execute_instruction(struct registers *registers)
 		*(memory + t1) = registers->x;
 		registers->pc += 2;
 		break;
+	case 0x90:
+		/* BCC - Branch if Carry Clear */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (!get_carry_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
 	case 0xA2:
 		/* LDX - Load X Register */
 		/* Operand is immediate */
@@ -234,6 +314,56 @@ execute_instruction(struct registers *registers)
 		set_zero_flag(registers, t1 == 0);
 		set_negative_flag(registers, t1 & (1 << 7));
 		registers->pc += 2;
+		break;
+	case 0xA9:
+		/* LDA - Load Accumlator */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		registers->a = t1;
+		set_zero_flag(registers, t1 == 0);
+		set_negative_flag(registers, t1 & (1 << 7));
+		registers->pc += 2;
+		break;
+	case 0xB0:
+		/* BCS - Branch if Carry Set */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (get_carry_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
+	case 0xEA:
+		/* NOP - No Operation */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->pc += 1;
+		break;
+	case 0xD0:
+		/* BNE - Branch if Not Equal */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (!get_zero_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
+	case 0xF0:
+		/* BEQ - Branch if Equal */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (get_zero_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
 		break;
 	default:
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
