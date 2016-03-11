@@ -256,6 +256,16 @@ read_from_zero_page(uint8_t offset)
 }
 
 static
+void
+execute_compare(struct registers *registers, uint8_t v1, uint8_t v2)
+{
+	uint8_t t = v1 - v2;
+	set_carry_flag(registers, (int8_t) v1 >= (int8_t) v2);
+	set_zero_flag(registers, t == 0);
+	set_negative_flag(registers, t & (1 << 7));
+}
+
+static
 uint8_t
 execute_instruction(struct registers *registers)
 {
@@ -530,11 +540,7 @@ execute_instruction(struct registers *registers)
 		/* Bytes: 2 */
 		/* Cycles: 2 */
 		t1 = *(memory_pc_offset + 1);
-		t2 = registers->a - t1;
-		/* TODO: Possibly wrong due to 16-bit t2 variable */
-		set_carry_flag(registers, !(t2 & (1 << 7)));
-		set_zero_flag(registers, t2 == 0);
-		set_negative_flag(registers, t2 & (1 << 7));
+		execute_compare(registers, registers->a, t1);
 		registers->pc += 2;
 		break;
 	case 0xEA:
