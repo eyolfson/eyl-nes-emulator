@@ -46,4 +46,22 @@
   256 bytes large and always starts with address $(\texttt{10})_{16}$. The
   program counter (PC) is 16-bit.
 
+  \section{Stack}
+
+  The stack exists at $(\texttt{1000})_{16}$ to $(\texttt{10FF})_{16}$.
+  Initially the stack pointer is set to $(\texttt{10FD})_{16}$
+  ($(\texttt{FD})_{16}$ in the stack pointer register). This means the stack is
+  256 bytes large.
+
+  The stack is a descending stack, which means it grows downward. The stack is
+  also an ``empty stack''. This means the element the stack pointer is pointing
+  to is free to use.
+
+  \begin{tikzpicture}
+    \draw (0, 0) rectangle (2, 0.5);
+    \draw (0, 0.5) rectangle (2, 1);
+    \draw (0, 1) rectangle (2, 1.5);
+    \draw (0, 1.5) rectangle (2, 2);
+  \end{tikzpicture}
+
 \end{document}
