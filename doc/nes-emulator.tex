@@ -64,4 +64,18 @@
     \draw (0, 1.5) rectangle (2, 2);
   \end{tikzpicture}
 
+  \section{Instructions}
+
+  This sequence of instructions:
+
+  \texttt{LDA \#\$0xFF}
+
+  \texttt{PHA}
+
+  \texttt{PLP}
+
+  \noindent Results in \texttt{P} being set to $(\texttt{EF})_{16}$ and not
+  $(\texttt{FF})_{16}$? Why? Do the \texttt{N} and \texttt{Z} flags get set
+  based off the current value of \texttt{A} and not from the stack?
+
 \end{document}
