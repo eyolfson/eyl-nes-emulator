@@ -41,7 +41,7 @@ void init_registers(struct registers *registers)
 	registers->a = 0;
 	registers->x = 0;
 	registers->y = 0;
-	registers->p = 0x34;
+	registers->p = 0x24;
 	registers->s = 0xFD;
 	registers->pc = 0xC000;
 }
@@ -230,6 +230,33 @@ push_to_stack(struct registers *registers, uint8_t v)
 
 static
 uint8_t
+pop_from_stack(struct registers *registers)
+{
+	if (registers->s == 0xFF) {
+		registers->s = 0x00;
+	}
+	else {
+		registers->s += 1;
+	}
+	return *(memory + 0x0100 + registers->s);
+}
+
+static
+void
+write_to_zero_page(uint8_t offset, uint8_t v)
+{
+	*(memory + offset) = v;
+}
+
+static
+uint8_t
+read_from_zero_page(uint8_t offset)
+{
+	return *(memory + offset);
+}
+
+static
+uint8_t
 execute_instruction(struct registers *registers)
 {
 	uint8_t *memory_pc_offset = memory + registers->pc;
@@ -240,6 +267,24 @@ execute_instruction(struct registers *registers)
 
 		/* Processor is little-endian */
 	switch (opcode) {
+	case 0x08:
+		/* PHP - Push Processor Status */
+		/* Bytes: 1 */
+		/* Cycles: 3 */
+		push_to_stack(registers, registers->p);
+		registers->pc += 1;
+		break;
+	case 0x10:
+		/* BPL - Branch if Positive */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (!get_negative_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
 	case 0x18:
 		/* CLC - Clear Carry Flag */
 		/* Bytes: 1 */
@@ -255,10 +300,38 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
 
 		t2 = registers->pc + 3 - 1;
-		push_to_stack(registers, t2 & 0x00FF);
 		push_to_stack(registers, (t2 & 0xFF00) >> 8);
+		push_to_stack(registers, t2 & 0x00FF);
 
 		registers->pc = t1;
+		break;
+	case 0x24:
+		/* BIT - Bit Test */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+
+		set_zero_flag(registers, t2 == 0);
+		set_overflow_flag(registers, t2 & (1 << 6));
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
+		break;
+	case 0x29:
+		/* AND - Logical AND */
+		/* Addressing is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = registers->a & t1;
+
+		registers->a = t2;
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
 		break;
 	case 0x38:
 		/* SEC - Set Carry Flag */
@@ -275,6 +348,33 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
 		registers->pc = t1;
 		break;
+	case 0x50:
+		/* BVC - Branch if Overflow Clear */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (!get_overflow_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
+	case 0x60:
+		/* RTS - Return from Subroutine */
+		/* Bytes: 1 */
+		/* Cycles: 6 */
+		t1 = pop_from_stack(registers);
+		t1 += pop_from_stack(registers) << 8;
+		t1 += 1;
+		registers->pc = t1;
+		break;
+	case 0x68:
+		/* PLA - Pull Accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 4 */
+		registers->a = pop_from_stack(registers);
+		registers->pc += 1;
+		break;
 	case 0x6C:
 		/* JMP - Jump */
 		/* Address is indirect */
@@ -284,13 +384,40 @@ execute_instruction(struct registers *registers)
 		t2 = *(memory + t1) + (*(memory + t1 + 1) << 8);
 		registers->pc = t2;
 		break;
+	case 0x70:
+		/* BVS - Branch if Overflow Set */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (get_overflow_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
+	case 0x78:
+		/* SEI - Set Interrupt Disable */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_interrupt_disable_flag(registers, true);
+		registers->pc += 1;
+		break;
+	case 0x85:
+		/* STA - Store Accumulator */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		write_to_zero_page(t1, registers->a);
+		registers->pc += 2;
+		break;
 	case 0x86:
 		/* STX - Store X Register */
 		/* Addressing is zero page */
 		/* Bytes: 2 */
 		/* Cycles: 3 */
 		t1 = *(memory_pc_offset + 1);
-		*(memory + t1) = registers->x;
+		write_to_zero_page(t1, registers->x);
 		registers->pc += 2;
 		break;
 	case 0x90:
@@ -364,6 +491,13 @@ execute_instruction(struct registers *registers)
 			t1 = *(memory_pc_offset + 1);
 			registers->pc += t1;
 		}
+		break;
+	case 0xF8:
+		/* SED - Set Decimal Flag */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_decimal_mode_flag(registers, true);
+		registers->pc += 1;
 		break;
 	default:
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
