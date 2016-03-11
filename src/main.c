@@ -436,7 +436,27 @@ execute_instruction(struct registers *registers)
 		/* Bytes: 1 */
 		/* Cycles: 4 */
 		registers->a = pop_from_stack(registers);
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
 		registers->pc += 1;
+		break;
+	case 0x69:
+		/* ADC - Add with Carry */
+		/* Addressing is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = registers->a + t1;
+		if (get_carry_flag(registers)) {
+			t2 += 1;
+		}
+
+		registers->a = t2;
+		set_overflow_flag(registers, t2 >= 0x100);
+		set_negative_flag(registers, t2 & (1 << 7));
+		set_zero_flag(registers, t2 == 0);
+
+		registers->pc += 2;
 		break;
 	case 0x6C:
 		/* JMP - Jump */
