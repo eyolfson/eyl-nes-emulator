@@ -274,6 +274,20 @@ execute_instruction(struct registers *registers)
 		push_to_stack(registers, registers->p);
 		registers->pc += 1;
 		break;
+	case 0x09:
+		/* ORA - Logical Inclusive OR */
+		/* Addressing is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = registers->a | t1;
+
+		registers->a = t2;
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
+		break;
 	case 0x10:
 		/* BPL - Branch if Positive */
 		/* Addressing is relative */
@@ -319,6 +333,13 @@ execute_instruction(struct registers *registers)
 
 		registers->pc += 2;
 		break;
+	case 0x28:
+		/* PLP - Pull Processor Status */
+		/* Bytes: 1 */
+		/* Cycles: 4 */
+		registers->p = pop_from_stack(registers);
+		registers->pc += 1;
+		break;
 	case 0x29:
 		/* AND - Logical AND */
 		/* Addressing is immediate */
@@ -333,12 +354,44 @@ execute_instruction(struct registers *registers)
 
 		registers->pc += 2;
 		break;
+	case 0x30:
+		/* BMI - Branch if Minus */
+		/* Addressing is relative */
+		/* Bytes: 2 */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+		registers->pc += 2;
+		if (get_negative_flag(registers)) {
+			t1 = *(memory_pc_offset + 1);
+			registers->pc += t1;
+		}
+		break;
 	case 0x38:
 		/* SEC - Set Carry Flag */
 		/* Bytes: 1 */
 		/* Cycles: 2 */
 		set_carry_flag(registers, true);
 		registers->pc += 1;
+		break;
+	case 0x48:
+		/* PHA - Push Accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 3 */
+		push_to_stack(registers, registers->a);
+		registers->pc += 1;
+		break;
+	case 0x49:
+		/* EOR - Exclusive OR */
+		/* Addressing is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = registers->a ^ t1;
+
+		registers->a = t2;
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
 		break;
 	case 0x4C:
 		/* JMP - Jump */
@@ -464,6 +517,26 @@ execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0xB8:
+		/* CLV - Clear Overflow Flag */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_overflow_flag(registers, false);
+		registers->pc += 1;
+		break;
+	case 0xC9:
+		/* CMP - Compare */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = registers->a - t1;
+		/* TODO: Possibly wrong due to 16-bit t2 variable */
+		set_carry_flag(registers, !(t2 & (1 << 7)));
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+		registers->pc += 2;
+		break;
 	case 0xEA:
 		/* NOP - No Operation */
 		/* Bytes: 1 */
@@ -480,6 +553,13 @@ execute_instruction(struct registers *registers)
 			t1 = *(memory_pc_offset + 1);
 			registers->pc += t1;
 		}
+		break;
+	case 0xD8:
+		/* CLD - Clear Decimal Mode */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_decimal_mode_flag(registers, false);
+		registers->pc += 1;
 		break;
 	case 0xF0:
 		/* BEQ - Branch if Equal */
