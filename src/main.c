@@ -275,7 +275,7 @@ execute_instruction(struct registers *registers)
 	uint16_t t1 = 0;
 	uint16_t t2 = 0;
 
-		/* Processor is little-endian */
+	/* Processor is little-endian */
 	switch (opcode) {
 	case 0x08:
 		/* PHP - Push Processor Status */
@@ -337,7 +337,7 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1);
 		t2 = read_from_zero_page(t1);
 
-		set_zero_flag(registers, t2 == 0);
+		set_zero_flag(registers, (registers->a & t2) == 0);
 		set_overflow_flag(registers, t2 & (1 << 6));
 		set_negative_flag(registers, t2 & (1 << 7));
 
@@ -347,7 +347,18 @@ execute_instruction(struct registers *registers)
 		/* PLP - Pull Processor Status */
 		/* Bytes: 1 */
 		/* Cycles: 4 */
+
+		/* TODO: perserve break command flag? */
+		t1 = get_break_command_flag(registers);
 		registers->p = pop_from_stack(registers);
+		/* TODO: flag seems to always be set? */
+		registers->p |= 0x20;
+		if (t1) {
+			set_break_command_flag(registers, true);
+		}
+		else {
+			set_break_command_flag(registers, false);
+		}
 		registers->pc += 1;
 		break;
 	case 0x29:
