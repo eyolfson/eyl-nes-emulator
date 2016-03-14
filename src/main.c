@@ -558,6 +558,17 @@ execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0xA0:
+		/* LDX - Load X Register */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		registers->y = t1;
+		set_zero_flag(registers, t1 == 0);
+		set_negative_flag(registers, t1 & (1 << 7));
+		registers->pc += 2;
+		break;
 	case 0xA2:
 		/* LDX - Load X Register */
 		/* Operand is immediate */
@@ -598,6 +609,15 @@ execute_instruction(struct registers *registers)
 		set_overflow_flag(registers, false);
 		registers->pc += 1;
 		break;
+	case 0xC0:
+		/* CPY - Compare Y Register */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		execute_compare(registers, registers->y, t1);
+		registers->pc += 2;
+		break;
 	case 0xC9:
 		/* CMP - Compare */
 		/* Operand is immediate */
@@ -605,6 +625,15 @@ execute_instruction(struct registers *registers)
 		/* Cycles: 2 */
 		t1 = *(memory_pc_offset + 1);
 		execute_compare(registers, registers->a, t1);
+		registers->pc += 2;
+		break;
+	case 0xE0:
+		/* CPX - Compare X Register */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		execute_compare(registers, registers->x, t1);
 		registers->pc += 2;
 		break;
 	case 0xEA:
