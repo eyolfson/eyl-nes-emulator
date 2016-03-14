@@ -259,10 +259,52 @@ static
 void
 execute_compare(struct registers *registers, uint8_t v1, uint8_t v2)
 {
-	uint8_t t = v1 - v2;
-	set_carry_flag(registers, (int8_t) v1 >= (int8_t) v2);
+	uint16_t t = v1 - v2;
+	set_carry_flag(registers, t < 0x100);
 	set_zero_flag(registers, t == 0);
 	set_negative_flag(registers, t & (1 << 7));
+}
+
+static
+void
+execute_add_with_carry(struct registers *registers, uint8_t v)
+{
+	int8_t a = (int8_t) registers->a;
+	int8_t b = (int8_t) v;
+
+	int16_t result = a + b;
+	bool inc_carry = false;
+	if (get_carry_flag(registers)) {
+		if (result == -1) {
+			inc_carry = true;
+		}
+		result += 1;
+	}
+
+	if (inc_carry) {
+		set_carry_flag(registers, true);
+	}
+	else if (result > 0) {
+		set_carry_flag(registers, result & 0x100);
+	}
+	else {
+		set_carry_flag(registers, false);
+	}
+
+	/* If the operands have opposite signs, the sum will never overflow */
+	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
+		set_overflow_flag(registers, true);
+	}
+	else if (a < 0 && b < 0 && (int8_t) result > 0) {
+		set_overflow_flag(registers, true);
+	}
+	else {
+		set_overflow_flag(registers, false);
+	}
+
+	set_negative_flag(registers, result & 0x80);
+	set_zero_flag(registers, result == 0);
+	registers->a = (result & 0xFF);
 }
 
 static
@@ -457,16 +499,7 @@ execute_instruction(struct registers *registers)
 		/* Bytes: 2 */
 		/* Cycles: 2 */
 		t1 = *(memory_pc_offset + 1);
-		t2 = registers->a + t1;
-		if (get_carry_flag(registers)) {
-			t2 += 1;
-		}
-
-		registers->a = t2;
-		set_overflow_flag(registers, t2 >= 0x100);
-		set_negative_flag(registers, t2 & (1 << 7));
-		set_zero_flag(registers, t2 == 0);
-
+		execute_add_with_carry(registers, t1);
 		registers->pc += 2;
 		break;
 	case 0x6C:
