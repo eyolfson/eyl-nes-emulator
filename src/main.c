@@ -308,6 +308,36 @@ execute_add_with_carry(struct registers *registers, uint8_t v)
 }
 
 static
+void
+execute_subtract_with_carry(struct registers *registers, uint8_t v)
+{
+	int8_t a = (int8_t) registers->a;
+	int8_t b = (int8_t) v;
+	int16_t result = a - b;
+
+	uint16_t t = registers->a + ((uint8_t) (~v) + (uint8_t) 1);
+	if (!get_carry_flag(registers)) {
+		t += 0xFF;
+	}
+	set_carry_flag(registers, t & 0x100);
+
+	/* If the operands have opposite signs, the sum will never overflow */
+	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
+		set_overflow_flag(registers, true);
+	}
+	else if (a < 0 && b < 0 && (int8_t) result > 0) {
+		set_overflow_flag(registers, true);
+	}
+	else {
+		set_overflow_flag(registers, false);
+	}
+
+	set_negative_flag(registers, result & 0x80);
+	set_zero_flag(registers, result == 0);
+	registers->a = (result & 0xFF);
+}
+
+static
 uint8_t
 execute_instruction(struct registers *registers)
 {
@@ -659,6 +689,15 @@ execute_instruction(struct registers *registers)
 		/* Cycles: 2 */
 		set_decimal_mode_flag(registers, false);
 		registers->pc += 1;
+		break;
+	case 0xE9:
+		/* SBC - Subtract with Carry */
+		/* Addressing is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		execute_subtract_with_carry(registers, t1);
+		registers->pc += 2;
 		break;
 	case 0xF0:
 		/* BEQ - Branch if Equal */
