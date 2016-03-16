@@ -15,15 +15,16 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <stdint.h>
-
-#define MEMORY_SIZE 0x10000
+#ifndef NES_EMULATOR_CPU_H
+#define NES_EMULATOR_CPU_H
 
 #ifdef __cpluscplus
 extern "C" {
 #endif
+
+#include <stdint.h>
+
+#define MEMORY_SIZE 0x10000
 
 extern uint8_t memory[MEMORY_SIZE];
 
@@ -42,4 +43,6 @@ uint8_t execute_instruction(struct registers *registers);
 
 #ifdef __cpluscplus
 }
+#endif
+
 #endif
