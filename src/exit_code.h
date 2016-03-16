@@ -15,14 +15,13 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NES_EMULATOR_EXIT_CODE_H
-#define NES_EMULATOR_EXIT_CODE_H
+#pragma once
+
+#include <stdint.h>
 
 #ifdef __cpluscplus
 extern "C" {
 #endif
-
-#include <stdint.h>
 
 extern const uint8_t EXIT_CODE_ARG_ERROR_BIT;
 extern const uint8_t EXIT_CODE_OS_ERROR_BIT;
@@ -30,6 +29,4 @@ extern const uint8_t EXIT_CODE_UNIMPLEMENTED_BIT;
 
 #ifdef __cpluscplus
 }
-#endif
-
 #endif
