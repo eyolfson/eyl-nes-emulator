@@ -22,4 +22,6 @@ add_compile_options(-Wextra)
 
 add_executable(nes-emulator
 	main.c
+	exit_code.c
+	cpu.c
 )
