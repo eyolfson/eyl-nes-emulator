@@ -249,8 +249,22 @@ write_to_zero_page(uint8_t offset, uint8_t v)
 }
 
 static
+void
+write_to_memory(uint16_t offset, uint8_t v)
+{
+	*(memory + offset) = v;
+}
+
+static
 uint8_t
 read_from_zero_page(uint8_t offset)
+{
+	return *(memory + offset);
+}
+
+static
+uint8_t
+read_from_memory(uint16_t offset)
 {
 	return *(memory + offset);
 }
@@ -313,25 +327,16 @@ execute_subtract_with_carry(struct registers *registers, uint8_t v)
 {
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) v;
-	int16_t result = a - b;
 
+	int16_t result = a - b;
 	uint16_t t = registers->a + ((uint8_t) (~v) + (uint8_t) 1);
 	if (!get_carry_flag(registers)) {
+		result -= 1;
 		t += 0xFF;
 	}
-	set_carry_flag(registers, t & 0x100);
 
-	/* If the operands have opposite signs, the sum will never overflow */
-	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
-		set_overflow_flag(registers, true);
-	}
-	else if (a < 0 && b < 0 && (int8_t) result > 0) {
-		set_overflow_flag(registers, true);
-	}
-	else {
-		set_overflow_flag(registers, false);
-	}
-
+	set_carry_flag(registers, t >= 0x100);
+	set_overflow_flag(registers, result < -128 || result > 127);
 	set_negative_flag(registers, result & 0x80);
 	set_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
@@ -349,6 +354,43 @@ execute_instruction(struct registers *registers)
 
 	/* Processor is little-endian */
 	switch (opcode) {
+	case 0x01:
+		/* ORA - Logical Inclusive OR */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		t1 = read_from_memory(t2);
+		t2 = registers->a | t1;
+
+		registers->a = t2;
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
+		break;
+	case 0x05:
+		/* ORA - Logical Inclusive OR */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+
+		t1 = registers->a | t2;
+
+		registers->a = t1;
+		set_zero_flag(registers, t1 == 0);
+		set_negative_flag(registers, t1 & (1 << 7));
+
+		registers->pc += 2;
+		break;
 	case 0x08:
 		/* PHP - Push Processor Status */
 		/* Bytes: 1 */
@@ -369,6 +411,17 @@ execute_instruction(struct registers *registers)
 		set_negative_flag(registers, t2 & (1 << 7));
 
 		registers->pc += 2;
+		break;
+	case 0x0A:
+		/* ASL - Arithmetic Shift Left */
+		/* Addressing is accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_carry_flag(registers, registers->a & 0x80);
+		registers->a = registers->a << 1;
+		set_negative_flag(registers, registers->a & 0x80);
+		set_zero_flag(registers, registers->a == 0);
+		registers->pc += 1;
 		break;
 	case 0x10:
 		/* BPL - Branch if Positive */
@@ -401,6 +454,27 @@ execute_instruction(struct registers *registers)
 
 		registers->pc = t1;
 		break;
+	case 0x21:
+		/* AND - Logical AND */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		t1 = read_from_memory(t2);
+		t2 = registers->a & t1;
+
+		registers->a = t2;
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
+		break;
 	case 0x24:
 		/* BIT - Bit Test */
 		/* Addressing is zero page */
@@ -412,6 +486,22 @@ execute_instruction(struct registers *registers)
 		set_zero_flag(registers, (registers->a & t2) == 0);
 		set_overflow_flag(registers, t2 & (1 << 6));
 		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
+		break;
+	case 0x25:
+		/* AND - Logical AND */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+
+		t1 = registers->a & t2;
+
+		registers->a = t1;
+		set_zero_flag(registers, t1 == 0);
+		set_negative_flag(registers, t1 & (1 << 7));
 
 		registers->pc += 2;
 		break;
@@ -447,6 +537,21 @@ execute_instruction(struct registers *registers)
 
 		registers->pc += 2;
 		break;
+	case 0x2A:
+		/* ROL - Rotate Left */
+		/* Addressing is accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		t1 = get_carry_flag(registers);
+		set_carry_flag(registers, registers->a & 0x80);
+		registers->a = registers->a << 1;
+		if (t1) {
+			registers->a |= 0x01;
+		}
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
+		registers->pc += 1;
+		break;
 	case 0x30:
 		/* BMI - Branch if Minus */
 		/* Addressing is relative */
@@ -464,6 +569,61 @@ execute_instruction(struct registers *registers)
 		/* Cycles: 2 */
 		set_carry_flag(registers, true);
 		registers->pc += 1;
+		break;
+	case 0x40:
+		/* RTI - Return from Interrupt */
+		/* Bytes: 1 */
+		/* Cycles: 6 */
+		t1 = get_break_command_flag(registers);
+		registers->p = pop_from_stack(registers);
+		/* TODO: flag seems to always be set? */
+		registers->p |= 0x20;
+		if (t1) {
+			set_break_command_flag(registers, true);
+		}
+		else {
+			set_break_command_flag(registers, false);
+		}
+		t2 = pop_from_stack(registers);
+		t2 += pop_from_stack(registers) << 8;
+		registers->pc = t2;
+		break;
+	case 0x41:
+		/* EOR - Exclusive OR */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		t1 = read_from_memory(t2);
+		t2 = registers->a ^ t1;
+
+		registers->a = t2;
+		set_zero_flag(registers, t2 == 0);
+		set_negative_flag(registers, t2 & (1 << 7));
+
+		registers->pc += 2;
+		break;
+	case 0x45:
+		/* EOR - Exclusive OR */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+
+		t1 = registers->a ^ t2;
+
+		registers->a = t1;
+		set_zero_flag(registers, t1 == 0);
+		set_negative_flag(registers, t1 & (1 << 7));
+
+		registers->pc += 2;
 		break;
 	case 0x48:
 		/* PHA - Push Accumulator */
@@ -485,6 +645,17 @@ execute_instruction(struct registers *registers)
 		set_negative_flag(registers, t2 & (1 << 7));
 
 		registers->pc += 2;
+		break;
+	case 0x4A:
+		/* LSR - Logical Shift Right */
+		/* Addressing is accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		set_carry_flag(registers, registers->a & 0x01);
+		set_negative_flag(registers, false);
+		registers->a = registers->a >> 1;
+		set_zero_flag(registers, registers->a == 0);
+		registers->pc += 1;
 		break;
 	case 0x4C:
 		/* JMP - Jump */
@@ -514,6 +685,33 @@ execute_instruction(struct registers *registers)
 		t1 += 1;
 		registers->pc = t1;
 		break;
+	case 0x61:
+		/* ADC - Add with Carry */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		t1 = read_from_memory(t2);
+
+		execute_add_with_carry(registers, t1);
+		registers->pc += 2;
+		break;
+	case 0x65:
+		/* ADC - Add with Carry */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+		execute_add_with_carry(registers, t2);
+		registers->pc += 2;
+		break;
 	case 0x68:
 		/* PLA - Pull Accumulator */
 		/* Bytes: 1 */
@@ -531,6 +729,21 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1);
 		execute_add_with_carry(registers, t1);
 		registers->pc += 2;
+		break;
+	case 0x6A:
+		/* ROR - Rotate Right */
+		/* Addressing is accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		t1 = get_carry_flag(registers);
+		set_carry_flag(registers, registers->a & 0x01);
+		registers->a = registers->a >> 1;
+		if (t1) {
+			registers->a |= 0x80;
+		}
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
+		registers->pc += 1;
 		break;
 	case 0x6C:
 		/* JMP - Jump */
@@ -559,6 +772,30 @@ execute_instruction(struct registers *registers)
 		set_interrupt_disable_flag(registers, true);
 		registers->pc += 1;
 		break;
+	case 0x81:
+		/* STA - Store Accumulator */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		write_to_memory(t2, registers->a);
+		registers->pc += 2;
+		break;
+	case 0x84:
+		/* STY - Store Y Register */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		write_to_zero_page(t1, registers->y);
+		registers->pc += 2;
+		break;
 	case 0x85:
 		/* STA - Store Accumulator */
 		/* Addressing is zero page */
@@ -577,6 +814,42 @@ execute_instruction(struct registers *registers)
 		write_to_zero_page(t1, registers->x);
 		registers->pc += 2;
 		break;
+	case 0x88:
+		/* DEY - Decrement Y Register */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->y -= 1;
+		set_zero_flag(registers, registers->y == 0);
+		set_negative_flag(registers, registers->y & (1 << 7));
+		registers->pc += 1;
+		break;
+	case 0x8A:
+		/* TXA - Transfer X to Accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->a = registers->x;
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
+		registers->pc += 1;
+		break;
+	case 0x8D:
+		/* STA - Store Accumulator */
+		/* Addressing is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 4 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		write_to_memory(t1, registers->a);
+		registers->pc += 3;
+		break;
+	case 0x8E:
+		/* STX - Store X Register */
+		/* Addressing is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 4 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		write_to_memory(t1, registers->x);
+		registers->pc += 3;
+		break;
 	case 0x90:
 		/* BCC - Branch if Carry Clear */
 		/* Addressing is relative */
@@ -588,6 +861,22 @@ execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0x98:
+		/* TYA - Transfer Y to Accumulator */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->a = registers->y;
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
+		registers->pc += 1;
+		break;
+	case 0x9A:
+		/* TXS - Transfer X to Stack Pointer */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->s = registers->x;
+		registers->pc += 1;
+		break;
 	case 0xA0:
 		/* LDX - Load X Register */
 		/* Operand is immediate */
@@ -597,6 +886,23 @@ execute_instruction(struct registers *registers)
 		registers->y = t1;
 		set_zero_flag(registers, t1 == 0);
 		set_negative_flag(registers, t1 & (1 << 7));
+		registers->pc += 2;
+		break;
+	case 0xA1:
+		/* LDA - Load Accumlator */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		registers->a = read_from_memory(t2);
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
 		registers->pc += 2;
 		break;
 	case 0xA2:
@@ -610,6 +916,48 @@ execute_instruction(struct registers *registers)
 		set_negative_flag(registers, t1 & (1 << 7));
 		registers->pc += 2;
 		break;
+	case 0xA4:
+		/* LDY - Load Y Register */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		registers->y = read_from_zero_page(t1);
+		set_zero_flag(registers, registers->y == 0);
+		set_negative_flag(registers, registers->y & (1 << 7));
+		registers->pc += 2;
+		break;
+	case 0xA5:
+		/* LDA - Load Accumlator */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		registers->a = read_from_zero_page(t1);
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
+		registers->pc += 2;
+		break;
+	case 0xA6:
+		/* LDX - Load X Register */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		registers->x = read_from_zero_page(t1);
+		set_zero_flag(registers, registers->x == 0);
+		set_negative_flag(registers, registers->x & (1 << 7));
+		registers->pc += 2;
+		break;
+	case 0xA8:
+		/* TAY - Transfer Accumulator to Y */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->y = registers->a;
+		set_zero_flag(registers, registers->y == 0);
+		set_negative_flag(registers, registers->y & (1 << 7));
+		registers->pc += 1;
+		break;
 	case 0xA9:
 		/* LDA - Load Accumlator */
 		/* Operand is immediate */
@@ -620,6 +968,37 @@ execute_instruction(struct registers *registers)
 		set_zero_flag(registers, t1 == 0);
 		set_negative_flag(registers, t1 & (1 << 7));
 		registers->pc += 2;
+		break;
+	case 0xAA:
+		/* TAY - Transfer Accumulator to X */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->x = registers->a;
+		set_zero_flag(registers, registers->x == 0);
+		set_negative_flag(registers, registers->x & (1 << 7));
+		registers->pc += 1;
+		break;
+	case 0xAD:
+		/* LDA - Load Acuumulator */
+		/* Addressing is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 4 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		registers->a = read_from_memory(t1);
+		set_zero_flag(registers, registers->a == 0);
+		set_negative_flag(registers, registers->a & (1 << 7));
+		registers->pc += 3;
+		break;
+	case 0xAE:
+		/* LDX - Load X Register */
+		/* Addressing is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 4 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		registers->x = read_from_memory(t1);
+		set_zero_flag(registers, registers->x == 0);
+		set_negative_flag(registers, registers->x & (1 << 7));
+		registers->pc += 3;
 		break;
 	case 0xB0:
 		/* BCS - Branch if Carry Set */
@@ -639,6 +1018,15 @@ execute_instruction(struct registers *registers)
 		set_overflow_flag(registers, false);
 		registers->pc += 1;
 		break;
+	case 0xBA:
+		/* TSX - Transfer Stack Pointer to X */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->x = registers->s;
+		set_zero_flag(registers, registers->x == 0);
+		set_negative_flag(registers, registers->x & (1 << 7));
+		registers->pc += 1;
+		break;
 	case 0xC0:
 		/* CPY - Compare Y Register */
 		/* Operand is immediate */
@@ -647,6 +1035,52 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1);
 		execute_compare(registers, registers->y, t1);
 		registers->pc += 2;
+		break;
+	case 0xC1:
+		/* CMP - Compare */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		t1 = read_from_memory(t2);
+
+		execute_compare(registers, registers->a, t1);
+		registers->pc += 2;
+		break;
+	case 0xC4:
+		/* CPY - Compare Y Register */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+		execute_compare(registers, registers->y, t2);
+		registers->pc += 2;
+		break;
+	case 0xC5:
+		/* CMP - Compare */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+		execute_compare(registers, registers->a, t2);
+		registers->pc += 2;
+		break;
+	case 0xC8:
+		/* INY - Increment Y Register */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->y += 1;
+		set_zero_flag(registers, registers->y == 0);
+		set_negative_flag(registers, registers->y & (1 << 7));
+		registers->pc += 1;
 		break;
 	case 0xC9:
 		/* CMP - Compare */
@@ -657,20 +1091,24 @@ execute_instruction(struct registers *registers)
 		execute_compare(registers, registers->a, t1);
 		registers->pc += 2;
 		break;
-	case 0xE0:
-		/* CPX - Compare X Register */
-		/* Operand is immediate */
-		/* Bytes: 2 */
-		/* Cycles: 2 */
-		t1 = *(memory_pc_offset + 1);
-		execute_compare(registers, registers->x, t1);
-		registers->pc += 2;
-		break;
-	case 0xEA:
-		/* NOP - No Operation */
+	case 0xCA:
+		/* DEX - Decrement X Register */
 		/* Bytes: 1 */
 		/* Cycles: 2 */
+		registers->x -= 1;
+		set_zero_flag(registers, registers->x == 0);
+		set_negative_flag(registers, registers->x & (1 << 7));
 		registers->pc += 1;
+		break;
+	case 0xCC:
+		/* CPY - Compare Y Register */
+		/* Address is absolute */
+		/* Bytes: 3 */
+		/* Cycles: 4 */
+		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
+		t2 = read_from_memory(t1);
+		execute_compare(registers, registers->y, t2);
+		registers->pc += 3;
 		break;
 	case 0xD0:
 		/* BNE - Branch if Not Equal */
@@ -690,6 +1128,61 @@ execute_instruction(struct registers *registers)
 		set_decimal_mode_flag(registers, false);
 		registers->pc += 1;
 		break;
+	case 0xE0:
+		/* CPX - Compare X Register */
+		/* Operand is immediate */
+		/* Bytes: 2 */
+		/* Cycles: 2 */
+		t1 = *(memory_pc_offset + 1);
+		execute_compare(registers, registers->x, t1);
+		registers->pc += 2;
+		break;
+	case 0xE1:
+		/* SBC - Subtract with Carry */
+		/* Addressing is (Indirect, X) */
+		/* Bytes: 2 */
+		/* Cycles: 6 */
+		t1 = *(memory_pc_offset + 1);
+		t1 += registers->x;
+		t1 &= 0x00FF;
+
+		t2 = read_from_zero_page(t1);
+		t2 += read_from_zero_page(t1 + 1) << 8;
+
+		t1 = read_from_memory(t2);
+
+		execute_subtract_with_carry(registers, t1);
+		registers->pc += 2;
+		break;
+	case 0xE4:
+		/* CPX - Compare X Register */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+		execute_compare(registers, registers->x, t2);
+		registers->pc += 2;
+		break;
+	case 0xE5:
+		/* SBC - Subtract with Carry */
+		/* Addressing is zero page */
+		/* Bytes: 2 */
+		/* Cycles: 3 */
+		t1 = *(memory_pc_offset + 1);
+		t2 = read_from_zero_page(t1);
+		execute_subtract_with_carry(registers, t2);
+		registers->pc += 2;
+		break;
+	case 0xE8:
+		/* INX - Increment X Register */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->x += 1;
+		set_zero_flag(registers, registers->x == 0);
+		set_negative_flag(registers, registers->x & (1 << 7));
+		registers->pc += 1;
+		break;
 	case 0xE9:
 		/* SBC - Subtract with Carry */
 		/* Addressing is immediate */
@@ -698,6 +1191,12 @@ execute_instruction(struct registers *registers)
 		t1 = *(memory_pc_offset + 1);
 		execute_subtract_with_carry(registers, t1);
 		registers->pc += 2;
+		break;
+	case 0xEA:
+		/* NOP - No Operation */
+		/* Bytes: 1 */
+		/* Cycles: 2 */
+		registers->pc += 1;
 		break;
 	case 0xF0:
 		/* BEQ - Branch if Equal */
