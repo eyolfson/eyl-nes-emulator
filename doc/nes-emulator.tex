@@ -43,13 +43,13 @@
   The NES CPU is a modified 6502. It is an 8-bit CPU. It has an accumlator
   register (A), two index registers (X and Y). It has a register for the
   processor status flag bits (P). It has an 8-bit stack pointer (S) which is
-  256 bytes large and always starts with address $(\texttt{10})_{16}$. The
+  256 bytes large and always starts with address $(\texttt{01})_{16}$. The
   program counter (PC) is 16-bit.
 
   \section{Stack}
 
-  The stack exists at $(\texttt{1000})_{16}$ to $(\texttt{10FF})_{16}$.
-  Initially the stack pointer is set to $(\texttt{10FD})_{16}$
+  The stack exists at $(\texttt{0100})_{16}$ to $(\texttt{01FF})_{16}$.
+  Initially the stack pointer is set to $(\texttt{01FD})_{16}$
   ($(\texttt{FD})_{16}$ in the stack pointer register). This means the stack is
   256 bytes large.
 
