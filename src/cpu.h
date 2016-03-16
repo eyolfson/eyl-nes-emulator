@@ -21,6 +21,10 @@
 
 #define MEMORY_SIZE 0x10000
 
+#ifdef __cpluscplus
+extern "C" {
+#endif
+
 extern uint8_t memory[MEMORY_SIZE];
 
 struct registers {
@@ -35,3 +39,7 @@ struct registers {
 void init_registers(struct registers *registers);
 
 uint8_t execute_instruction(struct registers *registers);
+
+#ifdef __cpluscplus
+}
+#endif
