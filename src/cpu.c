@@ -52,21 +52,23 @@ get_carry_flag(struct registers *registers)
 	return registers->p & (1 << 0);
 }
 
-static
-void
-set_zero_flag(struct registers *registers, bool z)
+static void clear_zero_flag(struct registers *registers)
 {
-	if (z) {
-		registers->p |= 1 << 1;
-	}
-	else {
-		registers->p &= ~(1 << 1);
-	}
+	registers->p &= ~(1 << 1);
 }
 
-static
-bool
-get_zero_flag(struct registers *registers)
+static void set_zero_flag(struct registers *registers)
+{
+	registers->p |= 1 << 1;
+}
+
+static void assign_zero_flag(struct registers *registers, bool z)
+{
+	if (z) { set_zero_flag(registers); }
+	else { clear_zero_flag(registers); }
+}
+
+static bool get_zero_flag(struct registers *registers)
 {
 	return registers->p & 1 << 1;
 }
@@ -261,6 +263,28 @@ get_absolute_value(struct registers *registers)
 
 static
 uint8_t *
+get_indirect_y_pointer(struct registers *registers)
+{
+	uint8_t zero_page_address = get_byte_operand(registers);
+
+	uint16_t absolute_address = *pointer_to_zero_page(zero_page_address);
+	zero_page_address += 1;
+	absolute_address += *pointer_to_zero_page(zero_page_address) << 8;
+
+	absolute_address += registers->y;
+
+	return pointer_to_memory(absolute_address);
+}
+
+static
+uint8_t
+get_indirect_y_value(struct registers *registers)
+{
+	return *get_indirect_y_pointer(registers);
+}
+
+static
+uint8_t *
 get_indirect_x_pointer(struct registers *registers)
 {
 	uint8_t zero_page_address = get_byte_operand(registers);
@@ -293,7 +317,7 @@ static
 void
 sync_negative_and_zero_flags(struct registers *registers, uint8_t m)
 {
-	set_zero_flag(registers, m == 0);
+	assign_zero_flag(registers, m == 0);
 	set_negative_flag(registers, m & (1 << 7));
 }
 
@@ -344,7 +368,7 @@ execute_add_with_carry(struct registers *registers, uint8_t v)
 	}
 
 	set_negative_flag(registers, result & 0x80);
-	set_zero_flag(registers, result == 0);
+	assign_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
 }
 
@@ -365,7 +389,7 @@ execute_subtract_with_carry(struct registers *registers, uint8_t m)
 	set_carry_flag(registers, t >= 0x100);
 	set_overflow_flag(registers, result < -128 || result > 127);
 	set_negative_flag(registers, result & 0x80);
-	set_zero_flag(registers, result == 0);
+	assign_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
 }
 
@@ -459,7 +483,7 @@ execute_bit_test(struct registers *registers, uint8_t m)
 {
 	set_negative_flag(registers, m & (1 << 7));
 	set_overflow_flag(registers, m & (1 << 6));
-	set_zero_flag(registers, (registers->a & m) == 0);
+	assign_zero_flag(registers, (registers->a & m) == 0);
 }
 
 uint8_t execute_instruction(struct registers *registers)
@@ -537,6 +561,13 @@ uint8_t execute_instruction(struct registers *registers)
 			t1 = *(memory_pc_offset + 1);
 			registers->pc += t1;
 		}
+		break;
+	case 0x11:
+		/* ORA - Logical Inclusive OR */
+		/* Cycles: 5 (+1 if page crossed) */
+		execute_logical_inclusive_or(registers,
+			get_indirect_y_value(registers));
+		registers->pc += 2;
 		break;
 	case 0x18:
 		/* CLC - Clear Carry Flag */
@@ -649,6 +680,13 @@ uint8_t execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0x31:
+		/* AND - Logical AND */
+		/* Cycles: 5 (+1 if page crossed) */
+		execute_logical_and(registers,
+			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
 	case 0x38:
 		/* SEC - Set Carry Flag */
 		/* Cycles: 2 */
@@ -746,6 +784,13 @@ uint8_t execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0x51:
+		/* EOR - Exclusive OR */
+		/* Cycles: 5 (+1 if page crossed) */
+		execute_logical_exclusive_or(registers,
+			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
 	case 0x60:
 		/* RTS - Return from Subroutine */
 		/* Bytes: 1 */
@@ -831,6 +876,13 @@ uint8_t execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0x71:
+		/* ADC - Add with Carry */
+		/* Cycles: 5 (+1 if page crossed) */
+		execute_add_with_carry(registers,
+			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
 	case 0x78:
 		/* SEI - Set Interrupt Disable */
 		/* Cycles: 2 */
@@ -903,6 +955,12 @@ uint8_t execute_instruction(struct registers *registers)
 			t1 = *(memory_pc_offset + 1);
 			registers->pc += t1;
 		}
+		break;
+	case 0x91:
+		/* STA - Store Accumulator */
+		/* Cycles: 6 */
+		*get_indirect_y_pointer(registers) = registers->a;
+		registers->pc += 2;
 		break;
 	case 0x98:
 		/* TYA - Transfer Y to Accumulator */
@@ -1012,6 +1070,13 @@ uint8_t execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0xB1:
+		/* LDA - Load Accumlator */
+		/* Cycles: 5 (+1 if page crossed) */
+		registers->a = get_indirect_y_value(registers);
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 2;
+		break;
 	case 0xB8:
 		/* CLV - Clear Overflow Flag */
 		/* Cycles: 2 */
@@ -1113,6 +1178,13 @@ uint8_t execute_instruction(struct registers *registers)
 			registers->pc += t1;
 		}
 		break;
+	case 0xD1:
+		/* CMP - Compare */
+		/* Cycles: 5 (+1 if page crossed) */
+		execute_compare(registers, registers->a,
+			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
 	case 0xD8:
 		/* CLD - Clear Decimal Mode */
 		/* Cycles: 2 */
@@ -1204,6 +1276,13 @@ uint8_t execute_instruction(struct registers *registers)
 			t1 = *(memory_pc_offset + 1);
 			registers->pc += t1;
 		}
+		break;
+	case 0xF1:
+		/* SBC - Subtract with Carry */
+		/* Cycles: 5 (+1 if page crossed) */
+		execute_subtract_with_carry(registers,
+			get_indirect_y_value(registers));
+		registers->pc += 2;
 		break;
 	case 0xF8:
 		/* SED - Set Decimal Flag */
