@@ -249,6 +249,34 @@ get_zero_page_value(struct registers *registers)
 
 static
 uint8_t *
+get_zero_page_x_pointer(struct registers *registers)
+{
+	return pointer_to_zero_page(get_byte_operand(registers) + registers->x);
+}
+
+static
+uint8_t
+get_zero_page_x_value(struct registers *registers)
+{
+	return *get_zero_page_x_pointer(registers);
+}
+
+static
+uint8_t *
+get_zero_page_y_pointer(struct registers *registers)
+{
+	return pointer_to_zero_page(get_byte_operand(registers) + registers->y);
+}
+
+static
+uint8_t
+get_zero_page_y_value(struct registers *registers)
+{
+	return *get_zero_page_y_pointer(registers);
+}
+
+static
+uint8_t *
 get_absolute_pointer(struct registers *registers)
 {
 	return pointer_to_memory(get_2_byte_operand(registers));
@@ -263,10 +291,39 @@ get_absolute_value(struct registers *registers)
 
 static
 uint8_t *
+get_absolute_x_pointer(struct registers *registers)
+{
+	return pointer_to_memory(get_2_byte_operand(registers) + registers->x);
+}
+
+static
+uint8_t
+get_absolute_x_value(struct registers *registers)
+{
+	return *get_absolute_x_pointer(registers);
+}
+
+static
+uint8_t *
+get_absolute_y_pointer(struct registers *registers)
+{
+	return pointer_to_memory(get_2_byte_operand(registers) + registers->y);
+}
+
+static
+uint8_t
+get_absolute_y_value(struct registers *registers)
+{
+	return *get_absolute_y_pointer(registers);
+}
+
+static
+uint8_t *
 get_indirect_y_pointer(struct registers *registers)
 {
 	uint8_t zero_page_address = get_byte_operand(registers);
 
+	/* This has zero page wrap around */
 	uint16_t absolute_address = *pointer_to_zero_page(zero_page_address);
 	zero_page_address += 1;
 	absolute_address += *pointer_to_zero_page(zero_page_address) << 8;
@@ -290,6 +347,7 @@ get_indirect_x_pointer(struct registers *registers)
 	uint8_t zero_page_address = get_byte_operand(registers);
 	zero_page_address += registers->x;
 
+	/* This has zero page wrap around */
 	uint16_t absolute_address = *pointer_to_zero_page(zero_page_address);
 	zero_page_address += 1;
 	absolute_address += *pointer_to_zero_page(zero_page_address) << 8;
@@ -503,6 +561,12 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_x_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x04:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
 	case 0x05:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 3 */
@@ -537,6 +601,12 @@ uint8_t execute_instruction(struct registers *registers)
 			get_accumulator_pointer(registers));
 		registers->pc += 1;
 		break;
+	case 0x0C:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
 	case 0x0D:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 4 */
@@ -569,11 +639,64 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_y_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x14:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Zero Page X) */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
+	case 0x15:
+		/* ORA - Logical Inclusive OR */
+		/* Cycles: 4 */
+		execute_logical_inclusive_or(registers,
+			get_zero_page_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x16:
+		/* ASL - Arithmetic Shift Left */
+		/* Cycles: 6 */
+		execute_arithmetic_shift_left(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x18:
 		/* CLC - Clear Carry Flag */
 		/* Cycles: 2 */
 		set_carry_flag(registers, false);
 		registers->pc += 1;
+		break;
+	case 0x19:
+		/* ORA - Logical Inclusive OR */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_logical_inclusive_or(registers,
+			get_absolute_y_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x1A:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 1;
+		break;
+	case 0x1C:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute X) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
+	case 0x1D:
+		/* ORA - Logical Inclusive OR */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_logical_inclusive_or(registers,
+			get_absolute_x_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x1E:
+		/* ASL - Arithmetic Shift Left */
+		/* Cycles: 7 */
+		execute_arithmetic_shift_left(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
 		break;
 	case 0x20:
 		/* JSR - Jump to Subroutine */
@@ -687,11 +810,64 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_y_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x34:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Zero Page Y) */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
+	case 0x35:
+		/* AND - Logical AND */
+		/* Cycles: 4 */
+		execute_logical_and(registers,
+			get_zero_page_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x36:
+		/* ROL - Rotate Left */
+		/* Cycles: 6 */
+		execute_rotate_left(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x38:
 		/* SEC - Set Carry Flag */
 		/* Cycles: 2 */
 		set_carry_flag(registers, true);
 		registers->pc += 1;
+		break;
+	case 0x39:
+		/* AND - Logical AND */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_logical_and(registers,
+			get_absolute_y_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x3A:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 1;
+		break;
+	case 0x3C:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute X) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
+	case 0x3D:
+		/* AND - Logical AND */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_logical_and(registers,
+			get_absolute_x_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x3E:
+		/* ROL - Rotate Left */
+		/* Cycles: 7 */
+		execute_rotate_left(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
 		break;
 	case 0x40:
 		/* RTI - Return from Interrupt */
@@ -716,6 +892,12 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 6 */
 		execute_logical_exclusive_or(registers,
 			get_indirect_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x44:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
 		registers->pc += 2;
 		break;
 	case 0x45:
@@ -791,6 +973,59 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_y_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x54:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Zero Page X) */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
+	case 0x55:
+		/* EOR - Exclusive OR */
+		/* Cycles: 4 */
+		execute_logical_exclusive_or(registers,
+			get_zero_page_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x56:
+		/* LSR - Logical Shift Right */
+		/* Cycles: 6 */
+		execute_logical_shift_right(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0x59:
+		/* EOR - Exclusive OR */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_logical_exclusive_or(registers,
+			get_absolute_y_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x5A:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 1;
+		break;
+	case 0x5C:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute X) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
+	case 0x5D:
+		/* EOR - Exclusive OR */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_logical_exclusive_or(registers,
+			get_absolute_x_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x5E:
+		/* LSR - Logical Shift Right */
+		/* Cycles: 7 */
+		execute_logical_shift_right(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x60:
 		/* RTS - Return from Subroutine */
 		/* Bytes: 1 */
@@ -805,6 +1040,12 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 6 */
 		execute_add_with_carry(registers,
 			get_indirect_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x64:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
 		registers->pc += 2;
 		break;
 	case 0x65:
@@ -891,11 +1132,70 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_y_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x74:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Zero Page X) */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
+	case 0x75:
+		/* ADC - Add with Carry */
+		/* Cycles: 4 */
+		execute_add_with_carry(registers,
+			get_zero_page_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x76:
+		/* ROR - Rotate Right */
+		/* Cycles: 6 */
+		execute_rotate_right(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x78:
 		/* SEI - Set Interrupt Disable */
 		/* Cycles: 2 */
 		set_interrupt_disable_flag(registers, true);
 		registers->pc += 1;
+		break;
+	case 0x79:
+		/* ADC - Add with Carry */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_add_with_carry(registers,
+			get_absolute_y_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x7A:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 1;
+		break;
+	case 0x7C:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute X) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
+	case 0x7D:
+		/* ADC - Add with Carry */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_add_with_carry(registers,
+			get_absolute_x_value(registers));
+		registers->pc += 3;
+		break;
+	case 0x7E:
+		/* ROR - Rotate Right */
+		/* Cycles: 7 */
+		execute_rotate_right(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
+	case 0x80:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Immediate) */
+		/* Cycles: TODO */
+		registers->pc += 2;
 		break;
 	case 0x81:
 		/* STA - Store Accumulator */
@@ -970,6 +1270,24 @@ uint8_t execute_instruction(struct registers *registers)
 		*get_indirect_y_pointer(registers) = registers->a;
 		registers->pc += 2;
 		break;
+	case 0x94:
+		/* STY - Store Y Register */
+		/* Cycles: 4 */
+		*get_zero_page_x_pointer(registers) = registers->y;
+		registers->pc += 2;
+		break;
+	case 0x95:
+		/* STA - Store Accumulator */
+		/* Cycles: 4 */
+		*get_zero_page_x_pointer(registers) = registers->a;
+		registers->pc += 2;
+		break;
+	case 0x96:
+		/* STX - Store X Register */
+		/* Cycles: 4 */
+		*get_zero_page_y_pointer(registers) = registers->x;
+		registers->pc += 2;
+		break;
 	case 0x98:
 		/* TYA - Transfer Y to Accumulator */
 		/* Cycles: 2 */
@@ -977,11 +1295,23 @@ uint8_t execute_instruction(struct registers *registers)
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 1;
 		break;
+	case 0x99:
+		/* STA - Store Accumulator */
+		/* Cycles: 5 */
+		*get_absolute_y_pointer(registers) = registers->a;
+		registers->pc += 3;
+		break;
 	case 0x9A:
 		/* TXS - Transfer X to Stack Pointer */
 		/* Cycles: 2 */
 		registers->s = registers->x;
 		registers->pc += 1;
+		break;
+	case 0x9D:
+		/* STA - Store Accumulator */
+		/* Cycles: 5 */
+		*get_absolute_x_pointer(registers) = registers->a;
+		registers->pc += 3;
 		break;
 	case 0xA0:
 		/* LDY - Load Y Register */
@@ -1085,11 +1415,39 @@ uint8_t execute_instruction(struct registers *registers)
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
+	case 0xB4:
+		/* LDY - Load Y Register */
+		/* Cycles: 4 */
+		registers->y = get_zero_page_x_value(registers);
+		sync_negative_and_zero_flags(registers, registers->y);
+		registers->pc += 2;
+		break;
+	case 0xB5:
+		/* LDA - Load Accumlator */
+		/* Cycles: 4 */
+		registers->a = get_zero_page_x_value(registers);
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 2;
+		break;
+	case 0xB6:
+		/* LDX - Load X Register */
+		/* Cycles: 4 */
+		registers->x = get_zero_page_y_value(registers);
+		sync_negative_and_zero_flags(registers, registers->x);
+		registers->pc += 2;
+		break;
 	case 0xB8:
 		/* CLV - Clear Overflow Flag */
 		/* Cycles: 2 */
 		set_overflow_flag(registers, false);
 		registers->pc += 1;
+		break;
+	case 0xB9:
+		/* LDA - Load Acuumulator */
+		/* Cycles: 4 (+1 if page crossed) */
+		registers->a = get_absolute_y_value(registers);
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 3;
 		break;
 	case 0xBA:
 		/* TSX - Transfer Stack Pointer to X */
@@ -1097,6 +1455,27 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->x = registers->s;
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 1;
+		break;
+	case 0xBC:
+		/* LDY - Load Y Register */
+		/* Cycles: 4 (+1 if page crossed) */
+		registers->y = get_absolute_x_value(registers);
+		sync_negative_and_zero_flags(registers, registers->y);
+		registers->pc += 3;
+		break;
+	case 0xBD:
+		/* LDA - Load Acuumulator */
+		/* Cycles: 4 (+1 if page crossed) */
+		registers->a = get_absolute_x_value(registers);
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 3;
+		break;
+	case 0xBE:
+		/* LDX - Load X Register */
+		/* Cycles: 4 (+1 if page crossed) */
+		registers->x = get_absolute_y_value(registers);
+		sync_negative_and_zero_flags(registers, registers->x);
+		registers->pc += 3;
 		break;
 	case 0xC0:
 		/* CPY - Compare Y Register */
@@ -1193,11 +1572,64 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_y_value(registers));
 		registers->pc += 2;
 		break;
+	case 0xD4:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Zero Page X) */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
+	case 0xD5:
+		/* CMP - Compare */
+		/* Cycles: 4 */
+		execute_compare(registers, registers->a,
+			get_zero_page_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0xD6:
+		/* DEC - Decrement Memory */
+		/* Cycles: 6 */
+		execute_decrement_memory(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0xD8:
 		/* CLD - Clear Decimal Mode */
 		/* Cycles: 2 */
 		set_decimal_mode_flag(registers, false);
 		registers->pc += 1;
+		break;
+	case 0xD9:
+		/* CMP - Compare */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_compare(registers, registers->a,
+			get_absolute_y_value(registers));
+		registers->pc += 3;
+		break;
+	case 0xDA:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 1;
+		break;
+	case 0xDC:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute X) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
+	case 0xDD:
+		/* CMP - Compare */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_compare(registers, registers->a,
+			get_absolute_x_value(registers));
+		registers->pc += 3;
+		break;
+	case 0xDE:
+		/* DEC - Decrement Memory */
+		/* Cycles: 7 */
+		execute_decrement_memory(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
 		break;
 	case 0xE0:
 		/* CPX - Compare X Register */
@@ -1292,11 +1724,64 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_y_value(registers));
 		registers->pc += 2;
 		break;
+	case 0xF4:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Zero Page X) */
+		/* Cycles: TODO */
+		registers->pc += 2;
+		break;
+	case 0xF5:
+		/* SBC - Subtract with Carry */
+		/* Cycles: 4 */
+		execute_subtract_with_carry(registers,
+			get_zero_page_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0xF6:
+		/* INC - Increment Memory */
+		/* Cycles: 6 */
+		execute_increment_memory(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0xF8:
 		/* SED - Set Decimal Flag */
 		/* Cycles: 2 */
 		set_decimal_mode_flag(registers, true);
 		registers->pc += 1;
+		break;
+	case 0xF9:
+		/* SBC - Subtract with Carry */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_subtract_with_carry(registers,
+			get_absolute_y_value(registers));
+		registers->pc += 3;
+		break;
+	case 0xFA:
+		/* NOP - No Operation */
+		/* Illegal Opcode */
+		/* Cycles: TODO */
+		registers->pc += 1;
+		break;
+	case 0xFC:
+		/* NOP - No Operation */
+		/* Illegal Opcode (Absolute X) */
+		/* Cycles: TODO */
+		registers->pc += 3;
+		break;
+	case 0xFD:
+		/* SBC - Subtract with Carry */
+		/* Cycles: 4 (+1 if page crossed) */
+		execute_subtract_with_carry(registers,
+			get_absolute_x_value(registers));
+		registers->pc += 3;
+		break;
+	case 0xFE:
+		/* INC - Increment Memory */
+		/* Cycles: 7 */
+		execute_increment_memory(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
 		break;
 	default:
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
