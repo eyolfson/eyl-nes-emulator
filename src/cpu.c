@@ -848,7 +848,15 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Bytes: 3 */
 		/* Cycles: 5 */
 		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
-		t2 = *(memory + t1) + (*(memory + t1 + 1) << 8);
+		t2 = *(memory + t1);
+		/* If the address is 0x02FF, the address of the low byte,
+		   the high byte is in 0x0200, not 0x0300 */
+		if ((t1 & 0xFF) == 0xFF) {
+			t2 += (*(memory + (t1 & 0xFF00)) << 8);
+		}
+		else {
+			t2 += (*(memory + t1 + 1) << 8);
+		}
 		registers->pc = t2;
 		break;
 	case 0x6D:
