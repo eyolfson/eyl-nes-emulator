@@ -537,6 +537,14 @@ execute_increment_memory(struct registers *registers, uint8_t *pointer)
 
 static
 void
+execute_dcp(struct registers *registers, uint8_t *pointer)
+{
+	execute_decrement_memory(registers, pointer);
+	execute_compare(registers, registers->a, *pointer);
+}
+
+static
+void
 execute_bit_test(struct registers *registers, uint8_t m)
 {
 	set_negative_flag(registers, m & (1 << 7));
@@ -1583,6 +1591,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_x_value(registers));
 		registers->pc += 2;
 		break;
+	case 0xC3:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_dcp(registers,
+			get_indirect_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0xC4:
 		/* CPY - Compare Y Register */
 		/* Cycles: 3 */
@@ -1601,6 +1617,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* DEC - Decrement Memory */
 		/* Cycles: 5 */
 		execute_decrement_memory(registers,
+			get_zero_page_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0xC7:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 5 */
+		execute_dcp(registers,
 			get_zero_page_pointer(registers));
 		registers->pc += 2;
 		break;
@@ -1646,6 +1670,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0xCF:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_dcp(registers,
+			get_absolute_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0xD0:
 		/* BNE - Branch if Not Equal */
 		/* Addressing is relative */
@@ -1663,6 +1695,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		execute_compare(registers, registers->a,
 			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
+	case 0xD3:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_dcp(registers,
+			get_indirect_y_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0xD4:
@@ -1685,6 +1725,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_zero_page_x_pointer(registers));
 		registers->pc += 2;
 		break;
+	case 0xD7:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_dcp(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0xD8:
 		/* CLD - Clear Decimal Mode */
 		/* Cycles: 2 */
@@ -1704,6 +1752,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: TODO */
 		registers->pc += 1;
 		break;
+	case 0xDB:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_dcp(registers,
+			get_absolute_y_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0xDC:
 		/* NOP - No Operation */
 		/* Illegal Opcode (Absolute X) */
@@ -1721,6 +1777,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* DEC - Decrement Memory */
 		/* Cycles: 7 */
 		execute_decrement_memory(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
+	case 0xDF:
+		/* DCP */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_dcp(registers,
 			get_absolute_x_pointer(registers));
 		registers->pc += 3;
 		break;

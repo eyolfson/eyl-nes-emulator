@@ -11,6 +11,7 @@ All code is licensed under GPLv3+.
 - [Nintendo Entertainment System Architecture] [1]
 - [6502 Instruction Reference] [2]
 - [6502 Undocumented Opcodes] [3]
+- [Extra Instructions Of The 65XX Series CPU] [4]
 
 [1]: http://fms.komkon.org/EMUL8/NES.html
      "Nintendo Entertainment System Architecture"
@@ -18,3 +19,5 @@ All code is licensed under GPLv3+.
      "6502 Instruction Reference"
 [3]: http://www.ataripreservation.org/websites/freddy.offenga/illopc31.txt
      "6502 Undocumented Opcodes"
+[4]: http://www.ffd2.com/fridge/docs/6502-NMOS.extra.opcodes
+     "Extra Instructions Of The 65XX Series CPU"
