@@ -1203,6 +1203,14 @@ uint8_t execute_instruction(struct registers *registers)
 		*get_indirect_x_pointer(registers) = registers->a;
 		registers->pc += 2;
 		break;
+	case 0x83:
+		/* SAX */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		*get_indirect_x_pointer(registers) = registers->a
+		                                     & registers->x;
+		registers->pc += 2;
+		break;
 	case 0x84:
 		/* STY - Store Y Register */
 		/* Cycles: 3 */
@@ -1219,6 +1227,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* STX - Store X Register */
 		/* Cycles: 3 */
 		*get_zero_page_pointer(registers) = registers->x;
+		registers->pc += 2;
+		break;
+	case 0x87:
+		/* SAX */
+		/* Illegal Opcode */
+		/* Cycles: 3 */
+		*get_zero_page_pointer(registers) = registers->a
+		                                    & registers->x;
 		registers->pc += 2;
 		break;
 	case 0x88:
@@ -1251,6 +1267,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* STX - Store X Register */
 		/* Cycles: 4 */
 		*get_absolute_pointer(registers) = registers->x;
+		registers->pc += 3;
+		break;
+	case 0x8F:
+		/* SAX */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		*get_absolute_pointer(registers) = registers->a
+		                                   & registers->x;
 		registers->pc += 3;
 		break;
 	case 0x90:
@@ -1286,6 +1310,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* STX - Store X Register */
 		/* Cycles: 4 */
 		*get_zero_page_y_pointer(registers) = registers->x;
+		registers->pc += 2;
+		break;
+	case 0x97:
+		/* SAX */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		*get_zero_page_y_pointer(registers) = registers->a
+		                                     & registers->x;
 		registers->pc += 2;
 		break;
 	case 0x98:
@@ -1334,6 +1366,16 @@ uint8_t execute_instruction(struct registers *registers)
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 2;
 		break;
+	case 0xA3:
+		/* LAX - Load Accumulator and X Register */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		t1 = get_indirect_x_value(registers);
+		registers->a = t1;
+		registers->x = t1;
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 2;
+		break;
 	case 0xA4:
 		/* LDY - Load Y Register */
 		/* Cycles: 3 */
@@ -1353,6 +1395,16 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 3 */
 		registers->x = get_zero_page_value(registers);
 		sync_negative_and_zero_flags(registers, registers->x);
+		registers->pc += 2;
+		break;
+	case 0xA7:
+		/* LAX - Load Accumulator and X Register */
+		/* Illegal Opcode */
+		/* Cycles: 3 */
+		t1 = get_zero_page_value(registers);
+		registers->a = t1;
+		registers->x = t1;
+		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA8:
@@ -1397,6 +1449,16 @@ uint8_t execute_instruction(struct registers *registers)
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 3;
 		break;
+	case 0xAF:
+		/* LAX - Load Accumulator and X Register */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		t1 = get_absolute_value(registers);
+		registers->a = t1;
+		registers->x = t1;
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 3;
+		break;
 	case 0xB0:
 		/* BCS - Branch if Carry Set */
 		/* Addressing is relative */
@@ -1412,6 +1474,16 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LDA - Load Accumlator */
 		/* Cycles: 5 (+1 if page crossed) */
 		registers->a = get_indirect_y_value(registers);
+		sync_negative_and_zero_flags(registers, registers->a);
+		registers->pc += 2;
+		break;
+	case 0xB3:
+		/* LAX - Load Accumulator and X Register */
+		/* Illegal Opcode */
+		/* Cycles: 5 (+1 if page crossed) */
+		t1 = get_indirect_y_value(registers);
+		registers->a = t1;
+		registers->x = t1;
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
@@ -1434,6 +1506,16 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		registers->x = get_zero_page_y_value(registers);
 		sync_negative_and_zero_flags(registers, registers->x);
+		registers->pc += 2;
+		break;
+	case 0xB7:
+		/* LAX - Load Accumulator and X Register */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		t1 = get_zero_page_y_value(registers);
+		registers->a = t1;
+		registers->x = t1;
+		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB8:
@@ -1475,6 +1557,16 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 (+1 if page crossed) */
 		registers->x = get_absolute_y_value(registers);
 		sync_negative_and_zero_flags(registers, registers->x);
+		registers->pc += 3;
+		break;
+	case 0xBF:
+		/* LAX - Load Accumulator and X Register */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		t1 = get_absolute_y_value(registers);
+		registers->a = t1;
+		registers->x = t1;
+		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xC0:
@@ -1562,7 +1654,8 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		if (!get_zero_flag(registers)) {
 			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
+			/* TODO: the relative can be negative */
+			registers->pc += (int8_t) t1;
 		}
 		break;
 	case 0xD1:
@@ -1684,6 +1777,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* NOP - No Operation */
 		/* Cycles: 2 */
 		registers->pc += 1;
+		break;
+	case 0xEB:
+		/* SBC - Subtract with Carry */
+		/* Illegal Opcode */
+		/* Cycles: 2 */
+		execute_subtract_with_carry(registers,
+			get_immediate_value(registers));
+		registers->pc += 2;
 		break;
 	case 0xEC:
 		/* CPX - Compare X Register */
