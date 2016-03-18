@@ -537,6 +537,47 @@ execute_increment_memory(struct registers *registers, uint8_t *pointer)
 
 static
 void
+execute_bit_test(struct registers *registers, uint8_t m)
+{
+	set_negative_flag(registers, m & (1 << 7));
+	set_overflow_flag(registers, m & (1 << 6));
+	assign_zero_flag(registers, (registers->a & m) == 0);
+}
+
+static
+void
+execute_subtract_with_carry_for_isb(struct registers *registers, uint8_t m)
+{
+	int8_t a = (int8_t) registers->a;
+	int8_t b = (int8_t) m;
+
+	int16_t result = a - b;
+	if (!get_carry_flag(registers)) {
+		result -= 1;
+	}
+
+	uint16_t unsigned_result = ~(registers->a) + m;
+	if (get_carry_flag(registers)) {
+		unsigned_result += 1;
+	}
+
+	set_carry_flag(registers, unsigned_result >= 0x100);
+	set_overflow_flag(registers, result < -128 || result > 127);
+	set_negative_flag(registers, result & 0x80);
+	assign_zero_flag(registers, result == 0);
+	registers->a = (result & 0xFF);
+}
+
+static
+void
+execute_isb(struct registers *registers, uint8_t *pointer)
+{
+	execute_increment_memory(registers, pointer);
+	execute_subtract_with_carry_for_isb(registers, *pointer);
+}
+
+static
+void
 execute_dcp(struct registers *registers, uint8_t *pointer)
 {
 	execute_decrement_memory(registers, pointer);
@@ -545,11 +586,72 @@ execute_dcp(struct registers *registers, uint8_t *pointer)
 
 static
 void
-execute_bit_test(struct registers *registers, uint8_t m)
+execute_slo(struct registers *registers, uint8_t *pointer)
 {
-	set_negative_flag(registers, m & (1 << 7));
-	set_overflow_flag(registers, m & (1 << 6));
-	assign_zero_flag(registers, (registers->a & m) == 0);
+	execute_arithmetic_shift_left(registers, pointer);
+	execute_logical_inclusive_or(registers, *pointer);
+}
+
+static
+void
+execute_rla(struct registers *registers, uint8_t *pointer)
+{
+	execute_rotate_left(registers, pointer);
+	execute_logical_and(registers, *pointer);
+}
+
+static
+void
+execute_sre(struct registers *registers, uint8_t *pointer)
+{
+	execute_logical_shift_right(registers, pointer);
+	execute_logical_exclusive_or(registers, *pointer);
+}
+
+static
+void
+execute_add_with_carry_rra(struct registers *registers, uint8_t v)
+{
+	int8_t a = (int8_t) registers->a;
+	int8_t b = (int8_t) v;
+
+	int16_t result = a + b;
+	bool inc_carry = false;
+	if (get_carry_flag(registers)) {
+		if (result == -1) {
+			inc_carry = true;
+		}
+		result += 1;
+	}
+
+	uint16_t unsigned_result = registers->a + v;
+	if (get_carry_flag(registers)) {
+		unsigned_result += 1;
+	}
+	set_carry_flag(registers, unsigned_result & 0x100);
+
+	/* If the operands have opposite signs, the sum will never overflow */
+	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
+		set_overflow_flag(registers, true);
+	}
+	else if (a < 0 && b < 0 && (int8_t) result > 0) {
+		set_overflow_flag(registers, true);
+	}
+	else {
+		set_overflow_flag(registers, false);
+	}
+
+	set_negative_flag(registers, result & 0x80);
+	assign_zero_flag(registers, result == 0);
+	registers->a = (result & 0xFF);
+}
+
+static
+void
+execute_rra(struct registers *registers, uint8_t *pointer)
+{
+	execute_rotate_right(registers, pointer);
+	execute_add_with_carry_rra(registers, *pointer);
 }
 
 uint8_t execute_instruction(struct registers *registers)
@@ -569,6 +671,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_x_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x03:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_slo(registers,
+			get_indirect_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x04:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
@@ -586,6 +696,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 5 */
 		execute_arithmetic_shift_left(registers,
+			get_zero_page_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0x07:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 5 */
+		execute_slo(registers,
 			get_zero_page_pointer(registers));
 		registers->pc += 2;
 		break;
@@ -629,6 +747,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0x0F:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_slo(registers,
+			get_absolute_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x10:
 		/* BPL - Branch if Positive */
 		/* Addressing is relative */
@@ -645,6 +771,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		execute_logical_inclusive_or(registers,
 			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x13:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_slo(registers,
+			get_indirect_y_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0x14:
@@ -667,6 +801,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_zero_page_x_pointer(registers));
 		registers->pc += 2;
 		break;
+	case 0x17:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_slo(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x18:
 		/* CLC - Clear Carry Flag */
 		/* Cycles: 2 */
@@ -686,6 +828,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: TODO */
 		registers->pc += 1;
 		break;
+	case 0x1B:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_slo(registers,
+			get_absolute_y_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x1C:
 		/* NOP - No Operation */
 		/* Illegal Opcode (Absolute X) */
@@ -703,6 +853,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 7 */
 		execute_arithmetic_shift_left(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
+	case 0x1F:
+		/* SLO */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_slo(registers,
 			get_absolute_x_pointer(registers));
 		registers->pc += 3;
 		break;
@@ -726,6 +884,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_x_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x23:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_rla(registers,
+			get_indirect_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x24:
 		/* BIT - Bit Test */
 		/* Cycles: 3 */
@@ -744,6 +910,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ROL - Rotate Left */
 		/* Cycles: 5 */
 		execute_rotate_left(registers,
+			get_zero_page_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0x27:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 5 */
+		execute_rla(registers,
 			get_zero_page_pointer(registers));
 		registers->pc += 2;
 		break;
@@ -800,6 +974,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0x2F:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_rla(registers,
+			get_absolute_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x30:
 		/* BMI - Branch if Minus */
 		/* Addressing is relative */
@@ -816,6 +998,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		execute_logical_and(registers,
 			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x33:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_rla(registers,
+			get_indirect_y_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0x34:
@@ -838,6 +1028,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_zero_page_x_pointer(registers));
 		registers->pc += 2;
 		break;
+	case 0x37:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_rla(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x38:
 		/* SEC - Set Carry Flag */
 		/* Cycles: 2 */
@@ -857,6 +1055,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: TODO */
 		registers->pc += 1;
 		break;
+	case 0x3B:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_rla(registers,
+			get_absolute_y_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x3C:
 		/* NOP - No Operation */
 		/* Illegal Opcode (Absolute X) */
@@ -874,6 +1080,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ROL - Rotate Left */
 		/* Cycles: 7 */
 		execute_rotate_left(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
+	case 0x3F:
+		/* RLA */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_rla(registers,
 			get_absolute_x_pointer(registers));
 		registers->pc += 3;
 		break;
@@ -902,6 +1116,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_x_value(registers));
 		registers->pc += 2;
 		break;
+	case 0x43:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_sre(registers,
+			get_indirect_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x44:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
@@ -919,6 +1141,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LSR - Logical Shift Right */
 		/* Cycles: 5 */
 		execute_logical_shift_right(registers,
+			get_zero_page_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0x47:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 5 */
+		execute_sre(registers,
 			get_zero_page_pointer(registers));
 		registers->pc += 2;
 		break;
@@ -963,6 +1193,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0x4F:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_sre(registers,
+			get_absolute_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x50:
 		/* BVC - Branch if Overflow Clear */
 		/* Addressing is relative */
@@ -979,6 +1217,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		execute_logical_exclusive_or(registers,
 			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x53:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_sre(registers,
+			get_indirect_y_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0x54:
@@ -1001,6 +1247,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_zero_page_x_pointer(registers));
 		registers->pc += 2;
 		break;
+	case 0x57:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_sre(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x59:
 		/* EOR - Exclusive OR */
 		/* Cycles: 4 (+1 if page crossed) */
@@ -1013,6 +1267,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Illegal Opcode */
 		/* Cycles: TODO */
 		registers->pc += 1;
+		break;
+	case 0x5B:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_sre(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
 		break;
 	case 0x5C:
 		/* NOP - No Operation */
@@ -1034,6 +1296,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_x_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0x5F:
+		/* SRE */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_sre(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x60:
 		/* RTS - Return from Subroutine */
 		/* Bytes: 1 */
@@ -1048,6 +1318,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 6 */
 		execute_add_with_carry(registers,
 			get_indirect_x_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x63:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_rra(registers,
+			get_indirect_x_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0x64:
@@ -1067,6 +1345,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ROR - Rotate Right */
 		/* Cycles: 5 */
 		execute_rotate_right(registers,
+			get_zero_page_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0x67:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 5 */
+		execute_rra(registers,
 			get_zero_page_pointer(registers));
 		registers->pc += 2;
 		break;
@@ -1122,6 +1408,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0x6F:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_rra(registers,
+			get_absolute_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x70:
 		/* BVS - Branch if Overflow Set */
 		/* Addressing is relative */
@@ -1138,6 +1432,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		execute_add_with_carry(registers,
 			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
+	case 0x73:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_rra(registers,
+			get_indirect_y_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0x74:
@@ -1160,6 +1462,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_zero_page_x_pointer(registers));
 		registers->pc += 2;
 		break;
+	case 0x77:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_rra(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0x78:
 		/* SEI - Set Interrupt Disable */
 		/* Cycles: 2 */
@@ -1179,6 +1489,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: TODO */
 		registers->pc += 1;
 		break;
+	case 0x7B:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_rra(registers,
+			get_absolute_y_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0x7C:
 		/* NOP - No Operation */
 		/* Illegal Opcode (Absolute X) */
@@ -1196,6 +1514,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ROR - Rotate Right */
 		/* Cycles: 7 */
 		execute_rotate_right(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
+	case 0x7F:
+		/* RRA */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_rra(registers,
 			get_absolute_x_pointer(registers));
 		registers->pc += 3;
 		break;
@@ -1802,6 +2128,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_indirect_x_value(registers));
 		registers->pc += 2;
 		break;
+	case 0xE3:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_isb(registers,
+			get_indirect_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0xE4:
 		/* CPX - Compare X Register */
 		/* Cycles: 3 */
@@ -1820,6 +2154,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* INC - Increment Memory */
 		/* Cycles: 5 */
 		execute_increment_memory(registers,
+			get_zero_page_pointer(registers));
+		registers->pc += 2;
+		break;
+	case 0xE7:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 5 */
+		execute_isb(registers,
 			get_zero_page_pointer(registers));
 		registers->pc += 2;
 		break;
@@ -1871,6 +2213,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_absolute_pointer(registers));
 		registers->pc += 3;
 		break;
+	case 0xEF:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_isb(registers,
+			get_absolute_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0xF0:
 		/* BEQ - Branch if Equal */
 		/* Addressing is relative */
@@ -1887,6 +2237,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		execute_subtract_with_carry(registers,
 			get_indirect_y_value(registers));
+		registers->pc += 2;
+		break;
+	case 0xF3:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 8 */
+		execute_isb(registers,
+			get_indirect_y_pointer(registers));
 		registers->pc += 2;
 		break;
 	case 0xF4:
@@ -1909,6 +2267,14 @@ uint8_t execute_instruction(struct registers *registers)
 			get_zero_page_x_pointer(registers));
 		registers->pc += 2;
 		break;
+	case 0xF7:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 6 */
+		execute_isb(registers,
+			get_zero_page_x_pointer(registers));
+		registers->pc += 2;
+		break;
 	case 0xF8:
 		/* SED - Set Decimal Flag */
 		/* Cycles: 2 */
@@ -1928,6 +2294,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: TODO */
 		registers->pc += 1;
 		break;
+	case 0xFB:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_isb(registers,
+			get_absolute_y_pointer(registers));
+		registers->pc += 3;
+		break;
 	case 0xFC:
 		/* NOP - No Operation */
 		/* Illegal Opcode (Absolute X) */
@@ -1945,6 +2319,14 @@ uint8_t execute_instruction(struct registers *registers)
 		/* INC - Increment Memory */
 		/* Cycles: 7 */
 		execute_increment_memory(registers,
+			get_absolute_x_pointer(registers));
+		registers->pc += 3;
+		break;
+	case 0xFF:
+		/* ISB */
+		/* Illegal Opcode */
+		/* Cycles: 7 */
+		execute_isb(registers,
 			get_absolute_x_pointer(registers));
 		registers->pc += 3;
 		break;
