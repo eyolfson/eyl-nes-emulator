@@ -33,24 +33,30 @@ void init_registers(struct registers *registers)
 	registers->pc = 0xC000;
 }
 
-static
-void
-set_carry_flag(struct registers *registers, bool c)
+/* Carry Flag */
+
+static void clear_carry_flag(struct registers *registers)
 {
-	if (c) {
-		registers->p |= 1 << 0;
-	}
-	else {
-		registers->p &= ~(1 << 0);
-	}
+	registers->p &= ~(1 << 0);
 }
 
-static
-bool
-get_carry_flag(struct registers *registers)
+static void set_carry_flag(struct registers *registers)
+{
+	registers->p |= 1 << 0;
+}
+
+static void assign_carry_flag(struct registers *registers, bool c)
+{
+	if (c) { set_carry_flag(registers); }
+	else { clear_carry_flag(registers); }
+}
+
+static bool get_carry_flag(struct registers *registers)
 {
 	return registers->p & (1 << 0);
 }
+
+/* Zero Flag */
 
 static void clear_zero_flag(struct registers *registers)
 {
@@ -384,7 +390,7 @@ void
 execute_compare(struct registers *registers, uint8_t r, uint8_t m)
 {
 	uint16_t result = r - m;
-	set_carry_flag(registers, result < 0x100);
+	assign_carry_flag(registers, result < 0x100);
 	sync_negative_and_zero_flags(registers, result);
 }
 
@@ -405,13 +411,13 @@ execute_add_with_carry(struct registers *registers, uint8_t v)
 	}
 
 	if (inc_carry) {
-		set_carry_flag(registers, true);
+		set_carry_flag(registers);
 	}
 	else if (result > 0) {
-		set_carry_flag(registers, result & 0x100);
+		assign_carry_flag(registers, result & 0x100);
 	}
 	else {
-		set_carry_flag(registers, false);
+		clear_carry_flag(registers);
 	}
 
 	/* If the operands have opposite signs, the sum will never overflow */
@@ -444,7 +450,7 @@ execute_subtract_with_carry(struct registers *registers, uint8_t m)
 		t += 0xFF;
 	}
 
-	set_carry_flag(registers, t >= 0x100);
+	assign_carry_flag(registers, t >= 0x100);
 	set_overflow_flag(registers, result < -128 || result > 127);
 	set_negative_flag(registers, result & 0x80);
 	assign_zero_flag(registers, result == 0);
@@ -479,7 +485,7 @@ static
 void
 execute_arithmetic_shift_left(struct registers *registers, uint8_t *pointer)
 {
-	set_carry_flag(registers, *pointer & 0x80);
+	assign_carry_flag(registers, *pointer & 0x80);
 	*pointer <<= 1;
 	sync_negative_and_zero_flags(registers, *pointer);
 }
@@ -488,7 +494,7 @@ static
 void
 execute_logical_shift_right(struct registers *registers, uint8_t *pointer)
 {
-	set_carry_flag(registers, *pointer & 0x01);
+	assign_carry_flag(registers, *pointer & 0x01);
 	*pointer >>= 1;
 	sync_negative_and_zero_flags(registers, *pointer);
 }
@@ -498,7 +504,7 @@ void
 execute_rotate_left(struct registers *registers, uint8_t *pointer)
 {
 	bool current_carry_flag = get_carry_flag(registers);
-	set_carry_flag(registers, *pointer & 0x80);
+	assign_carry_flag(registers, *pointer & 0x80);
 	*pointer <<= 1;
 	if (current_carry_flag) {
 		*pointer |= 0x01;
@@ -511,7 +517,7 @@ void
 execute_rotate_right(struct registers *registers, uint8_t *pointer)
 {
 	bool current_carry_flag = get_carry_flag(registers);
-	set_carry_flag(registers, *pointer & 0x01);
+	assign_carry_flag(registers, *pointer & 0x01);
 	*pointer >>= 1;
 	if (current_carry_flag) {
 		*pointer |= 0x80;
@@ -561,7 +567,7 @@ execute_subtract_with_carry_for_isb(struct registers *registers, uint8_t m)
 		unsigned_result += 1;
 	}
 
-	set_carry_flag(registers, unsigned_result >= 0x100);
+	assign_carry_flag(registers, unsigned_result >= 0x100);
 	set_overflow_flag(registers, result < -128 || result > 127);
 	set_negative_flag(registers, result & 0x80);
 	assign_zero_flag(registers, result == 0);
@@ -628,7 +634,7 @@ execute_add_with_carry_rra(struct registers *registers, uint8_t v)
 	if (get_carry_flag(registers)) {
 		unsigned_result += 1;
 	}
-	set_carry_flag(registers, unsigned_result & 0x100);
+	assign_carry_flag(registers, unsigned_result & 0x100);
 
 	/* If the operands have opposite signs, the sum will never overflow */
 	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
@@ -812,7 +818,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x18:
 		/* CLC - Clear Carry Flag */
 		/* Cycles: 2 */
-		set_carry_flag(registers, false);
+		clear_carry_flag(registers);
 		registers->pc += 1;
 		break;
 	case 0x19:
@@ -1039,7 +1045,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x38:
 		/* SEC - Set Carry Flag */
 		/* Cycles: 2 */
-		set_carry_flag(registers, true);
+		set_carry_flag(registers);
 		registers->pc += 1;
 		break;
 	case 0x39:
