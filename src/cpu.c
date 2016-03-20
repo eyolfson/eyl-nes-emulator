@@ -79,21 +79,25 @@ static bool get_zero_flag(struct registers *registers)
 	return registers->p & 1 << 1;
 }
 
-static
-void
-set_interrupt_disable_flag(struct registers *registers, bool i)
+/* Interrupt Disable Flag */
+
+static void clear_interrupt_disable_flag(struct registers *registers)
 {
-	if (i) {
-		registers->p |= 1 << 2;
-	}
-	else {
-		registers->p &= ~(1 << 2);
-	}
+	registers->p &= ~(1 << 2);
 }
 
-static
-bool
-get_interrupt_disable_flag(struct registers *registers)
+static void set_interrupt_disable_flag(struct registers *registers)
+{
+	registers->p |= 1 << 2;
+}
+
+static void assign_interrupt_disable_flag(struct registers *registers, bool i)
+{
+	if (i) { set_interrupt_disable_flag(registers); }
+	else { clear_interrupt_disable_flag(registers); }
+}
+
+static bool get_interrupt_disable_flag(struct registers *registers)
 {
 	return registers->p & 1 << 2;
 }
@@ -1479,7 +1483,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x78:
 		/* SEI - Set Interrupt Disable */
 		/* Cycles: 2 */
-		set_interrupt_disable_flag(registers, true);
+		set_interrupt_disable_flag(registers);
 		registers->pc += 1;
 		break;
 	case 0x79:
