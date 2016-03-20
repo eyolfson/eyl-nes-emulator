@@ -18,6 +18,7 @@
 #include "memory_bus.h"
 
 #include "ppu.h"
+#include "prg_rom.h"
 #include "ram.h"
 
 uint8_t memory_read(uint16_t address)
@@ -36,6 +37,15 @@ uint8_t memory_read(uint16_t address)
 	}
 	else if (address < 0x4000) {
 		return ppu_read(address % 8);
+	}
+	else if (address < 0x8000) {
+		return 0;
+	}
+	else if (address < 0xC000) {
+		return prg_rom_read_bank_1(address - 0x8000);
+	}
+	else {
+		return prg_rom_read_bank_2(address - 0xC000);
 	}
 	return 0;
 }

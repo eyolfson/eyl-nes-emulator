@@ -17,6 +17,7 @@
 
 #include "exit_code.h"
 #include "cpu.h"
+#include "prg_rom.h"
 
 #include <fcntl.h>
 #include <stdint.h>
@@ -82,6 +83,14 @@ load_rom_into_memory(uint8_t *data, size_t size)
 	memcpy(memory + 0xC000, data + HEADER_SIZE, PRG_ROM_SIZE_PER_UNIT);
 	if (prg_rom_units == 2) {
 		memcpy(memory + 0x8000, data + HEADER_SIZE + PRG_ROM_SIZE_PER_UNIT, PRG_ROM_SIZE_PER_UNIT);
+	}
+
+	prg_rom_set_bank_1(data + HEADER_SIZE);
+	if (prg_rom_units == 1) {
+		prg_rom_set_bank_2(data + HEADER_SIZE);
+	}
+	else if (prg_rom_units == 2) {
+		prg_rom_set_bank_2(data + HEADER_SIZE + PRG_ROM_SIZE_PER_UNIT);
 	}
 }
 
