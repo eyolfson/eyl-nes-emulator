@@ -720,7 +720,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x08:
 		/* PHP - Push Processor Status */
 		/* Cycles: 3 */
-		push_to_stack(registers, registers->p);
+		push_to_stack(registers, registers->p | 0x10);
 		registers->pc += 1;
 		break;
 	case 0x09:
