@@ -22,12 +22,6 @@
 
 #include <string.h> // TODO: remove after refactor
 
-void init()
-{
-	struct registers registers;
-	init_registers(&registers);
-}
-
 static const uint16_t HEADER_SIZE = 16;               /* 16 B */
 static const uint16_t PRG_ROM_SIZE_PER_UNIT = 0x4000; /* 16 KiB */
 static const uint16_t CHR_ROM_SIZE_PER_UNIT = 0x2000; /*  8 KiB */
