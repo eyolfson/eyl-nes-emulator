@@ -15,6 +15,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "args.h"
 #include "exit_code.h"
 #include "cpu.h"
 #include "prg_rom.h"
@@ -94,66 +95,19 @@ load_rom_into_memory(uint8_t *data, size_t size)
 	}
 }
 
-static
-uint8_t
-get_rom_raw(const char *path, uint8_t **data, size_t *size)
-{
-	int32_t fd = open(path, O_RDONLY);
-	if (fd < 0) {
-		return EXIT_CODE_OS_ERROR_BIT;
-	}
-
-	uint8_t exit_code = 0;
-
-	struct stat stat;
-	if (fstat(fd, &stat) < 0) {
-		exit_code |= EXIT_CODE_OS_ERROR_BIT;
-	}
-
-	size_t local_size = stat.st_size;
-	if (exit_code == 0) {
-		/* File size is too big for a ROM file */
-		if (local_size > UINT16_MAX) {
-			exit_code |= EXIT_CODE_ARG_ERROR_BIT;
-		}
-	}
-
-	if (exit_code == 0) {
-		uint8_t *p = mmap(NULL, local_size, PROT_READ, MAP_PRIVATE, fd, 0);
-		if (p != MAP_FAILED) {
-			*data = p;
-		}
-		else {
-			exit_code |= EXIT_CODE_OS_ERROR_BIT;
-		}
-	}
-
-	if (exit_code == 0) {
-		*size = local_size;
-	}
-
-	if (close(fd) >= 0) {
-		return exit_code;
-	}
-	else {
-		return exit_code | EXIT_CODE_OS_ERROR_BIT;
-	}
-}
 
 uint8_t main(int argc, char **argv)
 {
-	if (argc != 2) {
-		return EXIT_CODE_ARG_ERROR_BIT;
+	struct memory_mapping mm;
+	uint8_t exit_code;
+
+	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
+
+	if (exit_code == 0) {
+		exit_code = check_rom_size_raw(mm.data, mm.size);
 	}
 
-	uint8_t *rom_data;
-	size_t rom_size;
-	uint8_t exit_code = get_rom_raw(argv[1], &rom_data, &rom_size);
-	if (exit_code != 0) {
-		return exit_code;
-	}
-	exit_code |= check_rom_size_raw(rom_data, rom_size);
-	load_rom_into_memory(rom_data, rom_size);
+	load_rom_into_memory(mm.data, mm.size);
 
 	if (exit_code == 0) {
 		struct registers registers;
@@ -163,10 +117,7 @@ uint8_t main(int argc, char **argv)
 		}
 	}
 
-	if (munmap(rom_data, rom_size) >= 0) {
-		return exit_code;
-	}
-	else {
-		return exit_code | EXIT_CODE_OS_ERROR_BIT;
-	}
+
+	exit_code |= fini_memory_mapping(&mm);
+	return exit_code;
 }
