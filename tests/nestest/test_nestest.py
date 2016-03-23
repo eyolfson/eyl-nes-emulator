@@ -51,7 +51,7 @@ def check_line(expected_line, actual_line):
 
 def run_test():
 	lines_passed = 0
-	completed_process = subprocess.run(["build/nes-emulator",
+	completed_process = subprocess.run(["build/nes-emulator-nestest",
 	                                    "nestest.nes"],
 	                                   stdout=subprocess.PIPE)
 	lines = completed_process.stdout.splitlines()

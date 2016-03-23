@@ -20,7 +20,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wextra)
 
-add_executable(nes-emulator
+add_executable(nes-emulator-nestest
 	main.c
 
 	../../../src/args.c
