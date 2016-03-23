@@ -112,7 +112,6 @@ uint8_t main(int argc, char **argv)
 		}
 	}
 
-
 	exit_code |= fini_memory_mapping(&mm);
 	return exit_code;
 }
