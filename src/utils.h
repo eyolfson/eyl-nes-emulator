@@ -15,33 +15,18 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "args.h"
-#include "exit_code.h"
-#include "cpu.h"
-#include "prg_rom.h"
-#include "utils.h"
+#pragma once
 
-uint8_t main(int argc, char **argv)
-{
-	struct memory_mapping mm;
-	uint8_t exit_code;
+#include <stddef.h>
+#include <stdint.h>
 
-	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
+#ifdef __cpluscplus
+extern "C" {
+#endif
 
-	if (exit_code == 0) {
-		exit_code = check_rom_size_raw(mm.data, mm.size);
-	}
+uint8_t check_rom_size_raw(uint8_t *data, size_t size);
+void load_rom_into_memory(uint8_t *data, size_t size);
 
-	load_rom_into_memory(mm.data, mm.size);
-
-	if (exit_code == 0) {
-		struct registers registers;
-		init_registers(&registers);
-		while (exit_code == 0) {
-			exit_code = execute_instruction(&registers);
-		}
-	}
-
-	exit_code |= fini_memory_mapping(&mm);
-	return exit_code;
+#ifdef __cpluscplus
 }
+#endif

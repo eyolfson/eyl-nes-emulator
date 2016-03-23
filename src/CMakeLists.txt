@@ -30,4 +30,5 @@ add_executable(nes-emulator
 	ppu.c
 	prg_rom.c
 	ram.c
+	utils.c
 )
