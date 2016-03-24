@@ -40,7 +40,12 @@ uint8_t main(int argc, char **argv)
 		struct registers registers;
 		init_registers(&registers);
 		while (exit_code == 0) {
-			printf("%04X                                            A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:    SL:   \n", registers.pc, registers.a, registers.x, registers.y, registers.p, registers.s);
+			printf("%04X "
+			       "                                           "
+			       "A:%02X X:%02X Y:%02X P:%02X SP:%02X "
+			       "CYC:    SL:   \n",
+			       registers.pc, registers.a, registers.x,
+			       registers.y, registers.p, registers.s);
 			exit_code = execute_instruction(&registers);
 		}
 	}
