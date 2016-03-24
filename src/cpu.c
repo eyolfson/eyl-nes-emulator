@@ -238,8 +238,6 @@ static void assign_negative_flag(struct registers *registers, bool n)
 static bool get_negative_flag(struct registers *registers)
 { return registers->p & 1 << 7; }
 
-/* Execution */
-
 static void assign_negative_and_zero_flags_from_value(
 	struct registers *registers,
 	uint8_t m)
@@ -248,9 +246,9 @@ static void assign_negative_and_zero_flags_from_value(
 	assign_negative_flag(registers, m & (1 << 7));
 }
 
-static
-void
-execute_compare(struct registers *registers, uint8_t r)
+/* Execution */
+
+static void execute_compare(struct registers *registers, uint8_t r)
 {
 	uint8_t m = memory_read(computed_address);
 
@@ -259,9 +257,7 @@ execute_compare(struct registers *registers, uint8_t r)
 	assign_negative_and_zero_flags_from_value(registers, result);
 }
 
-static
-void
-execute_add_with_carry(struct registers *registers)
+static void execute_add_with_carry(struct registers *registers)
 {
 	uint8_t v = memory_read(computed_address);
 
@@ -304,9 +300,7 @@ execute_add_with_carry(struct registers *registers)
 	registers->a = (result & 0xFF);
 }
 
-static
-void
-execute_subtract_with_carry(struct registers *registers)
+static void execute_subtract_with_carry(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 
@@ -327,45 +321,36 @@ execute_subtract_with_carry(struct registers *registers)
 	registers->a = (result & 0xFF);
 }
 
-static
-void
-execute_logical_and(struct registers *registers)
+static void execute_logical_and(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	registers->a &= m;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
-static
-void
-execute_logical_exclusive_or(struct registers *registers)
+static void execute_logical_exclusive_or(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	registers->a ^= m;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
-static
-void
-execute_logical_inclusive_or(struct registers *registers)
+static void execute_logical_inclusive_or(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	registers->a |= m;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
-static
-void
-execute_arithmetic_shift_left_accumulator(struct registers *registers)
+static void execute_arithmetic_shift_left_accumulator(
+	struct registers *registers)
 {
 	assign_carry_flag(registers, registers->a & 0x80);
 	registers->a <<= 1;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
-static
-void
-execute_arithmetic_shift_left(struct registers *registers)
+static void execute_arithmetic_shift_left(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	assign_carry_flag(registers, m & 0x80);
@@ -438,9 +423,7 @@ static void execute_rotate_right(struct registers *registers)
 	memory_write(computed_address, m);
 }
 
-static
-void
-execute_decrement_memory(struct registers *registers)
+static void execute_decrement_memory(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	m -= 1;
@@ -448,9 +431,7 @@ execute_decrement_memory(struct registers *registers)
 	memory_write(computed_address, m);
 }
 
-static
-void
-execute_increment_memory(struct registers *registers)
+static void execute_increment_memory(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	m += 1;
@@ -458,9 +439,7 @@ execute_increment_memory(struct registers *registers)
 	memory_write(computed_address, m);
 }
 
-static
-void
-execute_bit_test(struct registers *registers)
+static void execute_bit_test(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 
@@ -552,9 +531,7 @@ static void execute_return_from_interrupt(struct registers *registers)
 	registers->pc = address;
 }
 
-static
-void
-execute_subtract_with_carry_for_isb(struct registers *registers)
+static void execute_subtract_with_carry_for_isb(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 
@@ -578,49 +555,37 @@ execute_subtract_with_carry_for_isb(struct registers *registers)
 	registers->a = (result & 0xFF);
 }
 
-static
-void
-execute_isb(struct registers *registers)
+static void execute_isb(struct registers *registers)
 {
 	execute_increment_memory(registers);
 	execute_subtract_with_carry_for_isb(registers);
 }
 
-static
-void
-execute_dcp(struct registers *registers)
+static void execute_dcp(struct registers *registers)
 {
 	execute_decrement_memory(registers);
 	execute_compare(registers, registers->a);
 }
 
-static
-void
-execute_slo(struct registers *registers)
+static void execute_slo(struct registers *registers)
 {
 	execute_arithmetic_shift_left(registers);
 	execute_logical_inclusive_or(registers);
 }
 
-static
-void
-execute_rla(struct registers *registers)
+static void execute_rla(struct registers *registers)
 {
 	execute_rotate_left(registers);
 	execute_logical_and(registers);
 }
 
-static
-void
-execute_sre(struct registers *registers)
+static void execute_sre(struct registers *registers)
 {
 	execute_logical_shift_right(registers);
 	execute_logical_exclusive_or(registers);
 }
 
-static
-void
-execute_add_with_carry_rra(struct registers *registers)
+static void execute_add_with_carry_rra(struct registers *registers)
 {
 	uint8_t v = memory_read(computed_address);
 
@@ -658,9 +623,7 @@ execute_add_with_carry_rra(struct registers *registers)
 	registers->a = (result & 0xFF);
 }
 
-static
-void
-execute_rra(struct registers *registers)
+static void execute_rra(struct registers *registers)
 {
 	execute_rotate_right(registers);
 	execute_add_with_carry_rra(registers);
