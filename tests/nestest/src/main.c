@@ -47,6 +47,7 @@ uint8_t main(int argc, char **argv)
 			       registers.pc, registers.a, registers.x,
 			       registers.y, registers.p, registers.s);
 			exit_code = execute_instruction(&registers);
+			if (registers.pc == 0x0001) { break; }
 		}
 	}
 
