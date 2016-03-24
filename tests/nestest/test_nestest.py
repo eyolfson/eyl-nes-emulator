@@ -57,6 +57,8 @@ def run_test():
 	lines = completed_process.stdout.splitlines()
 	with open("nestest.log", "rb") as f:
 		for line in f:
+			if len(lines) == lines_passed:
+				return lines_passed
 			if not check_line(line, lines[lines_passed]):
 				return lines_passed
 			lines_passed += 1
