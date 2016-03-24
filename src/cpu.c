@@ -102,78 +102,94 @@ static bool get_interrupt_disable_flag(struct registers *registers)
 	return registers->p & 1 << 2;
 }
 
-static
-void
-set_decimal_mode_flag(struct registers *registers, bool d)
+/* Decimal Mode Flag */
+
+static void clear_decimal_mode_flag(struct registers *registers)
 {
-	if (d) {
-		registers->p |= 1 << 3;
-	}
-	else {
-		registers->p &= ~(1 << 3);
-	}
+	registers->p &= ~(1 << 3);
 }
 
-static
-bool
-get_decimal_mode_flag(struct registers *registers)
+static void set_decimal_mode_flag(struct registers *registers)
+{
+	registers->p |= 1 << 3;
+}
+
+static void assign_decimal_mode_flag(struct registers *registers, bool d)
+{
+	if (d) { set_decimal_mode_flag(registers); }
+	else { clear_decimal_mode_flag(registers); }
+}
+
+static bool get_decimal_mode_flag(struct registers *registers)
 {
 	return registers->p & 1 << 3;
 }
 
-static
-void
-set_break_command_flag(struct registers *registers, bool b)
+/* Break Command Flag */
+
+static void clear_break_command_flag(struct registers *registers)
 {
-	if (b) {
-		registers->p |= 1 << 4;
-	}
-	else {
-		registers->p &= ~(1 << 4);
-	}
+	registers->p &= ~(1 << 4);
 }
 
-static
-bool
-get_break_command_flag(struct registers *registers)
+static void set_break_command_flag(struct registers *registers)
+{
+	registers->p |= 1 << 4;
+}
+
+static void assign_break_command_flag(struct registers *registers, bool b)
+{
+	if (b) { set_break_command_flag(registers); }
+	else { clear_break_command_flag(registers); }
+}
+
+static bool get_break_command_flag(struct registers *registers)
 {
 	return registers->p & 1 << 4;
 }
 
-static
-void
-set_overflow_flag(struct registers *registers, bool v)
+/* Overflow Flag */
+
+static void clear_overflow_flag(struct registers *registers)
 {
-	if (v) {
-		registers->p |= 1 << 6;
-	}
-	else {
-		registers->p &= ~(1 << 6);
-	}
+	registers->p &= ~(1 << 6);
 }
 
-static
-bool
-get_overflow_flag(struct registers *registers)
+static void set_overflow_flag(struct registers *registers)
+{
+	registers->p |= 1 << 6;
+}
+
+static void assign_overflow_flag(struct registers *registers, bool v)
+{
+	if (v) { set_overflow_flag(registers); }
+	else { clear_overflow_flag(registers); }
+}
+
+static bool get_overflow_flag(struct registers *registers)
 {
 	return registers->p & 1 << 6;
 }
 
-static
-void
-set_negative_flag(struct registers *registers, bool n)
+/* Negative Flag */
+
+static void clear_negative_flag(struct registers *registers)
 {
-	if (n) {
-		registers->p |= 1 << 7;
-	}
-	else {
-		registers->p &= ~(1 << 7);
-	}
+	registers->p &= ~(1 << 7);
 }
 
-static
-bool
-get_negative_flag(struct registers *registers)
+static void set_negative_flag(struct registers *registers)
+{
+	registers->p |= 1 << 7;
+}
+
+static void assign_negative_flag(struct registers *registers, bool n)
+{
+	if (n) { set_negative_flag(registers); }
+	else { clear_negative_flag(registers); }
+}
+
+static bool get_negative_flag(struct registers *registers)
 {
 	return registers->p & 1 << 7;
 }
@@ -386,7 +402,7 @@ void
 sync_negative_and_zero_flags(struct registers *registers, uint8_t m)
 {
 	assign_zero_flag(registers, m == 0);
-	set_negative_flag(registers, m & (1 << 7));
+	assign_negative_flag(registers, m & (1 << 7));
 }
 
 static
@@ -426,16 +442,16 @@ execute_add_with_carry(struct registers *registers, uint8_t v)
 
 	/* If the operands have opposite signs, the sum will never overflow */
 	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
-		set_overflow_flag(registers, true);
+		set_overflow_flag(registers);
 	}
 	else if (a < 0 && b < 0 && (int8_t) result > 0) {
-		set_overflow_flag(registers, true);
+		set_overflow_flag(registers);
 	}
 	else {
-		set_overflow_flag(registers, false);
+		clear_overflow_flag(registers);
 	}
 
-	set_negative_flag(registers, result & 0x80);
+	assign_negative_flag(registers, result & 0x80);
 	assign_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
 }
@@ -455,8 +471,8 @@ execute_subtract_with_carry(struct registers *registers, uint8_t m)
 	}
 
 	assign_carry_flag(registers, t >= 0x100);
-	set_overflow_flag(registers, result < -128 || result > 127);
-	set_negative_flag(registers, result & 0x80);
+	assign_overflow_flag(registers, result < -128 || result > 127);
+	assign_negative_flag(registers, result & 0x80);
 	assign_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
 }
@@ -549,8 +565,8 @@ static
 void
 execute_bit_test(struct registers *registers, uint8_t m)
 {
-	set_negative_flag(registers, m & (1 << 7));
-	set_overflow_flag(registers, m & (1 << 6));
+	assign_negative_flag(registers, m & (1 << 7));
+	assign_overflow_flag(registers, m & (1 << 6));
 	assign_zero_flag(registers, (registers->a & m) == 0);
 }
 
@@ -572,8 +588,8 @@ execute_subtract_with_carry_for_isb(struct registers *registers, uint8_t m)
 	}
 
 	assign_carry_flag(registers, unsigned_result >= 0x100);
-	set_overflow_flag(registers, result < -128 || result > 127);
-	set_negative_flag(registers, result & 0x80);
+	assign_overflow_flag(registers, result < -128 || result > 127);
+	assign_negative_flag(registers, result & 0x80);
 	assign_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
 }
@@ -642,16 +658,16 @@ execute_add_with_carry_rra(struct registers *registers, uint8_t v)
 
 	/* If the operands have opposite signs, the sum will never overflow */
 	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
-		set_overflow_flag(registers, true);
+		set_overflow_flag(registers);
 	}
 	else if (a < 0 && b < 0 && (int8_t) result > 0) {
-		set_overflow_flag(registers, true);
+		set_overflow_flag(registers);
 	}
 	else {
-		set_overflow_flag(registers, false);
+		clear_overflow_flag(registers);
 	}
 
-	set_negative_flag(registers, result & 0x80);
+	assign_negative_flag(registers, result & 0x80);
 	assign_zero_flag(registers, result == 0);
 	registers->a = (result & 0xFF);
 }
@@ -942,10 +958,10 @@ uint8_t execute_instruction(struct registers *registers)
 		/* TODO: flag seems to always be set? */
 		registers->p |= 0x20;
 		if (t1) {
-			set_break_command_flag(registers, true);
+			set_break_command_flag(registers);
 		}
 		else {
-			set_break_command_flag(registers, false);
+			clear_break_command_flag(registers);
 		}
 		registers->pc += 1;
 		break;
@@ -1110,10 +1126,10 @@ uint8_t execute_instruction(struct registers *registers)
 		/* TODO: flag seems to always be set? */
 		registers->p |= 0x20;
 		if (t1) {
-			set_break_command_flag(registers, true);
+			set_break_command_flag(registers);
 		}
 		else {
-			set_break_command_flag(registers, false);
+			clear_break_command_flag(registers);
 		}
 		t2 = pop_from_stack(registers);
 		t2 += pop_from_stack(registers) << 8;
@@ -1865,7 +1881,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xB8:
 		/* CLV - Clear Overflow Flag */
 		/* Cycles: 2 */
-		set_overflow_flag(registers, false);
+		clear_overflow_flag(registers);
 		registers->pc += 1;
 		break;
 	case 0xB9:
@@ -2072,7 +2088,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xD8:
 		/* CLD - Clear Decimal Mode */
 		/* Cycles: 2 */
-		set_decimal_mode_flag(registers, false);
+		clear_decimal_mode_flag(registers);
 		registers->pc += 1;
 		break;
 	case 0xD9:
@@ -2288,7 +2304,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xF8:
 		/* SED - Set Decimal Flag */
 		/* Cycles: 2 */
-		set_decimal_mode_flag(registers, true);
+		set_decimal_mode_flag(registers);
 		registers->pc += 1;
 		break;
 	case 0xF9:
