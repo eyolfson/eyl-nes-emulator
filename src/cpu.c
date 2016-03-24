@@ -741,9 +741,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		break;
 	case 0x14:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Zero Page X) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		compute_zero_page_x_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x15:
@@ -784,7 +785,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x1A:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 2 */
 		registers->pc += 1;
 		break;
 	case 0x1B:
@@ -796,9 +797,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 3;
 		break;
 	case 0x1C:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute X) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		compute_absolute_x_address(registers);
 		registers->pc += 3;
 		break;
 	case 0x1D:
@@ -954,9 +956,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		break;
 	case 0x34:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Zero Page Y) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		compute_zero_page_x_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x35:
@@ -1071,9 +1074,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		break;
 	case 0x44:
-		/* NOP - No Operation */
+		/* DOP */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 3 */
+		compute_zero_page_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x45:
@@ -1167,6 +1171,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x54:
 		/* DOP */
+		/* Illegal Opcode */
 		/* Cycles: 4 */
 		compute_zero_page_x_address(registers);
 		registers->pc += 2;
@@ -1215,9 +1220,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 3;
 		break;
 	case 0x5C:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute X) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		compute_absolute_x_address(registers);
 		registers->pc += 3;
 		break;
 	case 0x5D:
@@ -1268,7 +1274,7 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		break;
 	case 0x64:
-		/* NOP - No Operation */
+		/* DOP */
 		/* Illegal Opcode */
 		/* Cycles: 3 */
 		compute_zero_page_address(registers);
@@ -1421,9 +1427,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 3;
 		break;
 	case 0x7C:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute X) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		compute_absolute_x_address(registers);
 		registers->pc += 3;
 		break;
 	case 0x7D:
@@ -1460,6 +1467,13 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 6 */
 		compute_indirect_x_address(registers);
 		memory_write(computed_address, registers->a);
+		registers->pc += 2;
+		break;
+	case 0x82:
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 2 */
+		compute_immediate_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x83:
@@ -1505,6 +1519,13 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->y -= 1;
 		sync_negative_and_zero_flags(registers, registers->y);
 		registers->pc += 1;
+		break;
+	case 0x89:
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 2 */
+		compute_immediate_address(registers);
+		registers->pc += 2;
 		break;
 	case 0x8A:
 		/* TXA - Transfer X to Accumulator */
@@ -1858,6 +1879,13 @@ uint8_t execute_instruction(struct registers *registers)
 		execute_compare(registers, registers->a);
 		registers->pc += 2;
 		break;
+	case 0xC2:
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 2 */
+		compute_immediate_address(registers);
+		registers->pc += 2;
+		break;
 	case 0xC3:
 		/* DCP */
 		/* Illegal Opcode */
@@ -1965,9 +1993,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		break;
 	case 0xD4:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Zero Page X) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		compute_zero_page_x_address(registers);
 		registers->pc += 2;
 		break;
 	case 0xD5:
@@ -2008,7 +2037,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xDA:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 2 */
 		registers->pc += 1;
 		break;
 	case 0xDB:
@@ -2020,9 +2049,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 3;
 		break;
 	case 0xDC:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute X) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		compute_absolute_x_address(registers);
 		registers->pc += 3;
 		break;
 	case 0xDD:
@@ -2059,6 +2089,13 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 6 */
 		compute_indirect_x_address(registers);
 		execute_subtract_with_carry(registers);
+		registers->pc += 2;
+		break;
+	case 0xE2:
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 2 */
+		compute_immediate_address(registers);
 		registers->pc += 2;
 		break;
 	case 0xE3:
@@ -2177,9 +2214,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 2;
 		break;
 	case 0xF4:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Zero Page X) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		compute_zero_page_x_address(registers);
 		registers->pc += 2;
 		break;
 	case 0xF5:
@@ -2220,7 +2258,7 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xFA:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 2 */
 		registers->pc += 1;
 		break;
 	case 0xFB:
@@ -2232,9 +2270,10 @@ uint8_t execute_instruction(struct registers *registers)
 		registers->pc += 3;
 		break;
 	case 0xFC:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute X) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		compute_absolute_x_address(registers);
 		registers->pc += 3;
 		break;
 	case 0xFD:
