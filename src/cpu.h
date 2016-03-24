@@ -19,13 +19,9 @@
 
 #include <stdint.h>
 
-#define MEMORY_SIZE 0x10000
-
 #ifdef __cpluscplus
 extern "C" {
 #endif
-
-extern uint8_t memory[MEMORY_SIZE];
 
 struct registers {
 	uint8_t a;    /* Accumulator */

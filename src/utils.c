@@ -17,11 +17,9 @@
 
 #include "utils.h"
 
-#include "cpu.h" // TODO: remove afte refactor
 #include "exit_code.h"
 #include "prg_rom.h"
 
-#include <string.h> // TODO: remove after refactor
 
 static const uint16_t HEADER_SIZE = 16;               /* 16 B */
 static const uint16_t PRG_ROM_SIZE_PER_UNIT = 0x4000; /* 16 KiB */
@@ -67,12 +65,9 @@ uint8_t check_rom_size_raw(uint8_t *data, size_t size)
 void load_rom_into_memory(uint8_t *data, size_t size)
 {
 	uint8_t prg_rom_units = data[4];
-	memcpy(memory + 0xC000, data + HEADER_SIZE, PRG_ROM_SIZE_PER_UNIT);
-	if (prg_rom_units == 2) {
-		memcpy(memory + 0x8000, data + HEADER_SIZE + PRG_ROM_SIZE_PER_UNIT, PRG_ROM_SIZE_PER_UNIT);
-	}
 
 	prg_rom_set_bank_1(data + HEADER_SIZE);
+
 	if (prg_rom_units == 1) {
 		prg_rom_set_bank_2(data + HEADER_SIZE);
 	}

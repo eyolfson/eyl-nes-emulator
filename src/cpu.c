@@ -18,10 +18,9 @@
 #include "cpu.h"
 
 #include "exit_code.h"
+#include "memory_bus.h"
 
 #include <stdbool.h>
-
-uint8_t memory[MEMORY_SIZE];
 
 void init_registers(struct registers *registers)
 {
@@ -33,367 +32,198 @@ void init_registers(struct registers *registers)
 	registers->pc = 0xC000;
 }
 
-/* Carry Flag */
+/* Utils */
 
-static void clear_carry_flag(struct registers *registers)
+static uint16_t get_stack_address(struct registers *registers)
 {
-	registers->p &= ~(1 << 0);
+	return 0x0100 + registers->s;
 }
 
-static void set_carry_flag(struct registers *registers)
+static void push_to_stack(struct registers *registers, uint8_t v)
 {
-	registers->p |= 1 << 0;
+	memory_write(get_stack_address(registers), v);
+	registers->s -= 1;
 }
 
-static void assign_carry_flag(struct registers *registers, bool c)
+static uint8_t pop_from_stack(struct registers *registers)
 {
-	if (c) { set_carry_flag(registers); }
-	else { clear_carry_flag(registers); }
+	registers->s += 1;
+	return memory_read(get_stack_address(registers));
 }
 
-static bool get_carry_flag(struct registers *registers)
+static uint8_t get_byte_operand(struct registers *registers)
 {
-	return registers->p & (1 << 0);
+	return memory_read(registers->pc + 1);
 }
 
-/* Zero Flag */
-
-static void clear_zero_flag(struct registers *registers)
+static uint16_t get_2_byte_operand(struct registers *registers)
 {
-	registers->p &= ~(1 << 1);
-}
-
-static void set_zero_flag(struct registers *registers)
-{
-	registers->p |= 1 << 1;
-}
-
-static void assign_zero_flag(struct registers *registers, bool z)
-{
-	if (z) { set_zero_flag(registers); }
-	else { clear_zero_flag(registers); }
-}
-
-static bool get_zero_flag(struct registers *registers)
-{
-	return registers->p & 1 << 1;
-}
-
-/* Interrupt Disable Flag */
-
-static void clear_interrupt_disable_flag(struct registers *registers)
-{
-	registers->p &= ~(1 << 2);
-}
-
-static void set_interrupt_disable_flag(struct registers *registers)
-{
-	registers->p |= 1 << 2;
-}
-
-static void assign_interrupt_disable_flag(struct registers *registers, bool i)
-{
-	if (i) { set_interrupt_disable_flag(registers); }
-	else { clear_interrupt_disable_flag(registers); }
-}
-
-static bool get_interrupt_disable_flag(struct registers *registers)
-{
-	return registers->p & 1 << 2;
-}
-
-/* Decimal Mode Flag */
-
-static void clear_decimal_mode_flag(struct registers *registers)
-{
-	registers->p &= ~(1 << 3);
-}
-
-static void set_decimal_mode_flag(struct registers *registers)
-{
-	registers->p |= 1 << 3;
-}
-
-static void assign_decimal_mode_flag(struct registers *registers, bool d)
-{
-	if (d) { set_decimal_mode_flag(registers); }
-	else { clear_decimal_mode_flag(registers); }
-}
-
-static bool get_decimal_mode_flag(struct registers *registers)
-{
-	return registers->p & 1 << 3;
-}
-
-/* Break Command Flag */
-
-static void clear_break_command_flag(struct registers *registers)
-{
-	registers->p &= ~(1 << 4);
-}
-
-static void set_break_command_flag(struct registers *registers)
-{
-	registers->p |= 1 << 4;
-}
-
-static void assign_break_command_flag(struct registers *registers, bool b)
-{
-	if (b) { set_break_command_flag(registers); }
-	else { clear_break_command_flag(registers); }
-}
-
-static bool get_break_command_flag(struct registers *registers)
-{
-	return registers->p & 1 << 4;
-}
-
-/* Overflow Flag */
-
-static void clear_overflow_flag(struct registers *registers)
-{
-	registers->p &= ~(1 << 6);
-}
-
-static void set_overflow_flag(struct registers *registers)
-{
-	registers->p |= 1 << 6;
-}
-
-static void assign_overflow_flag(struct registers *registers, bool v)
-{
-	if (v) { set_overflow_flag(registers); }
-	else { clear_overflow_flag(registers); }
-}
-
-static bool get_overflow_flag(struct registers *registers)
-{
-	return registers->p & 1 << 6;
-}
-
-/* Negative Flag */
-
-static void clear_negative_flag(struct registers *registers)
-{
-	registers->p &= ~(1 << 7);
-}
-
-static void set_negative_flag(struct registers *registers)
-{
-	registers->p |= 1 << 7;
-}
-
-static void assign_negative_flag(struct registers *registers, bool n)
-{
-	if (n) { set_negative_flag(registers); }
-	else { clear_negative_flag(registers); }
-}
-
-static bool get_negative_flag(struct registers *registers)
-{
-	return registers->p & 1 << 7;
-}
-
-static
-void
-push_to_stack(struct registers *registers, uint8_t v)
-{
-	*(memory + 0x0100 + registers->s) = v;
-	if (registers->s == 0x00) {
-		registers->s = 0xFF;
-	}
-	else {
-		registers->s -= 1;
-	}
-}
-
-static
-uint8_t
-pop_from_stack(struct registers *registers)
-{
-	if (registers->s == 0xFF) {
-		registers->s = 0x00;
-	}
-	else {
-		registers->s += 1;
-	}
-	return *(memory + 0x0100 + registers->s);
-}
-
-static
-uint8_t *
-pointer_to_zero_page(uint8_t offset)
-{
-	return memory + offset;
-}
-
-static
-uint8_t *
-pointer_to_memory(uint16_t offset)
-{
-	return memory + offset;
-}
-
-static
-uint8_t
-get_byte_operand(struct registers *registers)
-{
-	uint8_t *operands_start = (memory + registers->pc + 1);
-	return *operands_start;
-}
-
-static
-uint16_t
-get_2_byte_operand(struct registers *registers)
-{
-	uint8_t *operands_start = (memory + registers->pc + 1);
-	return *operands_start + (*(operands_start + 1) << 8);
+	uint8_t low_byte = memory_read(registers->pc + 1);
+	uint8_t high_byte = memory_read(registers->pc + 2);
+	return (high_byte << 8) + low_byte;
 }
 
 /* Addressing modes */
 
-static
-uint8_t
-get_immediate_value(struct registers *registers)
+static uint16_t computed_address;
+
+static void compute_immediate_address(struct registers *registers)
 {
-	return get_byte_operand(registers);
+	computed_address = registers->pc + 1;
 }
 
-static
-uint8_t *
-get_zero_page_pointer(struct registers *registers)
+static void compute_zero_page_address(struct registers *registers)
 {
-	return pointer_to_zero_page(get_byte_operand(registers));
+	computed_address = get_byte_operand(registers);
 }
 
-static
-uint8_t
-get_zero_page_value(struct registers *registers)
-{
-	return *get_zero_page_pointer(registers);
-}
-
-static
-uint8_t *
-get_zero_page_x_pointer(struct registers *registers)
-{
-	return pointer_to_zero_page(get_byte_operand(registers) + registers->x);
-}
-
-static
-uint8_t
-get_zero_page_x_value(struct registers *registers)
-{
-	return *get_zero_page_x_pointer(registers);
-}
-
-static
-uint8_t *
-get_zero_page_y_pointer(struct registers *registers)
-{
-	return pointer_to_zero_page(get_byte_operand(registers) + registers->y);
-}
-
-static
-uint8_t
-get_zero_page_y_value(struct registers *registers)
-{
-	return *get_zero_page_y_pointer(registers);
-}
-
-static
-uint8_t *
-get_absolute_pointer(struct registers *registers)
-{
-	return pointer_to_memory(get_2_byte_operand(registers));
-}
-
-static
-uint8_t
-get_absolute_value(struct registers *registers)
-{
-	return *get_absolute_pointer(registers);
-}
-
-static
-uint8_t *
-get_absolute_x_pointer(struct registers *registers)
-{
-	return pointer_to_memory(get_2_byte_operand(registers) + registers->x);
-}
-
-static
-uint8_t
-get_absolute_x_value(struct registers *registers)
-{
-	return *get_absolute_x_pointer(registers);
-}
-
-static
-uint8_t *
-get_absolute_y_pointer(struct registers *registers)
-{
-	return pointer_to_memory(get_2_byte_operand(registers) + registers->y);
-}
-
-static
-uint8_t
-get_absolute_y_value(struct registers *registers)
-{
-	return *get_absolute_y_pointer(registers);
-}
-
-static
-uint8_t *
-get_indirect_y_pointer(struct registers *registers)
+static void compute_zero_page_x_address(struct registers *registers)
 {
 	uint8_t zero_page_address = get_byte_operand(registers);
-
-	/* This has zero page wrap around */
-	uint16_t absolute_address = *pointer_to_zero_page(zero_page_address);
-	zero_page_address += 1;
-	absolute_address += *pointer_to_zero_page(zero_page_address) << 8;
-
-	absolute_address += registers->y;
-
-	return pointer_to_memory(absolute_address);
+	zero_page_address += registers->x;
+	computed_address = zero_page_address;
 }
 
-static
-uint8_t
-get_indirect_y_value(struct registers *registers)
+static void compute_zero_page_y_address(struct registers *registers)
 {
-	return *get_indirect_y_pointer(registers);
+	uint8_t zero_page_address = get_byte_operand(registers);
+	zero_page_address += registers->y;
+	computed_address = zero_page_address;
 }
 
-static
-uint8_t *
-get_indirect_x_pointer(struct registers *registers)
+static void compute_absolute_address(struct registers *registers)
+{
+	computed_address = get_2_byte_operand(registers);
+}
+
+static void compute_absolute_x_address(struct registers *registers)
+{
+	computed_address = get_2_byte_operand(registers);
+	computed_address += registers->x;
+}
+
+static void compute_absolute_y_address(struct registers *registers)
+{
+	computed_address = get_2_byte_operand(registers);
+	computed_address += registers->y;
+}
+
+static void compute_indirect_x_address(struct registers *registers)
 {
 	uint8_t zero_page_address = get_byte_operand(registers);
 	zero_page_address += registers->x;
 
 	/* This has zero page wrap around */
-	uint16_t absolute_address = *pointer_to_zero_page(zero_page_address);
+	uint8_t address_low = memory_read(zero_page_address);
 	zero_page_address += 1;
-	absolute_address += *pointer_to_zero_page(zero_page_address) << 8;
+	uint8_t address_high = memory_read(zero_page_address);
 
-	return pointer_to_memory(absolute_address);
+	computed_address = (address_high << 8) + address_low;
 }
 
-static
-uint8_t
-get_indirect_x_value(struct registers *registers)
+static void compute_indirect_y_address(struct registers *registers)
 {
-	return *get_indirect_x_pointer(registers);
+	uint8_t zero_page_address = get_byte_operand(registers);
+
+	/* This has zero page wrap around */
+	uint8_t address_low = memory_read(zero_page_address);
+	zero_page_address += 1;
+	uint8_t address_high = memory_read(zero_page_address);
+
+	computed_address = (address_high << 8) + address_low;
+	computed_address += registers->y;
 }
 
-static
-uint8_t *
-get_accumulator_pointer(struct registers *registers)
+/* Carry Flag */
+static void clear_carry_flag(struct registers *registers)
+{ registers->p &= ~(1 << 0); }
+static void set_carry_flag(struct registers *registers)
+{ registers->p |= 1 << 0; }
+static void assign_carry_flag(struct registers *registers, bool c)
 {
-	return &(registers->a);
+	if (c) { set_carry_flag(registers); }
+	else { clear_carry_flag(registers); }
 }
+static bool get_carry_flag(struct registers *registers)
+{ return registers->p & (1 << 0); }
+
+/* Zero Flag */
+static void clear_zero_flag(struct registers *registers)
+{ registers->p &= ~(1 << 1); }
+static void set_zero_flag(struct registers *registers)
+{ registers->p |= 1 << 1; }
+static void assign_zero_flag(struct registers *registers, bool z)
+{
+	if (z) { set_zero_flag(registers); }
+	else { clear_zero_flag(registers); }
+}
+static bool get_zero_flag(struct registers *registers)
+{ return registers->p & 1 << 1; }
+
+/* Interrupt Disable Flag */
+static void clear_interrupt_disable_flag(struct registers *registers)
+{ registers->p &= ~(1 << 2); }
+static void set_interrupt_disable_flag(struct registers *registers)
+{ registers->p |= 1 << 2; }
+static void assign_interrupt_disable_flag(struct registers *registers, bool i)
+{
+	if (i) { set_interrupt_disable_flag(registers); }
+	else { clear_interrupt_disable_flag(registers); }
+}
+static bool get_interrupt_disable_flag(struct registers *registers)
+{ return registers->p & 1 << 2;}
+
+/* Decimal Mode Flag */
+static void clear_decimal_mode_flag(struct registers *registers)
+{ registers->p &= ~(1 << 3); }
+static void set_decimal_mode_flag(struct registers *registers)
+{ registers->p |= 1 << 3; }
+static void assign_decimal_mode_flag(struct registers *registers, bool d)
+{
+	if (d) { set_decimal_mode_flag(registers); }
+	else { clear_decimal_mode_flag(registers); }
+}
+static bool get_decimal_mode_flag(struct registers *registers)
+{ return registers->p & 1 << 3; }
+
+/* Break Command Flag */
+static void clear_break_command_flag(struct registers *registers)
+{ registers->p &= ~(1 << 4); }
+static void set_break_command_flag(struct registers *registers)
+{ registers->p |= 1 << 4; }
+static void assign_break_command_flag(struct registers *registers, bool b)
+{
+	if (b) { set_break_command_flag(registers); }
+	else { clear_break_command_flag(registers); }
+}
+static bool get_break_command_flag(struct registers *registers)
+{ return registers->p & 1 << 4; }
+
+/* Overflow Flag */
+static void clear_overflow_flag(struct registers *registers)
+{ registers->p &= ~(1 << 6); }
+static void set_overflow_flag(struct registers *registers)
+{ registers->p |= 1 << 6; }
+static void assign_overflow_flag(struct registers *registers, bool v)
+{
+	if (v) { set_overflow_flag(registers); }
+	else { clear_overflow_flag(registers); }
+}
+static bool get_overflow_flag(struct registers *registers)
+{ return registers->p & 1 << 6; }
+
+/* Negative Flag */
+static void clear_negative_flag(struct registers *registers)
+{ registers->p &= ~(1 << 7); }
+static void set_negative_flag(struct registers *registers)
+{ registers->p |= 1 << 7; }
+static void assign_negative_flag(struct registers *registers, bool n)
+{
+	if (n) { set_negative_flag(registers); }
+	else { clear_negative_flag(registers); }
+}
+static bool get_negative_flag(struct registers *registers)
+{ return registers->p & 1 << 7; }
 
 /* Execution */
 
@@ -407,8 +237,10 @@ sync_negative_and_zero_flags(struct registers *registers, uint8_t m)
 
 static
 void
-execute_compare(struct registers *registers, uint8_t r, uint8_t m)
+execute_compare(struct registers *registers, uint8_t r)
 {
+	uint8_t m = memory_read(computed_address);
+
 	uint16_t result = r - m;
 	assign_carry_flag(registers, result < 0x100);
 	sync_negative_and_zero_flags(registers, result);
@@ -416,8 +248,11 @@ execute_compare(struct registers *registers, uint8_t r, uint8_t m)
 
 static
 void
-execute_add_with_carry(struct registers *registers, uint8_t v)
+execute_add_with_carry(struct registers *registers)
 {
+	uint8_t v = memory_read(computed_address);
+
+	/* TODO: clean-up */
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) v;
 
@@ -458,8 +293,10 @@ execute_add_with_carry(struct registers *registers, uint8_t v)
 
 static
 void
-execute_subtract_with_carry(struct registers *registers, uint8_t m)
+execute_subtract_with_carry(struct registers *registers)
 {
+	uint8_t m = memory_read(computed_address);
+
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) m;
 
@@ -479,101 +316,202 @@ execute_subtract_with_carry(struct registers *registers, uint8_t m)
 
 static
 void
-execute_logical_and(struct registers *registers, uint8_t m)
+execute_logical_and(struct registers *registers)
 {
+	uint8_t m = memory_read(computed_address);
 	registers->a &= m;
 	sync_negative_and_zero_flags(registers, registers->a);
 }
 
 static
 void
-execute_logical_exclusive_or(struct registers *registers, uint8_t m)
+execute_logical_exclusive_or(struct registers *registers)
 {
+	uint8_t m = memory_read(computed_address);
 	registers->a ^= m;
 	sync_negative_and_zero_flags(registers, registers->a);
 }
 
 static
 void
-execute_logical_inclusive_or(struct registers *registers, uint8_t m)
+execute_logical_inclusive_or(struct registers *registers)
 {
+	uint8_t m = memory_read(computed_address);
 	registers->a |= m;
 	sync_negative_and_zero_flags(registers, registers->a);
 }
 
 static
 void
-execute_arithmetic_shift_left(struct registers *registers, uint8_t *pointer)
+execute_arithmetic_shift_left_accumulator(struct registers *registers)
 {
-	assign_carry_flag(registers, *pointer & 0x80);
-	*pointer <<= 1;
-	sync_negative_and_zero_flags(registers, *pointer);
+	assign_carry_flag(registers, registers->a & 0x80);
+	registers->a <<= 1;
+	sync_negative_and_zero_flags(registers, registers->a);
 }
 
 static
 void
-execute_logical_shift_right(struct registers *registers, uint8_t *pointer)
+execute_arithmetic_shift_left(struct registers *registers)
 {
-	assign_carry_flag(registers, *pointer & 0x01);
-	*pointer >>= 1;
-	sync_negative_and_zero_flags(registers, *pointer);
+	uint8_t m = memory_read(computed_address);
+	assign_carry_flag(registers, m & 0x80);
+	m <<= 1;
+	sync_negative_and_zero_flags(registers, m);
+	memory_write(computed_address, m);
 }
 
-static
-void
-execute_rotate_left(struct registers *registers, uint8_t *pointer)
+static void execute_logical_shift_right_accumulator(struct registers *registers)
+{
+	assign_carry_flag(registers, registers->a & 0x01);
+	registers->a >>= 1;
+	sync_negative_and_zero_flags(registers, registers->a);
+}
+
+static void execute_logical_shift_right(struct registers *registers)
+{
+	uint8_t m = memory_read(computed_address);
+	assign_carry_flag(registers, m & 0x01);
+	m >>= 1;
+	sync_negative_and_zero_flags(registers, m);
+	memory_write(computed_address, m);
+}
+
+static void execute_rotate_left_accumulator(struct registers *registers)
 {
 	bool current_carry_flag = get_carry_flag(registers);
-	assign_carry_flag(registers, *pointer & 0x80);
-	*pointer <<= 1;
+	assign_carry_flag(registers, registers->a & 0x80);
+	registers->a <<= 1;
 	if (current_carry_flag) {
-		*pointer |= 0x01;
+		registers->a |= 0x01;
 	}
-	sync_negative_and_zero_flags(registers, *pointer);
+	sync_negative_and_zero_flags(registers, registers->a);
 }
 
-static
-void
-execute_rotate_right(struct registers *registers, uint8_t *pointer)
+static void execute_rotate_left(struct registers *registers)
+{
+	uint8_t m = memory_read(computed_address);
+	bool current_carry_flag = get_carry_flag(registers);
+	assign_carry_flag(registers, m & 0x80);
+	m <<= 1;
+	if (current_carry_flag) {
+		m |= 0x01;
+	}
+	sync_negative_and_zero_flags(registers, m);
+	memory_write(computed_address, m);
+}
+
+static void execute_rotate_right_accumulator(struct registers *registers)
 {
 	bool current_carry_flag = get_carry_flag(registers);
-	assign_carry_flag(registers, *pointer & 0x01);
-	*pointer >>= 1;
+	assign_carry_flag(registers, registers->a & 0x01);
+	registers->a >>= 1;
 	if (current_carry_flag) {
-		*pointer |= 0x80;
+		registers->a |= 0x80;
 	}
-	sync_negative_and_zero_flags(registers, *pointer);
+	sync_negative_and_zero_flags(registers, registers->a);
+}
+
+static void execute_rotate_right(struct registers *registers)
+{
+	uint8_t m = memory_read(computed_address);
+	bool current_carry_flag = get_carry_flag(registers);
+	assign_carry_flag(registers, m & 0x01);
+	m >>= 1;
+	if (current_carry_flag) {
+		m |= 0x80;
+	}
+	sync_negative_and_zero_flags(registers, m);
+	memory_write(computed_address, m);
 }
 
 static
 void
-execute_decrement_memory(struct registers *registers, uint8_t *pointer)
+execute_decrement_memory(struct registers *registers)
 {
-	*pointer -= 1;
-	sync_negative_and_zero_flags(registers, *pointer);
+	uint8_t m = memory_read(computed_address);
+	m -= 1;
+	sync_negative_and_zero_flags(registers, m);
+	memory_write(computed_address, m);
 }
 
 static
 void
-execute_increment_memory(struct registers *registers, uint8_t *pointer)
+execute_increment_memory(struct registers *registers)
 {
-	*pointer += 1;
-	sync_negative_and_zero_flags(registers, *pointer);
+	uint8_t m = memory_read(computed_address);
+	m += 1;
+	sync_negative_and_zero_flags(registers, m);
+	memory_write(computed_address, m);
 }
 
 static
 void
-execute_bit_test(struct registers *registers, uint8_t m)
+execute_bit_test(struct registers *registers)
 {
+	uint8_t m = memory_read(computed_address);
+
 	assign_negative_flag(registers, m & (1 << 7));
 	assign_overflow_flag(registers, m & (1 << 6));
 	assign_zero_flag(registers, (registers->a & m) == 0);
 }
 
+/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
+static void execute_branch(struct registers *registers,
+                           bool (*get_flag)(struct registers *registers),
+                           bool condition)
+{
+	uint8_t relative = memory_read(registers->pc + 1);
+	registers->pc += 2;
+	if (get_flag(registers) == condition) {
+		/* TODO: Don't depend on cast */
+		registers->pc += (int8_t) relative;
+	}
+}
+
+static void execute_jump_to_subroutine(struct registers *registers)
+{
+	uint8_t address_low = memory_read(registers->pc + 1);
+	uint8_t address_high = memory_read(registers->pc + 2);
+	uint16_t target_address = (address_high << 8) + address_low;
+
+	uint16_t return_address = registers->pc + 3;
+	/* Hardware subtracts one from the correct return address */
+	return_address -= 1;
+
+	/* TODO: clean-up */
+	push_to_stack(registers, (return_address & 0xFF00) >> 8);
+	push_to_stack(registers, return_address & 0x00FF);
+
+	registers->pc = target_address;
+}
+
+static void execute_jump_indirect(struct registers *registers)
+{
+	uint8_t indirect_address_low = memory_read(registers->pc + 1);
+	uint8_t indirect_address_high = memory_read(registers->pc + 2);
+	uint16_t indirect_address = (indirect_address_high << 8)
+	                            + indirect_address_low;
+
+	uint8_t absolute_address_low = memory_read(indirect_address);
+	/* If the address is 0x02FF, read low byte from 0x02FF
+                                and high byte from 0x0200 */
+	indirect_address_low += 1;
+	indirect_address = (indirect_address_high << 8)
+	                   + (indirect_address_low);
+	uint8_t absolute_address_high = memory_read(indirect_address);
+	uint16_t absolute_address = (absolute_address_high << 8)
+	                            + absolute_address_low;
+
+	registers->pc = absolute_address;
+}
+
 static
 void
-execute_subtract_with_carry_for_isb(struct registers *registers, uint8_t m)
+execute_subtract_with_carry_for_isb(struct registers *registers)
 {
+	uint8_t m = memory_read(computed_address);
+
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) m;
 
@@ -596,48 +534,50 @@ execute_subtract_with_carry_for_isb(struct registers *registers, uint8_t m)
 
 static
 void
-execute_isb(struct registers *registers, uint8_t *pointer)
+execute_isb(struct registers *registers)
 {
-	execute_increment_memory(registers, pointer);
-	execute_subtract_with_carry_for_isb(registers, *pointer);
+	execute_increment_memory(registers);
+	execute_subtract_with_carry_for_isb(registers);
 }
 
 static
 void
-execute_dcp(struct registers *registers, uint8_t *pointer)
+execute_dcp(struct registers *registers)
 {
-	execute_decrement_memory(registers, pointer);
-	execute_compare(registers, registers->a, *pointer);
+	execute_decrement_memory(registers);
+	execute_compare(registers, registers->a);
 }
 
 static
 void
-execute_slo(struct registers *registers, uint8_t *pointer)
+execute_slo(struct registers *registers)
 {
-	execute_arithmetic_shift_left(registers, pointer);
-	execute_logical_inclusive_or(registers, *pointer);
+	execute_arithmetic_shift_left(registers);
+	execute_logical_inclusive_or(registers);
 }
 
 static
 void
-execute_rla(struct registers *registers, uint8_t *pointer)
+execute_rla(struct registers *registers)
 {
-	execute_rotate_left(registers, pointer);
-	execute_logical_and(registers, *pointer);
+	execute_rotate_left(registers);
+	execute_logical_and(registers);
 }
 
 static
 void
-execute_sre(struct registers *registers, uint8_t *pointer)
+execute_sre(struct registers *registers)
 {
-	execute_logical_shift_right(registers, pointer);
-	execute_logical_exclusive_or(registers, *pointer);
+	execute_logical_shift_right(registers);
+	execute_logical_exclusive_or(registers);
 }
 
 static
 void
-execute_add_with_carry_rra(struct registers *registers, uint8_t v)
+execute_add_with_carry_rra(struct registers *registers)
 {
+	uint8_t v = memory_read(computed_address);
+
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) v;
 
@@ -674,16 +614,15 @@ execute_add_with_carry_rra(struct registers *registers, uint8_t v)
 
 static
 void
-execute_rra(struct registers *registers, uint8_t *pointer)
+execute_rra(struct registers *registers)
 {
-	execute_rotate_right(registers, pointer);
-	execute_add_with_carry_rra(registers, *pointer);
+	execute_rotate_right(registers);
+	execute_add_with_carry_rra(registers);
 }
 
 uint8_t execute_instruction(struct registers *registers)
 {
-	uint8_t *memory_pc_offset = memory + registers->pc;
-	uint8_t opcode = *(memory_pc_offset);
+	uint8_t opcode = memory_read(registers->pc);
 
 	uint16_t t1 = 0;
 	uint16_t t2 = 0;
@@ -693,44 +632,45 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x01:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 6 */
-		execute_logical_inclusive_or(registers,
-			get_indirect_x_value(registers));
+		compute_indirect_x_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x03:
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_slo(registers,
-			get_indirect_x_pointer(registers));
+		compute_indirect_x_address(registers);
+		execute_slo(registers);
 		registers->pc += 2;
 		break;
 	case 0x04:
-		/* NOP - No Operation */
+		/* DOP */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 3 */
+		compute_zero_page_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x05:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 3 */
-		execute_logical_inclusive_or(registers,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x06:
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 5 */
-		execute_arithmetic_shift_left(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_arithmetic_shift_left(registers);
 		registers->pc += 2;
 		break;
 	case 0x07:
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 5 */
-		execute_slo(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_slo(registers);
 		registers->pc += 2;
 		break;
 	case 0x08:
@@ -742,69 +682,62 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x09:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 2 */
-		execute_logical_inclusive_or(registers,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x0A:
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 2 */
-		execute_arithmetic_shift_left(registers,
-			get_accumulator_pointer(registers));
+		execute_arithmetic_shift_left_accumulator(registers);
 		registers->pc += 1;
 		break;
 	case 0x0C:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		compute_absolute_address(registers);
 		registers->pc += 3;
 		break;
 	case 0x0D:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 4 */
-		execute_logical_inclusive_or(registers,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 3;
 		break;
 	case 0x0E:
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 6 */
-		execute_arithmetic_shift_left(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_arithmetic_shift_left(registers);
 		registers->pc += 3;
 		break;
 	case 0x0F:
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_slo(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_slo(registers);
 		registers->pc += 3;
 		break;
 	case 0x10:
 		/* BPL - Branch if Positive */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (!get_negative_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_negative_flag, false);
 		break;
 	case 0x11:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 5 (+1 if page crossed) */
-		execute_logical_inclusive_or(registers,
-			get_indirect_y_value(registers));
+		compute_indirect_y_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x13:
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_slo(registers,
-			get_indirect_y_pointer(registers));
+		compute_indirect_y_address(registers);
+		execute_slo(registers);
 		registers->pc += 2;
 		break;
 	case 0x14:
@@ -816,23 +749,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x15:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 4 */
-		execute_logical_inclusive_or(registers,
-			get_zero_page_x_value(registers));
+		compute_zero_page_x_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x16:
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 6 */
-		execute_arithmetic_shift_left(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_arithmetic_shift_left(registers);
 		registers->pc += 2;
 		break;
 	case 0x17:
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_slo(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_slo(registers);
 		registers->pc += 2;
 		break;
 	case 0x18:
@@ -844,8 +777,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x19:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_logical_inclusive_or(registers,
-			get_absolute_y_value(registers));
+		compute_absolute_y_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 3;
 		break;
 	case 0x1A:
@@ -858,8 +791,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_slo(registers,
-			get_absolute_y_pointer(registers));
+		compute_absolute_y_address(registers);
+		execute_slo(registers);
 		registers->pc += 3;
 		break;
 	case 0x1C:
@@ -871,23 +804,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x1D:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_logical_inclusive_or(registers,
-			get_absolute_x_value(registers));
+		compute_absolute_x_address(registers);
+		execute_logical_inclusive_or(registers);
 		registers->pc += 3;
 		break;
 	case 0x1E:
 		/* ASL - Arithmetic Shift Left */
 		/* Cycles: 7 */
-		execute_arithmetic_shift_left(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_arithmetic_shift_left(registers);
 		registers->pc += 3;
 		break;
 	case 0x1F:
 		/* SLO */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_slo(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_slo(registers);
 		registers->pc += 3;
 		break;
 	case 0x20:
@@ -895,56 +828,50 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Address is absolute */
 		/* Bytes: 3 */
 		/* Cycles: 6 */
-		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
-
-		t2 = registers->pc + 3 - 1;
-		push_to_stack(registers, (t2 & 0xFF00) >> 8);
-		push_to_stack(registers, t2 & 0x00FF);
-
-		registers->pc = t1;
+		execute_jump_to_subroutine(registers);
 		break;
 	case 0x21:
 		/* AND - Logical AND */
 		/* Cycles: 6 */
-		execute_logical_and(registers,
-			get_indirect_x_value(registers));
+		compute_indirect_x_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 2;
 		break;
 	case 0x23:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_rla(registers,
-			get_indirect_x_pointer(registers));
+		compute_indirect_x_address(registers);
+		execute_rla(registers);
 		registers->pc += 2;
 		break;
 	case 0x24:
 		/* BIT - Bit Test */
 		/* Cycles: 3 */
-		execute_bit_test(registers,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_bit_test(registers);
 		registers->pc += 2;
 		break;
 	case 0x25:
 		/* AND - Logical AND */
 		/* Cycles: 3 */
-		execute_logical_and(registers,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 2;
 		break;
 	case 0x26:
 		/* ROL - Rotate Left */
 		/* Cycles: 5 */
-		execute_rotate_left(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_rotate_left(registers);
 		registers->pc += 2;
 		break;
 	case 0x27:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 5 */
-		execute_rla(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_rla(registers);
 		registers->pc += 2;
 		break;
 	case 0x28:
@@ -968,70 +895,62 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x29:
 		/* AND - Logical AND */
 		/* Cycles: 2 */
-		execute_logical_and(registers,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 2;
 		break;
 	case 0x2A:
 		/* ROL - Rotate Left */
 		/* Cycles: 2 */
-		execute_rotate_left(registers,
-			get_accumulator_pointer(registers));
+		execute_rotate_left_accumulator(registers);
 		registers->pc += 1;
 		break;
 	case 0x2C:
 		/* BIT - Bit Test */
 		/* Cycles: 4 */
-		execute_bit_test(registers,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_bit_test(registers);
 		registers->pc += 3;
 		break;
 	case 0x2D:
 		/* AND - Logical AND */
 		/* Cycles: 4 */
-		execute_logical_and(registers,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 3;
 		break;
 	case 0x2E:
 		/* ROL - Rotate Left */
 		/* Cycles: 6 */
-		execute_rotate_left(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_rotate_left(registers);
 		registers->pc += 3;
 		break;
 	case 0x2F:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_rla(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_rla(registers);
 		registers->pc += 3;
 		break;
 	case 0x30:
 		/* BMI - Branch if Minus */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (get_negative_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_negative_flag, true);
 		break;
 	case 0x31:
 		/* AND - Logical AND */
 		/* Cycles: 5 (+1 if page crossed) */
-		execute_logical_and(registers,
-			get_indirect_y_value(registers));
+		compute_indirect_y_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 2;
 		break;
 	case 0x33:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_rla(registers,
-			get_indirect_y_pointer(registers));
+		compute_indirect_y_address(registers);
+		execute_rla(registers);
 		registers->pc += 2;
 		break;
 	case 0x34:
@@ -1043,23 +962,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x35:
 		/* AND - Logical AND */
 		/* Cycles: 4 */
-		execute_logical_and(registers,
-			get_zero_page_x_value(registers));
+		compute_zero_page_x_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 2;
 		break;
 	case 0x36:
 		/* ROL - Rotate Left */
 		/* Cycles: 6 */
-		execute_rotate_left(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_rotate_left(registers);
 		registers->pc += 2;
 		break;
 	case 0x37:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_rla(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_rla(registers);
 		registers->pc += 2;
 		break;
 	case 0x38:
@@ -1071,50 +990,51 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x39:
 		/* AND - Logical AND */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_logical_and(registers,
-			get_absolute_y_value(registers));
+		compute_absolute_y_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 3;
 		break;
 	case 0x3A:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 2 */
 		registers->pc += 1;
 		break;
 	case 0x3B:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_rla(registers,
-			get_absolute_y_pointer(registers));
+		compute_absolute_y_address(registers);
+		execute_rla(registers);
 		registers->pc += 3;
 		break;
 	case 0x3C:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Absolute X) */
-		/* Cycles: TODO */
+		/* TOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 (+1 if page crossed) */
+		compute_absolute_x_address(registers);
 		registers->pc += 3;
 		break;
 	case 0x3D:
 		/* AND - Logical AND */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_logical_and(registers,
-			get_absolute_x_value(registers));
+		compute_absolute_x_address(registers);
+		execute_logical_and(registers);
 		registers->pc += 3;
 		break;
 	case 0x3E:
 		/* ROL - Rotate Left */
 		/* Cycles: 7 */
-		execute_rotate_left(registers,
-			get_absolute_x_pointer(registers));
+		// get_absolute_x_pointer(registers));
+		execute_rotate_left(registers);
 		registers->pc += 3;
 		break;
 	case 0x3F:
 		/* RLA */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_rla(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_rla(registers);
 		registers->pc += 3;
 		break;
 	case 0x40:
@@ -1138,16 +1058,16 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x41:
 		/* EOR - Exclusive OR */
 		/* Cycles: 6 */
-		execute_logical_exclusive_or(registers,
-			get_indirect_x_value(registers));
+		compute_indirect_x_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x43:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_sre(registers,
-			get_indirect_x_pointer(registers));
+		compute_indirect_x_address(registers);
+		execute_sre(registers);
 		registers->pc += 2;
 		break;
 	case 0x44:
@@ -1159,23 +1079,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x45:
 		/* EOR - Exclusive OR */
 		/* Cycles: 3 */
-		execute_logical_exclusive_or(registers,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x46:
 		/* LSR - Logical Shift Right */
 		/* Cycles: 5 */
-		execute_logical_shift_right(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_logical_shift_right(registers);
 		registers->pc += 2;
 		break;
 	case 0x47:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 5 */
-		execute_sre(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_sre(registers);
 		registers->pc += 2;
 		break;
 	case 0x48:
@@ -1187,15 +1107,14 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x49:
 		/* EOR - Exclusive OR */
 		/* Cycles: 2 */
-		execute_logical_exclusive_or(registers,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x4A:
 		/* LSR - Logical Shift Right */
 		/* Cycles: 2 */
-		execute_logical_shift_right(registers,
-			get_accumulator_pointer(registers));
+		execute_logical_shift_right_accumulator(registers);
 		registers->pc += 1;
 		break;
 	case 0x4C:
@@ -1208,98 +1127,91 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x4D:
 		/* EOR - Exclusive OR */
 		/* Cycles: 4 */
-		execute_logical_exclusive_or(registers,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 3;
 		break;
 	case 0x4E:
 		/* LSR - Logical Shift Right */
 		/* Cycles: 6 */
-		execute_logical_shift_right(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_logical_shift_right(registers);
 		registers->pc += 3;
 		break;
 	case 0x4F:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_sre(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_sre(registers);
 		registers->pc += 3;
 		break;
 	case 0x50:
 		/* BVC - Branch if Overflow Clear */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (!get_overflow_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_overflow_flag, false);
 		break;
 	case 0x51:
 		/* EOR - Exclusive OR */
 		/* Cycles: 5 (+1 if page crossed) */
-		execute_logical_exclusive_or(registers,
-			get_indirect_y_value(registers));
+		compute_indirect_y_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x53:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_sre(registers,
-			get_indirect_y_pointer(registers));
+		compute_indirect_y_address(registers);
+		execute_sre(registers);
 		registers->pc += 2;
 		break;
 	case 0x54:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Zero Page X) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Cycles: 4 */
+		compute_zero_page_x_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x55:
 		/* EOR - Exclusive OR */
 		/* Cycles: 4 */
-		execute_logical_exclusive_or(registers,
-			get_zero_page_x_value(registers));
+		compute_zero_page_x_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 2;
 		break;
 	case 0x56:
 		/* LSR - Logical Shift Right */
 		/* Cycles: 6 */
-		execute_logical_shift_right(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_logical_shift_right(registers);
 		registers->pc += 2;
 		break;
 	case 0x57:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_sre(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_sre(registers);
 		registers->pc += 2;
 		break;
 	case 0x59:
 		/* EOR - Exclusive OR */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_logical_exclusive_or(registers,
-			get_absolute_y_value(registers));
+		compute_absolute_y_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 3;
 		break;
 	case 0x5A:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 2 */
 		registers->pc += 1;
 		break;
 	case 0x5B:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_sre(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_sre(registers);
 		registers->pc += 3;
 		break;
 	case 0x5C:
@@ -1311,23 +1223,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x5D:
 		/* EOR - Exclusive OR */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_logical_exclusive_or(registers,
-			get_absolute_x_value(registers));
+		compute_absolute_x_address(registers);
+		execute_logical_exclusive_or(registers);
 		registers->pc += 3;
 		break;
 	case 0x5E:
 		/* LSR - Logical Shift Right */
 		/* Cycles: 7 */
-		execute_logical_shift_right(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_logical_shift_right(registers);
 		registers->pc += 3;
 		break;
 	case 0x5F:
 		/* SRE */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_sre(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_sre(registers);
 		registers->pc += 3;
 		break;
 	case 0x60:
@@ -1342,44 +1254,46 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x61:
 		/* ADC - Add with Carry */
 		/* Cycles: 6 */
-		execute_add_with_carry(registers,
-			get_indirect_x_value(registers));
+		compute_indirect_x_address(registers);
+		compute_indirect_x_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0x63:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_rra(registers,
-			get_indirect_x_pointer(registers));
+		compute_indirect_x_address(registers);
+		execute_rra(registers);
 		registers->pc += 2;
 		break;
 	case 0x64:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 3 */
+		compute_zero_page_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x65:
 		/* ADC - Add with Carry */
 		/* Cycles: 3 */
-		execute_add_with_carry(registers,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0x66:
 		/* ROR - Rotate Right */
 		/* Cycles: 5 */
-		execute_rotate_right(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_rotate_right(registers);
 		registers->pc += 2;
 		break;
 	case 0x67:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 5 */
-		execute_rra(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_rra(registers);
 		registers->pc += 2;
 		break;
 	case 0x68:
@@ -1392,15 +1306,14 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x69:
 		/* ADC - Add with Carry */
 		/* Cycles: 2 */
-		execute_add_with_carry(registers,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0x6A:
 		/* ROR - Rotate Right */
 		/* Cycles: 2 */
-		execute_rotate_right(registers,
-			get_accumulator_pointer(registers));
+		execute_rotate_right_accumulator(registers);
 		registers->pc += 1;
 		break;
 	case 0x6C:
@@ -1408,92 +1321,76 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Address is indirect */
 		/* Bytes: 3 */
 		/* Cycles: 5 */
-		t1 = *(memory_pc_offset + 1) + (*(memory_pc_offset + 2) << 8);
-		t2 = *(memory + t1);
-		/* If the address is 0x02FF, the address of the low byte,
-		   the high byte is in 0x0200, not 0x0300 */
-		if ((t1 & 0xFF) == 0xFF) {
-			t2 += (*(memory + (t1 & 0xFF00)) << 8);
-		}
-		else {
-			t2 += (*(memory + t1 + 1) << 8);
-		}
-		registers->pc = t2;
+		execute_jump_indirect(registers);
 		break;
 	case 0x6D:
 		/* ADC - Add with Carry */
 		/* Cycles: 4 */
-		execute_add_with_carry(registers,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 3;
 		break;
 	case 0x6E:
 		/* ROR - Rotate Right */
 		/* Cycles: 6 */
-		execute_rotate_right(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_rotate_right(registers);
 		registers->pc += 3;
 		break;
 	case 0x6F:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_rra(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_rra(registers);
 		registers->pc += 3;
 		break;
 	case 0x70:
 		/* BVS - Branch if Overflow Set */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (get_overflow_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_overflow_flag, true);
 		break;
 	case 0x71:
 		/* ADC - Add with Carry */
 		/* Cycles: 5 (+1 if page crossed) */
-		execute_add_with_carry(registers,
-			get_indirect_y_value(registers));
+		compute_indirect_y_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0x73:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_rra(registers,
-			get_indirect_y_pointer(registers));
+		compute_indirect_y_address(registers);
+		execute_rra(registers);
 		registers->pc += 2;
 		break;
 	case 0x74:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Zero Page X) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 4 */
+		compute_zero_page_x_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x75:
 		/* ADC - Add with Carry */
 		/* Cycles: 4 */
-		execute_add_with_carry(registers,
-			get_zero_page_x_value(registers));
+		compute_zero_page_x_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0x76:
 		/* ROR - Rotate Right */
 		/* Cycles: 6 */
-		execute_rotate_right(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_rotate_right(registers);
 		registers->pc += 2;
 		break;
 	case 0x77:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_rra(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_rra(registers);
 		registers->pc += 2;
 		break;
 	case 0x78:
@@ -1505,22 +1402,22 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x79:
 		/* ADC - Add with Carry */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_add_with_carry(registers,
-			get_absolute_y_value(registers));
+		compute_absolute_y_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 3;
 		break;
 	case 0x7A:
 		/* NOP - No Operation */
 		/* Illegal Opcode */
-		/* Cycles: TODO */
+		/* Cycles: 2 */
 		registers->pc += 1;
 		break;
 	case 0x7B:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_rra(registers,
-			get_absolute_y_pointer(registers));
+		compute_absolute_y_address(registers);
+		execute_rra(registers);
 		registers->pc += 3;
 		break;
 	case 0x7C:
@@ -1532,69 +1429,74 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x7D:
 		/* ADC - Add with Carry */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_add_with_carry(registers,
-			get_absolute_x_value(registers));
+		compute_absolute_x_address(registers);
+		execute_add_with_carry(registers);
 		registers->pc += 3;
 		break;
 	case 0x7E:
 		/* ROR - Rotate Right */
 		/* Cycles: 7 */
-		execute_rotate_right(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_rotate_right(registers);
 		registers->pc += 3;
 		break;
 	case 0x7F:
 		/* RRA */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_rra(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_rra(registers);
 		registers->pc += 3;
 		break;
 	case 0x80:
-		/* NOP - No Operation */
-		/* Illegal Opcode (Immediate) */
-		/* Cycles: TODO */
+		/* DOP */
+		/* Illegal Opcode */
+		/* Cycles: 2 */
+		compute_immediate_address(registers);
 		registers->pc += 2;
 		break;
 	case 0x81:
 		/* STA - Store Accumulator */
 		/* Cycles: 6 */
-		*get_indirect_x_pointer(registers) = registers->a;
+		compute_indirect_x_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 2;
 		break;
 	case 0x83:
 		/* SAX */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		*get_indirect_x_pointer(registers) = registers->a
-		                                     & registers->x;
+		compute_indirect_x_address(registers);
+		memory_write(computed_address, registers->a & registers->x);
 		registers->pc += 2;
 		break;
 	case 0x84:
 		/* STY - Store Y Register */
 		/* Cycles: 3 */
-		*get_zero_page_pointer(registers) = registers->y;
+		compute_zero_page_address(registers);
+		memory_write(computed_address, registers->y);
 		registers->pc += 2;
 		break;
 	case 0x85:
 		/* STA - Store Accumulator */
 		/* Cycles: 3 */
-		*get_zero_page_pointer(registers) = registers->a;
+		compute_zero_page_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 2;
 		break;
 	case 0x86:
 		/* STX - Store X Register */
 		/* Cycles: 3 */
-		*get_zero_page_pointer(registers) = registers->x;
+		compute_zero_page_address(registers);
+		memory_write(computed_address, registers->x);
 		registers->pc += 2;
 		break;
 	case 0x87:
 		/* SAX */
 		/* Illegal Opcode */
 		/* Cycles: 3 */
-		*get_zero_page_pointer(registers) = registers->a
-		                                    & registers->x;
+		compute_zero_page_address(registers);
+		memory_write(computed_address, registers->a & registers->x);
 		registers->pc += 2;
 		break;
 	case 0x88:
@@ -1614,70 +1516,70 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x8C:
 		/* STY - Store Y Register */
 		/* Cycles: 4 */
-		*get_absolute_pointer(registers) = registers->y;
+		compute_absolute_address(registers);
+		memory_write(computed_address, registers->y);
 		registers->pc += 3;
 		break;
 	case 0x8D:
 		/* STA - Store Accumulator */
 		/* Cycles: 4 */
-		*get_absolute_pointer(registers) = registers->a;
+		compute_absolute_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 3;
 		break;
 	case 0x8E:
 		/* STX - Store X Register */
 		/* Cycles: 4 */
-		*get_absolute_pointer(registers) = registers->x;
+		compute_absolute_address(registers);
+		memory_write(computed_address, registers->x);
 		registers->pc += 3;
 		break;
 	case 0x8F:
 		/* SAX */
 		/* Illegal Opcode */
 		/* Cycles: 4 */
-		*get_absolute_pointer(registers) = registers->a
-		                                   & registers->x;
+		compute_absolute_address(registers);
+		memory_write(computed_address, registers->a & registers->x);
 		registers->pc += 3;
 		break;
 	case 0x90:
 		/* BCC - Branch if Carry Clear */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (!get_carry_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_carry_flag, false);
 		break;
 	case 0x91:
 		/* STA - Store Accumulator */
 		/* Cycles: 6 */
-		*get_indirect_y_pointer(registers) = registers->a;
+		compute_indirect_y_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 2;
 		break;
 	case 0x94:
 		/* STY - Store Y Register */
 		/* Cycles: 4 */
-		*get_zero_page_x_pointer(registers) = registers->y;
+		compute_zero_page_x_address(registers);
+		memory_write(computed_address, registers->y);
 		registers->pc += 2;
 		break;
 	case 0x95:
 		/* STA - Store Accumulator */
 		/* Cycles: 4 */
-		*get_zero_page_x_pointer(registers) = registers->a;
+		compute_zero_page_x_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 2;
 		break;
 	case 0x96:
 		/* STX - Store X Register */
 		/* Cycles: 4 */
-		*get_zero_page_y_pointer(registers) = registers->x;
+		compute_zero_page_y_address(registers);
+		memory_write(computed_address, registers->x);
 		registers->pc += 2;
 		break;
 	case 0x97:
 		/* SAX */
 		/* Illegal Opcode */
 		/* Cycles: 4 */
-		*get_zero_page_y_pointer(registers) = registers->a
-		                                     & registers->x;
+		compute_zero_page_y_address(registers);
+		memory_write(computed_address, registers->a & registers->x);
 		registers->pc += 2;
 		break;
 	case 0x98:
@@ -1690,7 +1592,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x99:
 		/* STA - Store Accumulator */
 		/* Cycles: 5 */
-		*get_absolute_y_pointer(registers) = registers->a;
+		compute_absolute_y_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 3;
 		break;
 	case 0x9A:
@@ -1702,27 +1605,31 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0x9D:
 		/* STA - Store Accumulator */
 		/* Cycles: 5 */
-		*get_absolute_x_pointer(registers) = registers->a;
+		compute_absolute_x_address(registers);
+		memory_write(computed_address, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xA0:
 		/* LDY - Load Y Register */
 		/* Cycles: 2 */
-		registers->y = get_immediate_value(registers);
+		compute_immediate_address(registers);
+		registers->y = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->y);
 		registers->pc += 2;
 		break;
 	case 0xA1:
 		/* LDA - Load Accumlator */
 		/* Cycles: 6 */
-		registers->a = get_indirect_x_value(registers);
+		compute_indirect_x_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA2:
 		/* LDX - Load X Register */
 		/* Cycles: 2 */
-		registers->x = get_immediate_value(registers);
+		compute_immediate_address(registers);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 2;
 		break;
@@ -1730,30 +1637,33 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LAX - Load Accumulator and X Register */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		t1 = get_indirect_x_value(registers);
-		registers->a = t1;
-		registers->x = t1;
+		compute_indirect_x_address(registers);
+		registers->a = memory_read(computed_address);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA4:
 		/* LDY - Load Y Register */
 		/* Cycles: 3 */
-		registers->y = get_zero_page_value(registers);
+		compute_zero_page_address(registers);
+		registers->y = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->y);
 		registers->pc += 2;
 		break;
 	case 0xA5:
 		/* LDA - Load Accumlator */
 		/* Cycles: 3 */
-		registers->a = get_zero_page_value(registers);
+		compute_zero_page_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA6:
 		/* LDX - Load X Register */
 		/* Cycles: 3 */
-		registers->x = get_zero_page_value(registers);
+		compute_zero_page_address(registers);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 2;
 		break;
@@ -1761,9 +1671,9 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LAX - Load Accumulator and X Register */
 		/* Illegal Opcode */
 		/* Cycles: 3 */
-		t1 = get_zero_page_value(registers);
-		registers->a = t1;
-		registers->x = t1;
+		compute_zero_page_address(registers);
+		registers->a = memory_read(computed_address);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
@@ -1777,7 +1687,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xA9:
 		/* LDA - Load Accumlator */
 		/* Cycles: 2 */
-		registers->a = get_immediate_value(registers);
+		compute_immediate_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
@@ -1791,21 +1702,24 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xAC:
 		/* LDY - Load Y Register */
 		/* Cycles: 4 */
-		registers->y = get_absolute_value(registers);
+		compute_absolute_address(registers);
+		registers->y = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->y);
 		registers->pc += 3;
 		break;
 	case 0xAD:
 		/* LDA - Load Acuumulator */
 		/* Cycles: 4 */
-		registers->a = get_absolute_value(registers);
+		compute_absolute_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xAE:
 		/* LDX - Load X Register */
 		/* Cycles: 4 */
-		registers->x = get_absolute_value(registers);
+		compute_absolute_address(registers);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 3;
 		break;
@@ -1813,27 +1727,21 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LAX - Load Accumulator and X Register */
 		/* Illegal Opcode */
 		/* Cycles: 4 */
-		t1 = get_absolute_value(registers);
-		registers->a = t1;
-		registers->x = t1;
+		compute_absolute_address(registers);
+		registers->a = memory_read(computed_address);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xB0:
 		/* BCS - Branch if Carry Set */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (get_carry_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_carry_flag, true);
 		break;
 	case 0xB1:
 		/* LDA - Load Accumlator */
 		/* Cycles: 5 (+1 if page crossed) */
-		registers->a = get_indirect_y_value(registers);
+		compute_indirect_y_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
@@ -1841,30 +1749,33 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LAX - Load Accumulator and X Register */
 		/* Illegal Opcode */
 		/* Cycles: 5 (+1 if page crossed) */
-		t1 = get_indirect_y_value(registers);
-		registers->a = t1;
-		registers->x = t1;
+		compute_indirect_y_address(registers);
+		registers->a = memory_read(computed_address);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB4:
 		/* LDY - Load Y Register */
 		/* Cycles: 4 */
-		registers->y = get_zero_page_x_value(registers);
+		compute_zero_page_x_address(registers);
+		registers->y = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->y);
 		registers->pc += 2;
 		break;
 	case 0xB5:
 		/* LDA - Load Accumlator */
 		/* Cycles: 4 */
-		registers->a = get_zero_page_x_value(registers);
+		compute_zero_page_x_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB6:
 		/* LDX - Load X Register */
 		/* Cycles: 4 */
-		registers->x = get_zero_page_y_value(registers);
+		compute_zero_page_y_address(registers);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 2;
 		break;
@@ -1872,9 +1783,9 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LAX - Load Accumulator and X Register */
 		/* Illegal Opcode */
 		/* Cycles: 4 */
-		t1 = get_zero_page_y_value(registers);
-		registers->a = t1;
-		registers->x = t1;
+		compute_zero_page_y_address(registers);
+		registers->a = memory_read(computed_address);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 2;
 		break;
@@ -1887,7 +1798,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xB9:
 		/* LDA - Load Acuumulator */
 		/* Cycles: 4 (+1 if page crossed) */
-		registers->a = get_absolute_y_value(registers);
+		compute_absolute_y_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 3;
 		break;
@@ -1901,21 +1813,24 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xBC:
 		/* LDY - Load Y Register */
 		/* Cycles: 4 (+1 if page crossed) */
-		registers->y = get_absolute_x_value(registers);
+		compute_absolute_x_address(registers);
+		registers->y = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->y);
 		registers->pc += 3;
 		break;
 	case 0xBD:
 		/* LDA - Load Acuumulator */
 		/* Cycles: 4 (+1 if page crossed) */
-		registers->a = get_absolute_x_value(registers);
+		compute_absolute_x_address(registers);
+		registers->a = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xBE:
 		/* LDX - Load X Register */
 		/* Cycles: 4 (+1 if page crossed) */
-		registers->x = get_absolute_y_value(registers);
+		compute_absolute_y_address(registers);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->x);
 		registers->pc += 3;
 		break;
@@ -1923,61 +1838,61 @@ uint8_t execute_instruction(struct registers *registers)
 		/* LAX - Load Accumulator and X Register */
 		/* Illegal Opcode */
 		/* Cycles: 4 (+1 if page crossed) */
-		t1 = get_absolute_y_value(registers);
-		registers->a = t1;
-		registers->x = t1;
+		compute_absolute_y_address(registers);
+		registers->a = memory_read(computed_address);
+		registers->x = memory_read(computed_address);
 		sync_negative_and_zero_flags(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xC0:
 		/* CPY - Compare Y Register */
 		/* Cycles: 2 */
-		execute_compare(registers, registers->y,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_compare(registers, registers->y);
 		registers->pc += 2;
 		break;
 	case 0xC1:
 		/* CMP - Compare */
 		/* Cycles: 6 */
-		execute_compare(registers, registers->a,
-			get_indirect_x_value(registers));
+		compute_indirect_x_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xC3:
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_dcp(registers,
-			get_indirect_x_pointer(registers));
+		compute_indirect_x_address(registers);
+		execute_dcp(registers);
 		registers->pc += 2;
 		break;
 	case 0xC4:
 		/* CPY - Compare Y Register */
 		/* Cycles: 3 */
-		execute_compare(registers, registers->y,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_compare(registers, registers->y);
 		registers->pc += 2;
 		break;
 	case 0xC5:
 		/* CMP - Compare */
 		/* Cycles: 3 */
-		execute_compare(registers, registers->a,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xC6:
 		/* DEC - Decrement Memory */
 		/* Cycles: 5 */
-		execute_decrement_memory(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_decrement_memory(registers);
 		registers->pc += 2;
 		break;
 	case 0xC7:
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 5 */
-		execute_dcp(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_dcp(registers);
 		registers->pc += 2;
 		break;
 	case 0xC8:
@@ -1990,8 +1905,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xC9:
 		/* CMP - Compare */
 		/* Cycles: 2 */
-		execute_compare(registers, registers->a,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xCA:
@@ -2004,57 +1919,49 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xCC:
 		/* CPY - Compare Y Register */
 		/* Cycles: 4 */
-		execute_compare(registers, registers->y,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_compare(registers, registers->y);
 		registers->pc += 3;
 		break;
 	case 0xCD:
 		/* CMP - Compare */
 		/* Cycles: 4 */
-		execute_compare(registers, registers->a,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xCE:
 		/* DEC - Decrement Memory */
 		/* Cycles: 6 */
-		execute_decrement_memory(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_decrement_memory(registers);
 		registers->pc += 3;
 		break;
 	case 0xCF:
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_dcp(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_dcp(registers);
 		registers->pc += 3;
 		break;
 	case 0xD0:
 		/* BNE - Branch if Not Equal */
-		/* Addressing is relative */
-		/* Bytes: 2 */
-		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (!get_zero_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			/* TODO: the relative can be negative */
-			registers->pc += (int8_t) t1;
-		}
+		execute_branch(registers, get_zero_flag, false);
 		break;
 	case 0xD1:
 		/* CMP - Compare */
 		/* Cycles: 5 (+1 if page crossed) */
-		execute_compare(registers, registers->a,
-			get_indirect_y_value(registers));
+		compute_indirect_y_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xD3:
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_dcp(registers,
-			get_indirect_y_pointer(registers));
+		compute_indirect_y_address(registers);
+		execute_dcp(registers);
 		registers->pc += 2;
 		break;
 	case 0xD4:
@@ -2066,23 +1973,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xD5:
 		/* CMP - Compare */
 		/* Cycles: 4 */
-		execute_compare(registers, registers->a,
-			get_zero_page_x_value(registers));
+		compute_zero_page_x_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 2;
 		break;
 	case 0xD6:
 		/* DEC - Decrement Memory */
 		/* Cycles: 6 */
-		execute_decrement_memory(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_decrement_memory(registers);
 		registers->pc += 2;
 		break;
 	case 0xD7:
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_dcp(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_dcp(registers);
 		registers->pc += 2;
 		break;
 	case 0xD8:
@@ -2094,8 +2001,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xD9:
 		/* CMP - Compare */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_compare(registers, registers->a,
-			get_absolute_y_value(registers));
+		compute_absolute_y_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xDA:
@@ -2108,8 +2015,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_dcp(registers,
-			get_absolute_y_pointer(registers));
+		compute_absolute_y_address(registers);
+		execute_dcp(registers);
 		registers->pc += 3;
 		break;
 	case 0xDC:
@@ -2121,74 +2028,74 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xDD:
 		/* CMP - Compare */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_compare(registers, registers->a,
-			get_absolute_x_value(registers));
+		compute_absolute_x_address(registers);
+		execute_compare(registers, registers->a);
 		registers->pc += 3;
 		break;
 	case 0xDE:
 		/* DEC - Decrement Memory */
 		/* Cycles: 7 */
-		execute_decrement_memory(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_decrement_memory(registers);
 		registers->pc += 3;
 		break;
 	case 0xDF:
 		/* DCP */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_dcp(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_dcp(registers);
 		registers->pc += 3;
 		break;
 	case 0xE0:
 		/* CPX - Compare X Register */
 		/* Cycles: 2 */
-		execute_compare(registers, registers->x,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_compare(registers, registers->x);
 		registers->pc += 2;
 		break;
 	case 0xE1:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 6 */
-		execute_subtract_with_carry(registers,
-			get_indirect_x_value(registers));
+		compute_indirect_x_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0xE3:
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_isb(registers,
-			get_indirect_x_pointer(registers));
+		compute_indirect_x_address(registers);
+		execute_isb(registers);
 		registers->pc += 2;
 		break;
 	case 0xE4:
 		/* CPX - Compare X Register */
 		/* Cycles: 3 */
-		execute_compare(registers, registers->x,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_compare(registers, registers->x);
 		registers->pc += 2;
 		break;
 	case 0xE5:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 3 */
-		execute_subtract_with_carry(registers,
-			get_zero_page_value(registers));
+		compute_zero_page_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0xE6:
 		/* INC - Increment Memory */
 		/* Cycles: 5 */
-		execute_increment_memory(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_increment_memory(registers);
 		registers->pc += 2;
 		break;
 	case 0xE7:
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 5 */
-		execute_isb(registers,
-			get_zero_page_pointer(registers));
+		compute_zero_page_address(registers);
+		execute_isb(registers);
 		registers->pc += 2;
 		break;
 	case 0xE8:
@@ -2201,8 +2108,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xE9:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 2 */
-		execute_subtract_with_carry(registers,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0xEA:
@@ -2214,37 +2121,37 @@ uint8_t execute_instruction(struct registers *registers)
 		/* SBC - Subtract with Carry */
 		/* Illegal Opcode */
 		/* Cycles: 2 */
-		execute_subtract_with_carry(registers,
-			get_immediate_value(registers));
+		compute_immediate_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0xEC:
 		/* CPX - Compare X Register */
 		/* Cycles: 4 */
-		execute_compare(registers, registers->x,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_compare(registers, registers->x);
 		registers->pc += 3;
 		break;
 	case 0xED:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 4 */
-		execute_subtract_with_carry(registers,
-			get_absolute_value(registers));
+		compute_absolute_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 3;
 		break;
 	case 0xEE:
 		/* INC - Increment Memory */
 		/* Cycles: 6 */
-		execute_increment_memory(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_increment_memory(registers);
 		registers->pc += 3;
 		break;
 	case 0xEF:
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_isb(registers,
-			get_absolute_pointer(registers));
+		compute_absolute_address(registers);
+		execute_isb(registers);
 		registers->pc += 3;
 		break;
 	case 0xF0:
@@ -2252,25 +2159,21 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Addressing is relative */
 		/* Bytes: 2 */
 		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
-		registers->pc += 2;
-		if (get_zero_flag(registers)) {
-			t1 = *(memory_pc_offset + 1);
-			registers->pc += t1;
-		}
+		execute_branch(registers, get_zero_flag, true);
 		break;
 	case 0xF1:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 5 (+1 if page crossed) */
-		execute_subtract_with_carry(registers,
-			get_indirect_y_value(registers));
+		compute_indirect_y_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0xF3:
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 8 */
-		execute_isb(registers,
-			get_indirect_y_pointer(registers));
+		compute_indirect_y_address(registers);
+		execute_isb(registers);
 		registers->pc += 2;
 		break;
 	case 0xF4:
@@ -2282,23 +2185,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xF5:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 4 */
-		execute_subtract_with_carry(registers,
-			get_zero_page_x_value(registers));
+		compute_zero_page_x_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 2;
 		break;
 	case 0xF6:
 		/* INC - Increment Memory */
 		/* Cycles: 6 */
-		execute_increment_memory(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_increment_memory(registers);
 		registers->pc += 2;
 		break;
 	case 0xF7:
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 6 */
-		execute_isb(registers,
-			get_zero_page_x_pointer(registers));
+		compute_zero_page_x_address(registers);
+		execute_isb(registers);
 		registers->pc += 2;
 		break;
 	case 0xF8:
@@ -2310,8 +2213,8 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xF9:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_subtract_with_carry(registers,
-			get_absolute_y_value(registers));
+		compute_absolute_y_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 3;
 		break;
 	case 0xFA:
@@ -2324,8 +2227,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_isb(registers,
-			get_absolute_y_pointer(registers));
+		compute_absolute_y_address(registers);
+		execute_isb(registers);
 		registers->pc += 3;
 		break;
 	case 0xFC:
@@ -2337,23 +2240,23 @@ uint8_t execute_instruction(struct registers *registers)
 	case 0xFD:
 		/* SBC - Subtract with Carry */
 		/* Cycles: 4 (+1 if page crossed) */
-		execute_subtract_with_carry(registers,
-			get_absolute_x_value(registers));
+		compute_absolute_x_address(registers);
+		execute_subtract_with_carry(registers);
 		registers->pc += 3;
 		break;
 	case 0xFE:
 		/* INC - Increment Memory */
 		/* Cycles: 7 */
-		execute_increment_memory(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_increment_memory(registers);
 		registers->pc += 3;
 		break;
 	case 0xFF:
 		/* ISB */
 		/* Illegal Opcode */
 		/* Cycles: 7 */
-		execute_isb(registers,
-			get_absolute_x_pointer(registers));
+		compute_absolute_x_address(registers);
+		execute_isb(registers);
 		registers->pc += 3;
 		break;
 	default:
