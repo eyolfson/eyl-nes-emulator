@@ -49,6 +49,8 @@ def check_line(expected_line, actual_line):
 			return False
 	return True
 
+EXPECTED_LINES_PASSED = 8991
+
 def run_test():
 	lines_passed = 0
 	completed_process = subprocess.run(["build/nes-emulator-nestest",
@@ -58,6 +60,9 @@ def run_test():
 	with open("nestest.log", "rb") as f:
 		for line in f:
 			if len(lines) == lines_passed:
+				print()
+				print("missing input after:")
+				print(lines[lines_passed - 1].decode())
 				return lines_passed
 			if not check_line(line, lines[lines_passed]):
 				return lines_passed
@@ -68,4 +73,5 @@ if __name__ == "__main__":
 	if check_files() and check_build():
 		lines_passed = run_test()
 		print()
-		print("{}/8991 lines passed".format(lines_passed))
+		print("{}/{} lines passed".format(lines_passed,
+		                                  EXPECTED_LINES_PASSED))
