@@ -240,9 +240,9 @@ static bool get_negative_flag(struct registers *registers)
 
 /* Execution */
 
-static
-void
-sync_negative_and_zero_flags(struct registers *registers, uint8_t m)
+static void assign_negative_and_zero_flags_from_value(
+	struct registers *registers,
+	uint8_t m)
 {
 	assign_zero_flag(registers, m == 0);
 	assign_negative_flag(registers, m & (1 << 7));
@@ -256,7 +256,7 @@ execute_compare(struct registers *registers, uint8_t r)
 
 	uint16_t result = r - m;
 	assign_carry_flag(registers, result < 0x100);
-	sync_negative_and_zero_flags(registers, result);
+	assign_negative_and_zero_flags_from_value(registers, result);
 }
 
 static
@@ -333,7 +333,7 @@ execute_logical_and(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	registers->a &= m;
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static
@@ -342,7 +342,7 @@ execute_logical_exclusive_or(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	registers->a ^= m;
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static
@@ -351,7 +351,7 @@ execute_logical_inclusive_or(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	registers->a |= m;
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static
@@ -360,7 +360,7 @@ execute_arithmetic_shift_left_accumulator(struct registers *registers)
 {
 	assign_carry_flag(registers, registers->a & 0x80);
 	registers->a <<= 1;
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static
@@ -370,7 +370,7 @@ execute_arithmetic_shift_left(struct registers *registers)
 	uint8_t m = memory_read(computed_address);
 	assign_carry_flag(registers, m & 0x80);
 	m <<= 1;
-	sync_negative_and_zero_flags(registers, m);
+	assign_negative_and_zero_flags_from_value(registers, m);
 	memory_write(computed_address, m);
 }
 
@@ -378,7 +378,7 @@ static void execute_logical_shift_right_accumulator(struct registers *registers)
 {
 	assign_carry_flag(registers, registers->a & 0x01);
 	registers->a >>= 1;
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static void execute_logical_shift_right(struct registers *registers)
@@ -386,7 +386,7 @@ static void execute_logical_shift_right(struct registers *registers)
 	uint8_t m = memory_read(computed_address);
 	assign_carry_flag(registers, m & 0x01);
 	m >>= 1;
-	sync_negative_and_zero_flags(registers, m);
+	assign_negative_and_zero_flags_from_value(registers, m);
 	memory_write(computed_address, m);
 }
 
@@ -398,7 +398,7 @@ static void execute_rotate_left_accumulator(struct registers *registers)
 	if (current_carry_flag) {
 		registers->a |= 0x01;
 	}
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static void execute_rotate_left(struct registers *registers)
@@ -410,7 +410,7 @@ static void execute_rotate_left(struct registers *registers)
 	if (current_carry_flag) {
 		m |= 0x01;
 	}
-	sync_negative_and_zero_flags(registers, m);
+	assign_negative_and_zero_flags_from_value(registers, m);
 	memory_write(computed_address, m);
 }
 
@@ -422,7 +422,7 @@ static void execute_rotate_right_accumulator(struct registers *registers)
 	if (current_carry_flag) {
 		registers->a |= 0x80;
 	}
-	sync_negative_and_zero_flags(registers, registers->a);
+	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
 
 static void execute_rotate_right(struct registers *registers)
@@ -434,7 +434,7 @@ static void execute_rotate_right(struct registers *registers)
 	if (current_carry_flag) {
 		m |= 0x80;
 	}
-	sync_negative_and_zero_flags(registers, m);
+	assign_negative_and_zero_flags_from_value(registers, m);
 	memory_write(computed_address, m);
 }
 
@@ -444,7 +444,7 @@ execute_decrement_memory(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	m -= 1;
-	sync_negative_and_zero_flags(registers, m);
+	assign_negative_and_zero_flags_from_value(registers, m);
 	memory_write(computed_address, m);
 }
 
@@ -454,7 +454,7 @@ execute_increment_memory(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
 	m += 1;
-	sync_negative_and_zero_flags(registers, m);
+	assign_negative_and_zero_flags_from_value(registers, m);
 	memory_write(computed_address, m);
 }
 
@@ -1319,7 +1319,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* PLA - Pull Accumulator */
 		/* Cycles: 4 */
 		registers->a = pop_from_stack(registers);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 1;
 		break;
 	case 0x69:
@@ -1529,7 +1530,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* DEY - Decrement Y Register */
 		/* Cycles: 2 */
 		registers->y -= 1;
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 1;
 		break;
 	case 0x89:
@@ -1543,7 +1545,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* TXA - Transfer X to Accumulator */
 		/* Cycles: 2 */
 		registers->a = registers->x;
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 1;
 		break;
 	case 0x8C:
@@ -1620,7 +1623,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* TYA - Transfer Y to Accumulator */
 		/* Cycles: 2 */
 		registers->a = registers->y;
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 1;
 		break;
 	case 0x99:
@@ -1648,7 +1652,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 2 */
 		compute_immediate_address(registers);
 		registers->y = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 2;
 		break;
 	case 0xA1:
@@ -1656,7 +1661,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 6 */
 		compute_indirect_x_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA2:
@@ -1664,7 +1670,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 2 */
 		compute_immediate_address(registers);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 2;
 		break;
 	case 0xA3:
@@ -1674,7 +1681,8 @@ uint8_t execute_instruction(struct registers *registers)
 		compute_indirect_x_address(registers);
 		registers->a = memory_read(computed_address);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA4:
@@ -1682,7 +1690,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 3 */
 		compute_zero_page_address(registers);
 		registers->y = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 2;
 		break;
 	case 0xA5:
@@ -1690,7 +1699,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 3 */
 		compute_zero_page_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA6:
@@ -1698,7 +1708,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 3 */
 		compute_zero_page_address(registers);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 2;
 		break;
 	case 0xA7:
@@ -1708,14 +1719,16 @@ uint8_t execute_instruction(struct registers *registers)
 		compute_zero_page_address(registers);
 		registers->a = memory_read(computed_address);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xA8:
 		/* TAY - Transfer Accumulator to Y */
 		/* Cycles: 2 */
 		registers->y = registers->a;
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 1;
 		break;
 	case 0xA9:
@@ -1723,14 +1736,16 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 2 */
 		compute_immediate_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xAA:
 		/* TAY - Transfer Accumulator to X */
 		/* Cycles: 2 */
 		registers->x = registers->a;
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 1;
 		break;
 	case 0xAC:
@@ -1738,7 +1753,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		compute_absolute_address(registers);
 		registers->y = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 3;
 		break;
 	case 0xAD:
@@ -1746,7 +1762,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		compute_absolute_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 3;
 		break;
 	case 0xAE:
@@ -1754,7 +1771,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		compute_absolute_address(registers);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 3;
 		break;
 	case 0xAF:
@@ -1764,7 +1782,8 @@ uint8_t execute_instruction(struct registers *registers)
 		compute_absolute_address(registers);
 		registers->a = memory_read(computed_address);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 3;
 		break;
 	case 0xB0:
@@ -1777,7 +1796,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 5 (+1 if page crossed) */
 		compute_indirect_y_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB3:
@@ -1787,7 +1807,8 @@ uint8_t execute_instruction(struct registers *registers)
 		compute_indirect_y_address(registers);
 		registers->a = memory_read(computed_address);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB4:
@@ -1795,7 +1816,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		compute_zero_page_x_address(registers);
 		registers->y = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 2;
 		break;
 	case 0xB5:
@@ -1803,7 +1825,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		compute_zero_page_x_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB6:
@@ -1811,7 +1834,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 */
 		compute_zero_page_y_address(registers);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 2;
 		break;
 	case 0xB7:
@@ -1821,7 +1845,8 @@ uint8_t execute_instruction(struct registers *registers)
 		compute_zero_page_y_address(registers);
 		registers->a = memory_read(computed_address);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 2;
 		break;
 	case 0xB8:
@@ -1835,14 +1860,16 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 (+1 if page crossed) */
 		compute_absolute_y_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 3;
 		break;
 	case 0xBA:
 		/* TSX - Transfer Stack Pointer to X */
 		/* Cycles: 2 */
 		registers->x = registers->s;
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 1;
 		break;
 	case 0xBC:
@@ -1850,7 +1877,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 (+1 if page crossed) */
 		compute_absolute_x_address(registers);
 		registers->y = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 3;
 		break;
 	case 0xBD:
@@ -1858,7 +1886,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 (+1 if page crossed) */
 		compute_absolute_x_address(registers);
 		registers->a = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 3;
 		break;
 	case 0xBE:
@@ -1866,7 +1895,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* Cycles: 4 (+1 if page crossed) */
 		compute_absolute_y_address(registers);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 3;
 		break;
 	case 0xBF:
@@ -1876,7 +1906,8 @@ uint8_t execute_instruction(struct registers *registers)
 		compute_absolute_y_address(registers);
 		registers->a = memory_read(computed_address);
 		registers->x = memory_read(computed_address);
-		sync_negative_and_zero_flags(registers, registers->a);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->a);
 		registers->pc += 3;
 		break;
 	case 0xC0:
@@ -1941,7 +1972,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* INY - Increment Y Register */
 		/* Cycles: 2 */
 		registers->y += 1;
-		sync_negative_and_zero_flags(registers, registers->y);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->y);
 		registers->pc += 1;
 		break;
 	case 0xC9:
@@ -1955,7 +1987,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* DEX - Decrement X Register */
 		/* Cycles: 2 */
 		registers->x -= 1;
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 1;
 		break;
 	case 0xCC:
@@ -2154,7 +2187,8 @@ uint8_t execute_instruction(struct registers *registers)
 		/* INX - Increment X Register */
 		/* Cycles: 2 */
 		registers->x += 1;
-		sync_negative_and_zero_flags(registers, registers->x);
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
 		registers->pc += 1;
 		break;
 	case 0xE9:
