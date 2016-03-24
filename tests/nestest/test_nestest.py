@@ -39,6 +39,7 @@ def check_line(expected_line, actual_line):
 		("P", 65, 67),
 		("S", 71, 73),
 	]
+	checks_passed = True
 	for check in CHECKS:
 		expected = expected_line[check[1]:check[2]]
 		actual = actual_line[check[1]:check[2]]
@@ -46,8 +47,8 @@ def check_line(expected_line, actual_line):
 			print()
 			print("{} mismatched, expected: {}, actual: {}".format(
 				check[0], expected.decode(), actual.decode()))
-			return False
-	return True
+			checks_passed = False
+	return checks_passed
 
 EXPECTED_LINES_PASSED = 8991
 
