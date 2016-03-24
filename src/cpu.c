@@ -456,7 +456,6 @@ execute_bit_test(struct registers *registers)
 	assign_zero_flag(registers, (registers->a & m) == 0);
 }
 
-/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 static void execute_branch(struct registers *registers,
                            bool (*get_flag)(struct registers *registers),
                            bool condition)
@@ -484,6 +483,12 @@ static void execute_jump_to_subroutine(struct registers *registers)
 	push_to_stack(registers, return_address & 0x00FF);
 
 	registers->pc = target_address;
+}
+
+static void execute_jump_absolute(struct registers *registers)
+{
+	uint16_t absolute_address = get_2_byte_operand(registers);
+	registers->pc = absolute_address;
 }
 
 static void execute_jump_indirect(struct registers *registers)
@@ -723,6 +728,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x10:
 		/* BPL - Branch if Positive */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_negative_flag, false);
 		break;
 	case 0x11:
@@ -827,8 +833,6 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x20:
 		/* JSR - Jump to Subroutine */
-		/* Address is absolute */
-		/* Bytes: 3 */
 		/* Cycles: 6 */
 		execute_jump_to_subroutine(registers);
 		break;
@@ -938,6 +942,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x30:
 		/* BMI - Branch if Minus */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_negative_flag, true);
 		break;
 	case 0x31:
@@ -1123,10 +1128,8 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x4C:
 		/* JMP - Jump */
-		/* Address is absolute */
-		/* Bytes: 3 */
 		/* Cycles: 3 */
-		registers->pc = get_2_byte_operand(registers);
+		execute_jump_absolute(registers);
 		break;
 	case 0x4D:
 		/* EOR - Exclusive OR */
@@ -1152,6 +1155,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x50:
 		/* BVC - Branch if Overflow Clear */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_overflow_flag, false);
 		break;
 	case 0x51:
@@ -1324,8 +1328,6 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x6C:
 		/* JMP - Jump */
-		/* Address is indirect */
-		/* Bytes: 3 */
 		/* Cycles: 5 */
 		execute_jump_indirect(registers);
 		break;
@@ -1353,6 +1355,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x70:
 		/* BVS - Branch if Overflow Set */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_overflow_flag, true);
 		break;
 	case 0x71:
@@ -1565,6 +1568,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x90:
 		/* BCC - Branch if Carry Clear */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_carry_flag, false);
 		break;
 	case 0x91:
@@ -1756,6 +1760,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0xB0:
 		/* BCS - Branch if Carry Set */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_carry_flag, true);
 		break;
 	case 0xB1:
@@ -1975,6 +1980,7 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0xD0:
 		/* BNE - Branch if Not Equal */
+		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_zero_flag, false);
 		break;
 	case 0xD1:
@@ -2193,8 +2199,6 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0xF0:
 		/* BEQ - Branch if Equal */
-		/* Addressing is relative */
-		/* Bytes: 2 */
 		/* Cycles: 2 (+1 if branch succeeds, +2 if to a new page) */
 		execute_branch(registers, get_zero_flag, true);
 		break;
