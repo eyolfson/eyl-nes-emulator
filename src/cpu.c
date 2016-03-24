@@ -199,6 +199,19 @@ static void assign_break_command_flag(struct registers *registers, bool b)
 static bool get_break_command_flag(struct registers *registers)
 { return registers->p & 1 << 4; }
 
+/* Unused Flag */
+static void clear_unused_flag(struct registers *registers)
+{ registers->p &= ~(1 << 5); }
+static void set_unused_flag(struct registers *registers)
+{ registers->p |= 1 << 5; }
+static void assign_unused_flag(struct registers *registers, bool v)
+{
+	if (v) { set_unused_flag(registers); }
+	else { clear_unused_flag(registers); }
+}
+static bool get_unused_flag(struct registers *registers)
+{ return registers->p & 1 << 5; }
+
 /* Overflow Flag */
 static void clear_overflow_flag(struct registers *registers)
 { registers->p &= ~(1 << 6); }
@@ -468,23 +481,6 @@ static void execute_branch(struct registers *registers,
 	}
 }
 
-static void execute_jump_to_subroutine(struct registers *registers)
-{
-	uint8_t address_low = memory_read(registers->pc + 1);
-	uint8_t address_high = memory_read(registers->pc + 2);
-	uint16_t target_address = (address_high << 8) + address_low;
-
-	uint16_t return_address = registers->pc + 3;
-	/* Hardware subtracts one from the correct return address */
-	return_address -= 1;
-
-	/* TODO: clean-up */
-	push_to_stack(registers, (return_address & 0xFF00) >> 8);
-	push_to_stack(registers, return_address & 0x00FF);
-
-	registers->pc = target_address;
-}
-
 static void execute_jump_absolute(struct registers *registers)
 {
 	uint16_t absolute_address = get_2_byte_operand(registers);
@@ -509,6 +505,51 @@ static void execute_jump_indirect(struct registers *registers)
 	                            + absolute_address_low;
 
 	registers->pc = absolute_address;
+}
+
+static void execute_jump_to_subroutine(struct registers *registers)
+{
+	uint8_t address_low = memory_read(registers->pc + 1);
+	uint8_t address_high = memory_read(registers->pc + 2);
+	uint16_t target_address = (address_high << 8) + address_low;
+
+	uint16_t return_address = registers->pc + 3;
+	/* Hardware subtracts one from the correct return address */
+	return_address -= 1;
+
+	uint8_t return_address_high = (return_address & 0xFF00) >> 8;
+	uint8_t return_address_low = return_address & 0x00FF;
+	push_to_stack(registers, return_address_high);
+	push_to_stack(registers, return_address_low);
+
+	registers->pc = target_address;
+}
+
+static void execute_return_from_subroutine(struct registers *registers)
+{
+	uint8_t address_low = pop_from_stack(registers);
+	uint8_t address_high = pop_from_stack(registers);;
+	uint16_t address = (address_high << 8) + address_low;
+	/* Hardware adds one to get the correct return address */
+	address += 1;
+	registers->pc = address;
+}
+
+static void execute_pull_processor_status(struct registers *registers)
+{
+	bool current_break_command_flag= get_break_command_flag(registers);
+	registers->p = pop_from_stack(registers);
+	set_unused_flag(registers);
+	assign_break_command_flag(registers, current_break_command_flag);
+}
+
+static void execute_return_from_interrupt(struct registers *registers)
+{
+	execute_pull_processor_status(registers);
+	uint8_t address_low = pop_from_stack(registers);
+	uint8_t address_high = pop_from_stack(registers);;
+	uint16_t address = (address_high << 8) + address_low;
+	registers->pc = address;
 }
 
 static
@@ -628,9 +669,6 @@ execute_rra(struct registers *registers)
 uint8_t execute_instruction(struct registers *registers)
 {
 	uint8_t opcode = memory_read(registers->pc);
-
-	uint16_t t1 = 0;
-	uint16_t t2 = 0;
 
 	/* Processor is little-endian */
 	switch (opcode) {
@@ -882,20 +920,8 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x28:
 		/* PLP - Pull Processor Status */
-		/* Bytes: 1 */
 		/* Cycles: 4 */
-
-		/* TODO: perserve break command flag? */
-		t1 = get_break_command_flag(registers);
-		registers->p = pop_from_stack(registers);
-		/* TODO: flag seems to always be set? */
-		registers->p |= 0x20;
-		if (t1) {
-			set_break_command_flag(registers);
-		}
-		else {
-			clear_break_command_flag(registers);
-		}
+		execute_pull_processor_status(registers);
 		registers->pc += 1;
 		break;
 	case 0x29:
@@ -1047,21 +1073,8 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x40:
 		/* RTI - Return from Interrupt */
-		/* Bytes: 1 */
 		/* Cycles: 6 */
-		t1 = get_break_command_flag(registers);
-		registers->p = pop_from_stack(registers);
-		/* TODO: flag seems to always be set? */
-		registers->p |= 0x20;
-		if (t1) {
-			set_break_command_flag(registers);
-		}
-		else {
-			clear_break_command_flag(registers);
-		}
-		t2 = pop_from_stack(registers);
-		t2 += pop_from_stack(registers) << 8;
-		registers->pc = t2;
+		execute_return_from_interrupt(registers);
 		break;
 	case 0x41:
 		/* EOR - Exclusive OR */
@@ -1254,12 +1267,8 @@ uint8_t execute_instruction(struct registers *registers)
 		break;
 	case 0x60:
 		/* RTS - Return from Subroutine */
-		/* Bytes: 1 */
 		/* Cycles: 6 */
-		t1 = pop_from_stack(registers);
-		t1 += pop_from_stack(registers) << 8;
-		t1 += 1;
-		registers->pc = t1;
+		execute_return_from_subroutine(registers);
 		break;
 	case 0x61:
 		/* ADC - Add with Carry */
