@@ -4,7 +4,8 @@ A work-in-progress NES emulator.
 
 ## License
 
-All code is licensed under GPLv3+.
+All code is licensed under GPLv3+. All documentation is licensed under CC BY-SA
+4.0.
 
 ## Resources
 
