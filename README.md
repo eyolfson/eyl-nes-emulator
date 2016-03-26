@@ -7,6 +7,10 @@ A work-in-progress NES emulator.
 All code is licensed under GPLv3+. All documentation is licensed under CC BY-SA
 4.0.
 
+## Testing
+
+Currently the emulator passes all `nestest` CPU tests.
+
 ## Resources
 
 - [Nintendo Entertainment System Architecture] [1]
