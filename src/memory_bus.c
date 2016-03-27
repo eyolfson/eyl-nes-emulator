@@ -47,7 +47,6 @@ uint8_t memory_read(uint16_t address)
 	else {
 		return prg_rom_read_bank_2(address - 0xC000);
 	}
-	return 0;
 }
 
 void memory_write(uint16_t address, uint8_t value)
