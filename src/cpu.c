@@ -259,45 +259,29 @@ static void execute_compare(struct registers *registers, uint8_t r)
 
 static void execute_add_with_carry(struct registers *registers)
 {
-	uint8_t v = memory_read(computed_address);
+	uint8_t m = memory_read(computed_address);
 
-	/* TODO: clean-up */
-	int8_t a = (int8_t) registers->a;
-	int8_t b = (int8_t) v;
-
-	int16_t result = a + b;
-	bool inc_carry = false;
-	if (get_carry_flag(registers)) {
-		if (result == -1) {
-			inc_carry = true;
-		}
+	uint16_t result = registers->a + m;
+	if (get_carry_flag(registers) == true) {
 		result += 1;
 	}
 
-	if (inc_carry) {
-		set_carry_flag(registers);
-	}
-	else if (result > 0) {
-		assign_carry_flag(registers, result & 0x100);
-	}
-	else {
-		clear_carry_flag(registers);
-	}
-
-	/* If the operands have opposite signs, the sum will never overflow */
-	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
-		set_overflow_flag(registers);
-	}
-	else if (a < 0 && b < 0 && (int8_t) result > 0) {
+	bool a_is_negative = registers->a & 0x80;
+	bool m_is_negative = m & 0x80;
+	bool result_is_negative = result & 0x80;
+	if ((a_is_negative && m_is_negative && !result_is_negative)
+	    || (!a_is_negative && !m_is_negative && result_is_negative)) {
 		set_overflow_flag(registers);
 	}
 	else {
 		clear_overflow_flag(registers);
 	}
 
-	assign_negative_flag(registers, result & 0x80);
-	assign_zero_flag(registers, result == 0);
-	registers->a = (result & 0xFF);
+	assign_carry_flag(registers, result & 0x100);
+
+	uint8_t byte_result = result;
+	assign_negative_and_zero_flags_from_value(registers, byte_result);
+	registers->a = byte_result;
 }
 
 static void execute_subtract_with_carry(struct registers *registers)
