@@ -204,9 +204,9 @@ static void clear_unused_flag(struct registers *registers)
 { registers->p &= ~(1 << 5); }
 static void set_unused_flag(struct registers *registers)
 { registers->p |= 1 << 5; }
-static void assign_unused_flag(struct registers *registers, bool v)
+static void assign_unused_flag(struct registers *registers, bool u)
 {
-	if (v) { set_unused_flag(registers); }
+	if (u) { set_unused_flag(registers); }
 	else { clear_unused_flag(registers); }
 }
 static bool get_unused_flag(struct registers *registers)
