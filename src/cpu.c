@@ -515,6 +515,24 @@ static void execute_return_from_interrupt(struct registers *registers)
 	registers->pc = address;
 }
 
+static void execute_force_interrupt(struct registers *registers)
+{
+	uint16_t return_address = registers->pc + 2;
+	uint8_t return_address_high = (return_address & 0xFF00) >> 8;
+	uint8_t return_address_low = return_address & 0x00FF;
+	push_to_stack(registers, return_address_high);
+	push_to_stack(registers, return_address_low);
+
+	push_to_stack(registers, registers->p);
+
+	uint8_t address_low = memory_read(0xFFFE);
+	uint8_t address_high = memory_read(0xFFFF);
+	uint16_t address = (address_high << 8) + address_low;
+	registers->pc = address;
+
+	set_break_command_flag(registers);
+}
+
 static void execute_subtract_with_carry_for_isb(struct registers *registers)
 {
 	uint8_t m = memory_read(computed_address);
@@ -619,6 +637,10 @@ uint8_t execute_instruction(struct registers *registers)
 
 	/* Processor is little-endian */
 	switch (opcode) {
+	case 0x00:
+		/* BRK - Force Interrupt */
+		execute_force_interrupt(registers);
+		break;
 	case 0x01:
 		/* ORA - Logical Inclusive OR */
 		/* Cycles: 6 */
