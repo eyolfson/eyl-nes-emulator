@@ -60,6 +60,7 @@ add_executable(nes-emulator
 	ram.c
 	utils.c
 	wayland.c
+	wayland_buffer.c
 
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.c
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h

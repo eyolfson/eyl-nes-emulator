@@ -52,7 +52,6 @@ uint8_t main(int argc, char **argv)
 	reset_program_counter(&registers);
 	while (exit_code == 0) {
 		exit_code = execute_instruction(&registers);
-break;
 	}
 
 	exit_code |= fini_wayland(&wayland);
