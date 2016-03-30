@@ -15,31 +15,20 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ppu.h"
+#pragma once
 
-static uint8_t ctrl = 0;
-static uint8_t status = 0;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-uint8_t ppu_read(uint8_t address)
-{
-printf("read %x\n", address);
-	switch (address) {
-	case 0:
-		return ctrl;
-	case 2:
-		return 0xE0;
-	}
-	return 0;
+#include <wayland-client-protocol.h>
+
+struct wayland {
+	struct wl_display *wl_display;
+};
+
+uint8_t init_wayland(struct wayland *wayland);
+
+#ifdef __cplusplus
 }
-
-void ppu_write(uint8_t address, uint8_t value)
-{
-printf("write %x %02X\n", address, value);
-	switch (address) {
-	case 0:
-		ctrl = value;
-		break;
-	case 2:
-		break;
-	}
-}
+#endif

@@ -43,7 +43,6 @@ add_custom_command(
 	     ${CMAKE_BINARY_DIR}/xdg-shell-client.c
 )
 
-
 include_directories(
 	${CMAKE_BINARY_DIR}
 	${WAYLAND_CLIENT_INCLUDE_DIRS}
@@ -60,6 +59,7 @@ add_executable(nes-emulator
 	prg_rom.c
 	ram.c
 	utils.c
+	wayland.c
 
 	${CMAKE_BINARY_DIR}/xdg-shell-client.c
 	${CMAKE_BINARY_DIR}/xdg-shell-client.h

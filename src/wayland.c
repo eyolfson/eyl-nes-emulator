@@ -15,31 +15,11 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ppu.h"
+#include "wayland.h"
 
-static uint8_t ctrl = 0;
-static uint8_t status = 0;
+#include "exit_code.h"
 
-uint8_t ppu_read(uint8_t address)
+uint8_t init_wayland(struct wayland *wayland)
 {
-printf("read %x\n", address);
-	switch (address) {
-	case 0:
-		return ctrl;
-	case 2:
-		return 0xE0;
-	}
-	return 0;
-}
-
-void ppu_write(uint8_t address, uint8_t value)
-{
-printf("write %x %02X\n", address, value);
-	switch (address) {
-	case 0:
-		ctrl = value;
-		break;
-	case 2:
-		break;
-	}
+	return EXIT_CODE_UNIMPLEMENTED_BIT;
 }

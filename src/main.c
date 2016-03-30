@@ -20,6 +20,7 @@
 #include "cpu.h"
 #include "prg_rom.h"
 #include "utils.h"
+#include "wayland.h"
 
 uint8_t main(int argc, char **argv)
 {
