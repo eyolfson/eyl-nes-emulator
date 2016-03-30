@@ -23,11 +23,20 @@ extern "C" {
 
 #include <wayland-client-protocol.h>
 
+#include "xdg-shell-client-protocol.h"
+
 struct wayland {
-	struct wl_display *wl_display;
+	struct wl_display *display;
+	struct wl_registry *registry;
+	struct wl_compositor *compositor;
+	struct wl_shm *shm;
+	struct xdg_shell *shell;
+	struct wl_surface *surface;
+	struct xdg_surface *shell_surface;
 };
 
 uint8_t init_wayland(struct wayland *wayland);
+uint8_t fini_wayland(struct wayland *wayland);
 
 #ifdef __cplusplus
 }
