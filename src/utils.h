@@ -24,8 +24,11 @@
 extern "C" {
 #endif
 
+struct registers;
+
 uint8_t check_rom_size_raw(uint8_t *data, size_t size);
 void load_rom_into_memory(uint8_t *data, size_t size);
+void reset_program_counter(struct registers *registers);
 
 #ifdef __cpluscplus
 }

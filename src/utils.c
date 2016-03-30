@@ -17,7 +17,9 @@
 
 #include "utils.h"
 
+#include "cpu.h"
 #include "exit_code.h"
+#include "memory_bus.h"
 #include "prg_rom.h"
 
 static const uint16_t HEADER_SIZE = 16;               /* 16 B */
@@ -73,4 +75,9 @@ void load_rom_into_memory(uint8_t *data, size_t size)
 	else if (prg_rom_units == 2) {
 		prg_rom_set_bank_2(data + HEADER_SIZE + PRG_ROM_SIZE_PER_UNIT);
 	}
+}
+
+void reset_program_counter(struct registers *registers)
+{
+	registers->pc = memory_read(0xFFFC) + (memory_read(0xFFFD) << 8);
 }

@@ -37,7 +37,7 @@ uint8_t main(int argc, char **argv)
 	if (exit_code == 0) {
 		struct registers registers;
 		init_registers(&registers);
-		registers.pc = memory_read(0xFFFC) + (memory_read(0xFFFD) << 8);
+		reset_program_counter(&registers);
 		while (exit_code == 0) {
 			exit_code = execute_instruction(&registers);
 		}
