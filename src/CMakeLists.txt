@@ -20,6 +20,35 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wextra)
 
+find_package(PkgConfig)
+
+pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
+pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
+pkg_get_variable(WAYLAND_PROTOCOLS_DATADIR wayland-protocols pkgdatadir)
+pkg_check_modules(WAYLAND_SCANNER REQUIRED wayland-scanner)
+
+add_custom_command(
+	OUTPUT ${CMAKE_BINARY_DIR}/xdg-shell-client.h
+	COMMAND wayland-scanner
+	ARGS client-header
+	     ${WAYLAND_PROTOCOLS_DATADIR}/unstable/xdg-shell/xdg-shell-unstable-v5.xml
+	     ${CMAKE_BINARY_DIR}/xdg-shell-client.h
+)
+
+add_custom_command(
+	OUTPUT ${CMAKE_BINARY_DIR}/xdg-shell-client.c
+	COMMAND wayland-scanner
+	ARGS code
+	     ${WAYLAND_PROTOCOLS_DATADIR}/unstable/xdg-shell/xdg-shell-unstable-v5.xml
+	     ${CMAKE_BINARY_DIR}/xdg-shell-client.c
+)
+
+
+include_directories(
+	${CMAKE_BINARY_DIR}
+	${WAYLAND_CLIENT_INCLUDE_DIRS}
+)
+
 add_executable(nes-emulator
 	main.c
 
@@ -31,4 +60,11 @@ add_executable(nes-emulator
 	prg_rom.c
 	ram.c
 	utils.c
+
+	${CMAKE_BINARY_DIR}/xdg-shell-client.c
+	${CMAKE_BINARY_DIR}/xdg-shell-client.h
+)
+
+target_link_libraries(nes-emulator
+	${WAYLAND_CLIENT_LIBRARIES}
 )
