@@ -17,11 +17,11 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #ifdef __cpluscplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 struct registers {
 	uint8_t a;    /* Accumulator */

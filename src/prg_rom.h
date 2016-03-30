@@ -17,11 +17,11 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #ifdef __cpluscplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 void prg_rom_set_bank_1(uint8_t *data);
 void prg_rom_set_bank_2(uint8_t *data);

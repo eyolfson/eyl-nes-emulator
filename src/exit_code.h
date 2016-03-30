@@ -17,11 +17,11 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #ifdef __cpluscplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 extern const uint8_t EXIT_CODE_ARG_ERROR_BIT;
 extern const uint8_t EXIT_CODE_OS_ERROR_BIT;

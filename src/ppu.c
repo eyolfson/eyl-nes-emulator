@@ -22,7 +22,6 @@ static uint8_t status = 0;
 
 uint8_t ppu_read(uint8_t address)
 {
-printf("read %x\n", address);
 	switch (address) {
 	case 0:
 		return ctrl;
@@ -34,7 +33,6 @@ printf("read %x\n", address);
 
 void ppu_write(uint8_t address, uint8_t value)
 {
-printf("write %x %02X\n", address, value);
 	switch (address) {
 	case 0:
 		ctrl = value;

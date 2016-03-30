@@ -17,11 +17,11 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #ifdef __cpluscplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 uint8_t memory_read(uint16_t address);
 void memory_write(uint16_t address, uint8_t value);

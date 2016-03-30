@@ -17,12 +17,12 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
-
 #ifdef __cpluscplus
 extern "C" {
 #endif
+
+#include <stddef.h>
+#include <stdint.h>
 
 struct memory_mapping {
 	uint8_t *data;
