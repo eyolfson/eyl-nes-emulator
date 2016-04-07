@@ -76,6 +76,11 @@ uint8_t initialize_rom(uint8_t *data, size_t size)
 		prg_rom_set_bank_2(data + HEADER_SIZE + PRG_ROM_SIZE_PER_UNIT);
 	}
 
+	/* TODO: Assume horizontal arrangement / vertical mirroring */
+	if ((data[6] != 0x00) && (data[6] != 0x01)) {
+		return EXIT_CODE_UNIMPLEMENTED_BIT;
+	}
+
 	return 0;
 }
 
