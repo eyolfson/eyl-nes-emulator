@@ -23,6 +23,9 @@
 
 #include "exit_code.h"
 
+static const int32_t WIDTH = 256;
+static const int32_t HEIGHT = 240;
+
 static void registry_global(void *data,
                             struct wl_registry *wl_registry,
                             uint32_t name,
@@ -145,8 +148,8 @@ uint8_t init_wayland(struct wayland *wayland)
 		return EXIT_CODE_WAYLAND_BIT;
 	}
 
-	wayland->width = 256;
-	wayland->height = 240;
+	wayland->width = WIDTH;
+	wayland->height = HEIGHT;
 
 	xdg_surface_set_title(wayland->shell_surface, "NES Emulator");
 	xdg_surface_set_window_geometry(wayland->shell_surface,
