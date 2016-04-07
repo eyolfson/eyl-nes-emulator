@@ -17,7 +17,7 @@
 
 #include "ram.h"
 
-#define RAM_SIZE 0x0800
+#define RAM_SIZE 0x0800 /* 2 KiB */
 
 static uint8_t data[RAM_SIZE];
 
