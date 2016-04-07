@@ -38,6 +38,10 @@ uint8_t memory_read(uint16_t address)
 	else if (address < 0x4000) {
 		return ppu_read(address % 8);
 	}
+	/* TODO: Input / output registers */
+	else if (address < 0x4020) {
+		return 0;
+	}
 	else if (address < 0x8000) {
 		return 0;
 	}
@@ -65,5 +69,9 @@ void memory_write(uint16_t address, uint8_t value)
 	}
 	else if (address < 0x4000) {
 		ppu_write(address % 8, value);
+	}
+	/* TODO: Input / output registers */
+	else if (address < 0x4020) {
+		return;
 	}
 }
