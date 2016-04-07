@@ -63,7 +63,7 @@ uint8_t check_rom_size_raw(uint8_t *data, size_t size)
 	}
 }
 
-void load_rom_into_memory(uint8_t *data, size_t size)
+uint8_t initialize_rom(uint8_t *data, size_t size)
 {
 	uint8_t prg_rom_units = data[4];
 
@@ -75,6 +75,8 @@ void load_rom_into_memory(uint8_t *data, size_t size)
 	else if (prg_rom_units == 2) {
 		prg_rom_set_bank_2(data + HEADER_SIZE + PRG_ROM_SIZE_PER_UNIT);
 	}
+
+	return 0;
 }
 
 void reset_program_counter(struct registers *registers)

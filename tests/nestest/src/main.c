@@ -29,26 +29,33 @@ uint8_t main(int argc, char **argv)
 	uint8_t exit_code;
 
 	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
-
-	if (exit_code == 0) {
-		exit_code = check_rom_size_raw(mm.data, mm.size);
+	if (exit_code != 0) {
+		return exit_code;
 	}
 
-	load_rom_into_memory(mm.data, mm.size);
+	exit_code = check_rom_size_raw(mm.data, mm.size);
+	if (exit_code != 0) {
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
 
-	if (exit_code == 0) {
-		struct registers registers;
-		init_registers(&registers);
-		while (exit_code == 0) {
-			printf("%04X "
-			       "                                           "
-			       "A:%02X X:%02X Y:%02X P:%02X SP:%02X "
-			       "CYC:    SL:   \n",
-			       registers.pc, registers.a, registers.x,
-			       registers.y, registers.p, registers.s);
-			exit_code = execute_instruction(&registers);
-			if (registers.pc == 0x0001) { break; }
-		}
+	exit_code = initialize_rom(mm.data, mm.size);
+	if (exit_code != 0) {
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
+
+	struct registers registers;
+	init_registers(&registers);
+	while (exit_code == 0) {
+		printf("%04X "
+		       "                                           "
+		       "A:%02X X:%02X Y:%02X P:%02X SP:%02X "
+		       "CYC:    SL:   \n",
+		       registers.pc, registers.a, registers.x,
+		       registers.y, registers.p, registers.s);
+		exit_code = execute_instruction(&registers);
+		if (registers.pc == 0x0001) { break; }
 	}
 
 	exit_code |= fini_memory_mapping(&mm);

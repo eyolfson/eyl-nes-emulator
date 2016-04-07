@@ -38,7 +38,11 @@ uint8_t main(int argc, char **argv)
 		return exit_code;
 	}
 
-	load_rom_into_memory(mm.data, mm.size);
+	exit_code = initialize_rom(mm.data, mm.size);
+	if (exit_code != 0) {
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
 
 	struct wayland wayland;
 	exit_code = init_wayland(&wayland);
