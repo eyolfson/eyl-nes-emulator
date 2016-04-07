@@ -20,6 +20,7 @@
 #include "cpu.h"
 #include "exit_code.h"
 #include "memory_bus.h"
+#include "ppu.h"
 #include "prg_rom.h"
 
 static const uint16_t HEADER_SIZE = 16;               /* 16 B */
@@ -79,6 +80,11 @@ uint8_t initialize_rom(uint8_t *data, size_t size)
 	/* TODO: Assume horizontal arrangement / vertical mirroring */
 	if ((data[6] != 0x00) && (data[6] != 0x01)) {
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
+	}
+
+	if (data[6] == 0x01) {
+		set_chr_rom(data + HEADER_SIZE
+		            + PRG_ROM_SIZE_PER_UNIT * prg_rom_units);
 	}
 
 	return 0;

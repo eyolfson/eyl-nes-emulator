@@ -17,8 +17,72 @@
 
 #include "ppu.h"
 
+/* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
+
 static uint8_t ctrl = 0;
 static uint8_t status = 0;
+
+static uint8_t *chr_rom_data;
+
+#define RAM_SIZE 0x800 /* 2 KiB */
+static uint8_t ram[RAM_SIZE];
+
+#define OAM_SIZE 0x100 /* 256 B */
+static uint8_t object_attribute_memory[OAM_SIZE];
+
+static uint8_t bus_read(uint16_t address)
+{
+	if (address < 0x2000) {
+		return *chr_rom_data;
+	}
+	else if (address < 0x2800) {
+		return ram[address - 0x2000];
+	}
+	else if (address < 0x3000) {
+		return ram[address - 0x2800];
+	}
+	else if (address < 0x3F00) {
+		return bus_read(address - 0x1000);
+	}
+	else if (address < 0x4000) {
+		/* TODO: Internal palette control */
+		return 0;
+	}
+	else {
+		/* TODO: Out-of-range */
+		return 0;
+	}
+}
+
+static void bus_write(uint16_t address, uint8_t value)
+{
+	if (address < 0x2000) {
+		return;
+	}
+	else if (address < 0x2800) {
+		ram[address - 0x2000] = value;
+	}
+	else if (address < 0x3000) {
+		ram[address - 0x2800] = value;
+	}
+	else if (address < 0x3F00) {
+		bus_write(address - 0x1000, value);
+	}
+	else if (address < 0x4000) {
+		/* TODO: Internal palette control */
+		return;
+	}
+	else {
+		/* TODO: Out-of-range */
+		return;
+	}
+
+}
+
+void set_chr_rom(uint8_t *data)
+{
+	chr_rom_data = data;
+}
 
 uint8_t ppu_read(uint8_t address)
 {
