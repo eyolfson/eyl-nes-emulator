@@ -44,6 +44,7 @@ static uint8_t bus_read(uint16_t address)
 		return ram[address - 0x2000];
 	}
 	else if (address < 0x3000) {
+		/* Mirroring */
 		return ram[address - 0x2800];
 	}
 	else if (address < 0x3F00) {
@@ -93,8 +94,19 @@ void set_wayland(struct wayland *w)
 	wayland = w;
 }
 
+static void paint_pixel(uint8_t x, uint8_t y, uint8_t c)
+{
+	wayland->back_data[x * wayland->height + y] = 0xFFFF0000;
+}
+
 static uint8_t handle_status_read()
 {
+	for (int32_t x = 0; x < wayland->width; ++x) {
+		for (int32_t y = 0; y < wayland->height; ++y) {
+			paint_pixel(x, y, 0);
+		}
+	}
+	wl_display_dispatch(wayland->display);
 	return 0x80;
 }
 
