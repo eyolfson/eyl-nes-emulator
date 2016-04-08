@@ -23,7 +23,10 @@ extern "C" {
 
 #include <stdint.h>
 
+#include "wayland.h"
+
 void set_chr_rom(uint8_t *data);
+void set_wayland(struct wayland *wayland);
 uint8_t ppu_read(uint8_t address);
 void ppu_write(uint8_t address, uint8_t value);
 

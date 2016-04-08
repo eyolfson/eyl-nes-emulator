@@ -23,6 +23,8 @@
 
 static uint8_t *chr_rom_data;
 
+static struct wayland *wayland;
+
 #define RAM_SIZE 0x800 /* 2 KiB */
 static uint8_t ram[RAM_SIZE];
 
@@ -86,17 +88,22 @@ void set_chr_rom(uint8_t *data)
 	chr_rom_data = data;
 }
 
-uint8_t handle_status_read()
+void set_wayland(struct wayland *w)
+{
+	wayland = w;
+}
+
+static uint8_t handle_status_read()
 {
 	return 0x80;
 }
 
-uint8_t handle_oam_data_read()
+static uint8_t handle_oam_data_read()
 {
 	return 0;
 }
 
-uint8_t handle_data_read()
+static uint8_t handle_data_read()
 {
 	uint8_t value = bus_read(computed_address);
 	computed_address += computed_address_increment;

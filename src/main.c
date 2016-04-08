@@ -18,6 +18,7 @@
 #include "args.h"
 #include "exit_code.h"
 #include "cpu.h"
+#include "ppu.h"
 #include "prg_rom.h"
 #include "utils.h"
 #include "wayland.h"
@@ -50,6 +51,7 @@ uint8_t main(int argc, char **argv)
 		exit_code |= fini_memory_mapping(&mm);
 		return exit_code;
 	}
+	set_wayland(&wayland);
 
 	struct registers registers;
 	init_registers(&registers);
