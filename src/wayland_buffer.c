@@ -35,7 +35,8 @@ uint8_t init_wayland_buffer(struct wayland *wayland)
 	}
 
 	int32_t stride = wayland->width * sizeof(uint32_t);
-	wayland->capacity = stride * wayland->height;
+	int32_t single_capacity = stride * wayland->height;
+	wayland->capacity = single_capacity * 2;
 
 	if (ftruncate(wayland->fd, wayland->capacity) < 0) {
 		uint8_t exit_code = EXIT_CODE_OS_ERROR_BIT;
@@ -55,6 +56,9 @@ uint8_t init_wayland_buffer(struct wayland *wayland)
 		return exit_code;
 	}
 
+	wayland->front_data = wayland->data;
+	wayland->back_data = wayland->data + (wayland->width * wayland->height);
+
 	wayland->shm_pool = wl_shm_create_pool(wayland->shm,
 	                                       wayland->fd, wayland->capacity);
 	if (wayland->shm_pool == NULL) {
@@ -68,11 +72,28 @@ uint8_t init_wayland_buffer(struct wayland *wayland)
 		return exit_code;
 	}
 
-	wayland->buffer = wl_shm_pool_create_buffer(
+	wayland->front_buffer = wl_shm_pool_create_buffer(
 		wayland->shm_pool, 0, wayland->width, wayland->height,
 		stride, WL_SHM_FORMAT_ARGB8888);
-	if (wayland->buffer == NULL) {
+	if (wayland->front_buffer == NULL) {
 		uint8_t exit_code = EXIT_CODE_WAYLAND_BIT;
+		wl_shm_pool_destroy(wayland->shm_pool);
+		if (munmap(wayland->data, wayland->capacity) < 0) {
+			exit_code |= EXIT_CODE_OS_ERROR_BIT;
+		}
+		if (close(wayland->fd) < 0) {
+			exit_code |= EXIT_CODE_OS_ERROR_BIT;
+		}
+		return exit_code;
+	}
+
+	wayland->back_buffer = wl_shm_pool_create_buffer(
+		wayland->shm_pool, single_capacity,
+		wayland->width, wayland->height,
+		stride, WL_SHM_FORMAT_ARGB8888);
+	if (wayland->back_buffer == NULL) {
+		uint8_t exit_code = EXIT_CODE_WAYLAND_BIT;
+		wl_buffer_destroy(wayland->front_buffer);
 		wl_shm_pool_destroy(wayland->shm_pool);
 		if (munmap(wayland->data, wayland->capacity) < 0) {
 			exit_code |= EXIT_CODE_OS_ERROR_BIT;
@@ -89,7 +110,8 @@ uint8_t init_wayland_buffer(struct wayland *wayland)
 uint8_t fini_wayland_buffer(struct wayland *wayland)
 {
 	uint8_t exit_code = 0;
-	wl_buffer_destroy(wayland->buffer);
+	wl_buffer_destroy(wayland->back_buffer);
+	wl_buffer_destroy(wayland->front_buffer);
 	wl_shm_pool_destroy(wayland->shm_pool);
 	if (munmap(wayland->data, wayland->capacity) < 0) {
 		exit_code |= EXIT_CODE_OS_ERROR_BIT;

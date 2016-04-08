@@ -26,6 +26,19 @@
 static const int32_t WIDTH = 256;
 static const int32_t HEIGHT = 240;
 
+static void swap_buffers(struct wayland *wayland)
+{
+	uint32_t *tmp_data;
+	tmp_data = wayland->front_data;
+	wayland->front_data = wayland->back_data;
+	wayland->back_data = tmp_data;
+
+	struct wl_buffer *tmp_buffer;
+	tmp_buffer = wayland->front_buffer;
+	wayland->front_buffer = wayland->back_buffer;
+	wayland->back_buffer = tmp_buffer;
+}
+
 static void registry_global(void *data,
                             struct wl_registry *wl_registry,
                             uint32_t name,
@@ -84,9 +97,12 @@ static void frame_callback_done(void *data, struct wl_callback *wl_callback,
 	wayland->frame_callback = wl_surface_frame(wayland->surface);
 	wl_callback_add_listener(wayland->frame_callback,
 	                         &frame_callback_listener, wayland);
+
+	swap_buffers(wayland);
+
 	wl_surface_damage(wayland->surface, 0, 0,
 	                  wayland->width, wayland->height);
-	wl_surface_attach(wayland->surface, wayland->buffer, 0, 0);
+	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
 	wl_surface_commit(wayland->surface);
 }
 
@@ -169,7 +185,10 @@ uint8_t init_wayland(struct wayland *wayland)
 	}
 
 	for (int64_t i = 0; i < (wayland->width * wayland->height); ++i) {
-		wayland->data[i] = 0xFF000000; 
+		wayland->front_data[i] = 0xFF0000FF;
+	}
+	for (int64_t i = 0; i < (wayland->width * wayland->height); ++i) {
+		wayland->back_data[i] = 0xFF00FF00;
 	}
 
 	wayland->frame_callback = wl_surface_frame(wayland->surface);
@@ -189,7 +208,7 @@ uint8_t init_wayland(struct wayland *wayland)
 	wl_callback_add_listener(wayland->frame_callback,
 	                         &frame_callback_listener, wayland);
 
-	wl_surface_attach(wayland->surface, wayland->buffer, 0, 0);
+	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
 	wl_surface_commit(wayland->surface);
 
 	wl_display_roundtrip(wayland->display);

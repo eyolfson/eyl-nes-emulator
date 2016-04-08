@@ -38,8 +38,11 @@ struct wayland {
 	int32_t fd;
 	uint32_t *data;
 	size_t capacity;
+	uint32_t *front_data;
+	uint32_t *back_data;
 	struct wl_shm_pool *shm_pool;
-	struct wl_buffer *buffer;
+	struct wl_buffer *front_buffer;
+	struct wl_buffer *back_buffer;
 	struct wl_callback *frame_callback;
 };
 
