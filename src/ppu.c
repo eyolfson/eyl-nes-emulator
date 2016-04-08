@@ -140,7 +140,7 @@ static void handle_ctrl_write(uint8_t value)
 	/* Background pattern table address (0: $0000; 1: $1000) */
 	uint8_t b = (value & (1 << 4)) >> 4;
 	/* Sprite pattern table address for 8x8 sprites
-     (0: $0000; 1: $1000; ignored in 8x16 mode) */
+	   (0: $0000; 1: $1000; ignored in 8x16 mode) */
 	uint8_t s = (value & (1 << 3)) >> 3;
 	/* VRAM address increment per CPU read/write of PPUDATA
 	   (0: add 1, going across; 1: add 32, going down) */
