@@ -84,22 +84,53 @@ void set_chr_rom(uint8_t *data)
 	chr_rom_data = data;
 }
 
+static uint8_t base_nametable_address;
+static uint8_t vram_address_increment;
+
+uint8_t handle_status_read()
+{
+	return 0xE0;
+}
+
 uint8_t ppu_read(uint8_t address)
 {
 	switch (address) {
 	case 0:
 		return ctrl;
 	case 2:
-		return 0xE0;
+		return handle_status_read();
 	}
 	return 0;
+}
+
+static void handle_ctrl_write(uint8_t value)
+{
+	/* Generate an NMI at the start of the vertical blanking interval
+	   (0: off; 1: on) */
+	uint8_t v = (value & (1 << 7)) >> 7;
+	/* PPU master/slave select (0: read backdrop from EXT pins;
+	                            1: output color on EXT pins) */
+	uint8_t p = (value & (1 << 6)) >> 6;
+	/* Sprite size (0: 8x8; 1: 8x16) */
+	uint8_t h = (value & (1 << 5)) >> 5;
+	/* Background pattern table address (0: $0000; 1: $1000) */
+	uint8_t b = (value & (1 << 4)) >> 4;
+	/* Sprite pattern table address for 8x8 sprites
+     (0: $0000; 1: $1000; ignored in 8x16 mode) */
+	uint8_t s = (value & (1 << 3)) >> 3;
+	/* VRAM address increment per CPU read/write of PPUDATA
+	   (0: add 1, going across; 1: add 32, going down) */
+	uint8_t i = (value & (1 << 2)) >> 2;
+	/* Base nametable address
+	   (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00) */
+	uint8_t n = (value & 0x03);
 }
 
 void ppu_write(uint8_t address, uint8_t value)
 {
 	switch (address) {
 	case 0:
-		ctrl = value;
+		handle_ctrl_write(value);
 		break;
 	case 2:
 		break;
