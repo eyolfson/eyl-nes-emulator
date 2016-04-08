@@ -79,7 +79,6 @@ static void bus_write(uint16_t address, uint8_t value)
 		/* TODO: Out-of-range */
 		return;
 	}
-
 }
 
 void set_chr_rom(uint8_t *data)
