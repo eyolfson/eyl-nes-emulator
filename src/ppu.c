@@ -35,6 +35,8 @@ static bool computed_address_is_high = true;
 static uint16_t computed_address = 0;
 static uint8_t computed_address_increment = 1;
 
+static uint16_t nametable_address = 0x2000;
+
 static uint8_t bus_read(uint16_t address)
 {
 	if (address < 0x2000) {
@@ -216,16 +218,21 @@ static void handle_ctrl_write(uint8_t value)
 	/* Generate an NMI at the start of the vertical blanking interval
 	   (0: off; 1: on) */
 	uint8_t v = (value & (1 << 7)) >> 7;
+
 	/* PPU master/slave select (0: read backdrop from EXT pins;
 	                            1: output color on EXT pins) */
 	uint8_t p = (value & (1 << 6)) >> 6;
+
 	/* Sprite size (0: 8x8; 1: 8x16) */
 	uint8_t h = (value & (1 << 5)) >> 5;
+
 	/* Background pattern table address (0: $0000; 1: $1000) */
 	uint8_t b = (value & (1 << 4)) >> 4;
+
 	/* Sprite pattern table address for 8x8 sprites
 	   (0: $0000; 1: $1000; ignored in 8x16 mode) */
 	uint8_t s = (value & (1 << 3)) >> 3;
+
 	/* VRAM address increment per CPU read/write of PPUDATA
 	   (0: add 1, going across; 1: add 32, going down) */
 	uint8_t i = (value & (1 << 2)) >> 2;
@@ -237,9 +244,24 @@ static void handle_ctrl_write(uint8_t value)
 		computed_address_increment = 32;
 		break;
 	}
+
 	/* Base nametable address
 	   (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00) */
 	uint8_t n = (value & 0x03);
+	switch (n) {
+	case 0:
+		nametable_address = 0x2000;
+		break;
+	case 1:
+		nametable_address = 0x2400;
+		break;
+	case 2:
+		nametable_address = 0x2800;
+		break;
+	case 3:
+		nametable_address = 0x2C00;
+		break;
+	}
 }
 
 static void handle_mask_write(uint8_t value)
