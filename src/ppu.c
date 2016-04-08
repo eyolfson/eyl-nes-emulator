@@ -17,10 +17,9 @@
 
 #include "ppu.h"
 
-/* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
+#include <stdbool.h>
 
-static uint8_t ctrl = 0;
-static uint8_t status = 0;
+/* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 
 static uint8_t *chr_rom_data;
 
@@ -29,6 +28,10 @@ static uint8_t ram[RAM_SIZE];
 
 #define OAM_SIZE 0x100 /* 256 B */
 static uint8_t object_attribute_memory[OAM_SIZE];
+
+static bool computed_address_is_high = true;
+static uint16_t computed_address = 0;
+static uint8_t computed_address_increment = 1;
 
 static uint8_t bus_read(uint16_t address)
 {
@@ -84,21 +87,42 @@ void set_chr_rom(uint8_t *data)
 	chr_rom_data = data;
 }
 
-static uint8_t base_nametable_address;
-static uint8_t vram_address_increment;
-
 uint8_t handle_status_read()
 {
-	return 0xE0;
+	return 0x80;
+}
+
+uint8_t handle_oam_data_read()
+{
+	return 0;
+}
+
+uint8_t handle_data_read()
+{
+	uint8_t value = bus_read(computed_address);
+	computed_address += computed_address_increment;
+	return value;
 }
 
 uint8_t ppu_read(uint8_t address)
 {
 	switch (address) {
 	case 0:
-		return ctrl;
+		return 0;
+	case 1:
+		return 0;
 	case 2:
 		return handle_status_read();
+	case 3:
+		return 0;
+	case 4:
+		return handle_oam_data_read();
+	case 5:
+		return 0;
+	case 6:
+		return 0;
+	case 7:
+		return handle_data_read();
 	}
 	return 0;
 }
@@ -121,9 +145,57 @@ static void handle_ctrl_write(uint8_t value)
 	/* VRAM address increment per CPU read/write of PPUDATA
 	   (0: add 1, going across; 1: add 32, going down) */
 	uint8_t i = (value & (1 << 2)) >> 2;
+	switch (i) {
+	case 0:
+		computed_address_increment = 1;
+		break;
+	case 1:
+		computed_address_increment = 32;
+		break;
+	}
 	/* Base nametable address
 	   (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00) */
 	uint8_t n = (value & 0x03);
+}
+
+static void handle_mask_write(uint8_t value)
+{
+
+}
+
+static void handle_oam_address_write(uint8_t value)
+{
+
+}
+
+static void handle_oam_data_write(uint8_t value)
+{
+
+}
+
+static void handle_scroll_write(uint8_t value)
+{
+
+}
+
+static void handle_address_write(uint8_t value)
+{
+	if (computed_address_is_high) {
+		computed_address &= 0x00FF;
+		computed_address |= (value << 8);
+		computed_address_is_high = false;
+	}
+	else {
+		computed_address &= 0xFF00;
+		computed_address |= value;
+		computed_address_is_high = true;
+	}
+}
+
+static void handle_data_write(uint8_t value)
+{
+	bus_write(computed_address, value);
+	computed_address += computed_address_increment;
 }
 
 void ppu_write(uint8_t address, uint8_t value)
@@ -132,7 +204,25 @@ void ppu_write(uint8_t address, uint8_t value)
 	case 0:
 		handle_ctrl_write(value);
 		break;
+	case 1:
+		handle_mask_write(value);
+		break;
 	case 2:
+		break;
+	case 3:
+		handle_oam_address_write(value);
+		break;
+	case 4:
+		handle_oam_data_write(value);
+		break;
+	case 5:
+		handle_scroll_write(value);
+		break;
+	case 6:
+		handle_address_write(value);
+		break;
+	case 7:
+		handle_data_write(value);
 		break;
 	}
 }
