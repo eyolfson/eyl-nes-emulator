@@ -47,7 +47,7 @@ static uint16_t nametable_address = 0x2000;
 static uint8_t bus_read(uint16_t address)
 {
 	if (address < 0x2000) {
-		return *chr_rom_data;
+		return chr_rom_data[address];
 	}
 	else if (address < 0x2800) {
 		return ram[address - 0x2000];
@@ -172,6 +172,42 @@ static void paint_pixel(uint8_t x, uint8_t y, uint8_t c)
 		[0x3F] = 0xFF000000,
 	};
 	wayland->back_data[x * wayland->height + y] = palette[c];
+}
+
+#include <stdio.h>
+
+static void debug_tile(uint16_t address)
+{
+	uint8_t color_index[8][8] = { 0 };
+	uint8_t x = 0;
+	for (uint16_t i = address; i < address + 8; ++i) {
+		uint8_t b = bus_read(i);
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (b & (1 << j)) {
+				color_index[x][7 - j] |= 0x02;
+			}
+		}
+		++x;
+	}
+	x = 0;
+	for (uint16_t i = address + 8; i < address + 16; ++i) {
+		uint8_t b = bus_read(i);
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (b & (1 << j)) {
+				color_index[x][7 - j] |= 0x01;
+			}
+		}
+		++x;
+	}
+
+	printf("Tile 0x%04x\n", address);
+	for (uint8_t i = 0; i < 8; ++i) {
+		for (int8_t j = 0; j < 8; ++j) {
+			if (j != 0) { printf(" "); }
+			printf("%x", color_index[i][j]);
+		}
+		printf("\n");
+	}
 }
 
 static uint8_t handle_status_read()
