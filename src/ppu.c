@@ -37,6 +37,13 @@ static uint8_t computed_address_increment = 1;
 
 static uint16_t nametable_address = 0x2000;
 
+/* Each nametable is 1024 bytes (0x400) */
+/* It consists of 960 8x8 tiles to form the background */
+/* Each of these tiles are a byte */
+/* 32 horizontal, 30 vertical tiles */
+/* There are 64 bytes remaining */
+/* Screen is divided into 64 32x32 tiles called attribute tiles */
+
 static uint8_t bus_read(uint16_t address)
 {
 	if (address < 0x2000) {
