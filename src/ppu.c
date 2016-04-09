@@ -171,7 +171,7 @@ static void paint_pixel(uint8_t x, uint8_t y, uint8_t c)
 		[0x3E] = 0xFF000000,
 		[0x3F] = 0xFF000000,
 	};
-	wayland->back_data[x * wayland->height + y] = palette[c];
+	wayland->back_data[x + (y * wayland->width)] = palette[c];
 }
 
 #include <stdio.h>
@@ -202,7 +202,7 @@ static void debug_tile(uint16_t address)
 
 	printf("Tile 0x%04x\n", address);
 	for (uint8_t i = 0; i < 8; ++i) {
-		for (int8_t j = 0; j < 8; ++j) {
+		for (uint8_t j = 0; j < 8; ++j) {
 			if (j != 0) { printf(" "); }
 			printf("%x", color_index[i][j]);
 		}
