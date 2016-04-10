@@ -38,6 +38,7 @@ static bool computed_address_is_high = true;
 static uint16_t computed_address = 0;
 static uint8_t computed_address_increment = 1;
 
+static uint16_t background_address = 0x1000;
 static uint16_t nametable_address = 0x2000;
 
 /* Each nametable is 1024 bytes (0x400) */
@@ -225,8 +226,28 @@ static void debug_tile(uint16_t address)
 static void debug_background_pixel(uint8_t x, uint8_t y)
 {
 	/* Lookup in nametable */
+	uint16_t index_address = nametable_address + (y / 8) * 32 + (x / 8);
+	uint8_t index = bus_read(index_address);
+
 	/* Lookup referenced tile */
+	uint8_t column_offset = y % 8;
+	uint8_t high = bus_read(background_address + index * 16
+	                        + column_offset);
+	uint8_t low = bus_read(background_address + index * 16 + 8
+	                       + column_offset);
+	uint8_t pixel_value = 0;
+	if ((1 << (7 - (x % 8))) & high) {
+		pixel_value |= 0x02;
+	}
+	if ((1 << (7 - (x % 8))) & low) {
+		pixel_value |= 0x01;
+	}
+
 	/* Lookup attribute */
+	uint16_t attribute_address = nametable_address + 960 + (y / 32) * 8
+	                             + (x / 32);
+	uint8_t attribute = bus_read(attribute_address);
+
 	/* Lookup palette */
 }
 
