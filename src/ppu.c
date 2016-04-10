@@ -222,6 +222,14 @@ static void debug_tile(uint16_t address)
 	}
 }
 
+static void debug_background_pixel(uint8_t x, uint8_t y)
+{
+	/* Lookup in nametable */
+	/* Lookup referenced tile */
+	/* Lookup attribute */
+	/* Lookup palette */
+}
+
 static uint8_t handle_status_read()
 {
 	for (int32_t x = 0; x < wayland->width; ++x) {
