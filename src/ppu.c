@@ -28,6 +28,9 @@ static struct wayland *wayland;
 #define RAM_SIZE 0x800 /* 2 KiB */
 static uint8_t ram[RAM_SIZE];
 
+#define PALETTE_RAM_SIZE 0x20 /* 32 B */
+static uint8_t palette_ram[PALETTE_RAM_SIZE];
+
 #define OAM_SIZE 0x100 /* 256 B */
 static uint8_t object_attribute_memory[OAM_SIZE];
 
@@ -59,8 +62,13 @@ static uint8_t bus_read(uint16_t address)
 	else if (address < 0x3F00) {
 		return bus_read(address - 0x1000);
 	}
-	else if (address < 0x4000) {
+	else if (address < 0x3F20) {
 		/* TODO: Internal palette control */
+		/* TODO: Mirrors */
+		return palette_ram[address - 0x3F00];
+	}
+	else if (address < 0x4000) {
+		/* TODO: Mirrors */
 		return 0;
 	}
 	else {
@@ -83,9 +91,13 @@ static void bus_write(uint16_t address, uint8_t value)
 	else if (address < 0x3F00) {
 		bus_write(address - 0x1000, value);
 	}
-	else if (address < 0x4000) {
+	else if (address < 0x3F20) {
 		/* TODO: Internal palette control */
-		return;
+		/* TODO: Mirrors */
+		palette_ram[address - 0x3F00] = value;
+	}
+	else if (address < 0x4000) {
+		/* TODO: Mirrors */
 	}
 	else {
 		/* TODO: Out-of-range */
