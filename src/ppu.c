@@ -223,7 +223,7 @@ static void debug_tile(uint16_t address)
 	}
 }
 
-static void debug_background_pixel(uint8_t x, uint8_t y)
+static uint8_t debug_background_pixel(uint8_t x, uint8_t y)
 {
 	/* Lookup in nametable */
 	uint16_t index_address = nametable_address + (y / 8) * 32 + (x / 8);
@@ -243,19 +243,33 @@ static void debug_background_pixel(uint8_t x, uint8_t y)
 		pixel_value |= 0x01;
 	}
 
+	if (pixel_value == 0) {
+		return bus_read(0x3F00);
+	}
+
 	/* Lookup attribute */
 	uint16_t attribute_address = nametable_address + 960 + (y / 32) * 8
 	                             + (x / 32);
 	uint8_t attribute = bus_read(attribute_address);
 
 	/* Lookup palette */
+	uint8_t palette_index = 0;
+	if ((x / 16) % 2) {
+		palette_index |= 0x01;
+	}
+	if ((y / 16) % 2) {
+		palette_index |= 0x02;
+	}
+
+	uint16_t palette_offset = 0x3F00 + 4 * palette_index;
+	return bus_read(palette_offset + pixel_value);
 }
 
 static uint8_t handle_status_read()
 {
 	for (int32_t x = 0; x < wayland->width; ++x) {
 		for (int32_t y = 0; y < wayland->height; ++y) {
-			paint_pixel(x, y, 0);
+			paint_pixel(x, y, debug_background_pixel(x, y));
 		}
 	}
 	wl_display_dispatch(wayland->display);
