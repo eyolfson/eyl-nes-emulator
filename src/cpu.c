@@ -22,6 +22,10 @@
 
 #include <stdbool.h>
 
+static const uint16_t NMI_HANDLER_ADDRESS = 0xFFFA;
+static const uint16_t RESET_HANDLER_ADDRESS = 0xFFFC;
+static const uint16_t IRQ_HANDLER_ADDRESS = 0xFFFE;
+
 void init_registers(struct registers *registers)
 {
 	registers->a = 0;
