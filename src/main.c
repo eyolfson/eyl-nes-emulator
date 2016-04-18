@@ -23,8 +23,14 @@
 #include "utils.h"
 #include "wayland.h"
 
+#include "nes_emulator.h"
+
 uint8_t main(int argc, char **argv)
 {
+	struct nes_emulator *nes_emulator;
+	nes_emulator_init(&nes_emulator);
+	nes_emulator_fini(&nes_emulator);
+
 	struct memory_mapping mm;
 	uint8_t exit_code;
 

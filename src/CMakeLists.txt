@@ -55,6 +55,7 @@ add_executable(nes-emulator
 	cpu.c
 	exit_code.c
 	memory_bus.c
+	nes_emulator.c
 	ppu.c
 	prg_rom.c
 	ram.c
