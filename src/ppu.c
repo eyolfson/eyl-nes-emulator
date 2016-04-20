@@ -19,19 +19,32 @@
 
 #include <stdbool.h>
 
+#define RAM_SIZE     0x0800 /*   2 KiB */
+#define PALETTE_SIZE 0x0020 /*  32 B   */
+#define OAM_SIZE     0x0100 /* 256 B   */
+
+struct ppu {
+	uint8_t ram[RAM_SIZE];
+	uint8_t palette[PALETTE_SIZE];
+	uint8_t oam[OAM_SIZE];
+
+	bool computed_address_is_high;
+	uint16_t computed_address;
+	uint8_t computed_address_increment;
+	uint16_t background_address;
+	uint16_t nametable_address;
+};
+
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 
 static uint8_t *chr_rom_data;
 
 static struct wayland *wayland;
 
-#define RAM_SIZE 0x800 /* 2 KiB */
 static uint8_t ram[RAM_SIZE];
 
-#define PALETTE_RAM_SIZE 0x20 /* 32 B */
-static uint8_t palette_ram[PALETTE_RAM_SIZE];
+static uint8_t palette_ram[PALETTE_SIZE];
 
-#define OAM_SIZE 0x100 /* 256 B */
 static uint8_t object_attribute_memory[OAM_SIZE];
 
 static bool computed_address_is_high = true;
