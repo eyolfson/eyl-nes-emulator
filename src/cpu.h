@@ -23,6 +23,8 @@ extern "C" {
 
 #include <stdint.h>
 
+#define CPU_RAM_SIZE 0x800 /* 2 KiB */
+
 struct registers {
 	uint8_t a;    /* Accumulator */
 	uint8_t x;    /* Index Register 0 */
@@ -30,6 +32,11 @@ struct registers {
 	uint8_t p;    /* Processor Status Flag Bits */
 	uint8_t s;    /* Stack Pointer */
 	uint16_t pc;  /* Program Counter */
+};
+
+struct cpu {
+	struct registers registers;
+	uint8_t ram[CPU_RAM_SIZE];
 };
 
 void init_registers(struct registers *registers);
