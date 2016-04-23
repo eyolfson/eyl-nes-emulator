@@ -15,26 +15,19 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "nes_emulator.h"
+#pragma once
 
-#include <stdlib.h>
+#ifdef __cpluscplus
+extern "C" {
+#endif
 
-#include "cpu.h"
-#include "exit_code.h"
+#include <stdint.h>
 
-struct nes_emulator {
-	struct registers registers;
-};
+struct nes_emulator_console;
 
-uint8_t nes_emulator_init(struct nes_emulator **nes_emulator)
-{
-	*nes_emulator = malloc(sizeof(struct nes_emulator));
-	return 0;
+uint8_t nes_emulator_console_init(struct nes_emulator_console **console);
+uint8_t nes_emulator_console_fini(struct nes_emulator_console **console);
+
+#ifdef __cpluscplus
 }
-
-uint8_t nes_emulator_fini(struct nes_emulator **nes_emulator)
-{
-	free(*nes_emulator);
-	*nes_emulator = NULL;
-	return 0;
-}
+#endif
