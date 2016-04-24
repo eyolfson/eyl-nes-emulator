@@ -23,7 +23,7 @@
 #include "utils.h"
 #include "backend/wayland.h"
 
-#include "console.h"
+#include "nes_emulator.h"
 
 uint8_t main(int argc, char **argv)
 {

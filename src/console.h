@@ -21,12 +21,11 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
+#include "cpu.h"
 
-struct nes_emulator_console;
-
-uint8_t nes_emulator_console_init(struct nes_emulator_console **console);
-uint8_t nes_emulator_console_fini(struct nes_emulator_console **console);
+struct nes_emulator_console {
+	struct cpu cpu;
+};
 
 #ifdef __cpluscplus
 }

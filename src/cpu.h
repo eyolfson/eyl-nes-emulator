@@ -23,6 +23,8 @@ extern "C" {
 
 #include <stdint.h>
 
+#include "nes_emulator.h"
+
 #define CPU_RAM_SIZE 0x800 /* 2 KiB */
 
 struct registers {
@@ -38,6 +40,9 @@ struct cpu {
 	struct registers registers;
 	uint8_t ram[CPU_RAM_SIZE];
 };
+
+void cpu_init(struct nes_emulator_console *console);
+uint8_t cpu_step(struct nes_emulator_console *console, uint8_t *cycles);
 
 void init_registers(struct registers *registers);
 

@@ -19,16 +19,17 @@
 
 #include <stdlib.h>
 
-#include "cpu.h"
 #include "exit_code.h"
-
-struct nes_emulator_console {
-	struct registers registers;
-};
 
 uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 {
 	*console = malloc(sizeof(struct nes_emulator_console));
+	return 0;
+}
+
+uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
+{
+
 	return 0;
 }
 
