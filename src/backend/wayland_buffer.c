@@ -24,7 +24,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#include "exit_code.h"
+#include "../exit_code.h"
 
 uint8_t init_wayland_buffer(struct wayland *wayland)
 {

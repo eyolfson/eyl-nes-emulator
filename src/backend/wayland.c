@@ -21,7 +21,7 @@
 
 #include <string.h>
 
-#include "exit_code.h"
+#include "../exit_code.h"
 
 static const int32_t WIDTH = 256;
 static const int32_t HEIGHT = 240;
