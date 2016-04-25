@@ -54,14 +54,20 @@ uint8_t main(int argc, char **argv)
 	}
 
 	struct registers *registers = &console->cpu.registers;
+	uint16_t cyc = 0;
 	while (exit_code == 0) {
 		printf("%04X "
 		       "                                           "
 		       "A:%02X X:%02X Y:%02X P:%02X SP:%02X "
-		       "CYC:    SL:   \n",
+		       "CYC:%3d SL:   \n",
 		       registers->pc, registers->a, registers->x,
-		       registers->y, registers->p, registers->s);
+		       registers->y, registers->p, registers->s,
+		       cyc);
 		exit_code = nes_emulator_console_step(console);
+		cyc += console->cpu_step_cycles * 3;
+		if (cyc >= 341) {
+			cyc -= 341;
+		}
 		if (registers->pc == 0x0001) { break; }
 	}
 

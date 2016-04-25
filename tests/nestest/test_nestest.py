@@ -38,6 +38,7 @@ def check_line(expected_line, actual_line):
 		("Y", 60, 62),
 		("P", 65, 67),
 		("S", 71, 73),
+		("CYC", 78, 81),
 	]
 	checks_passed = True
 	for check in CHECKS:

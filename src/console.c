@@ -39,7 +39,7 @@ uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
 {
-	return cpu_step(console, NULL);
+	return cpu_step(console);
 }
 
 uint8_t nes_emulator_console_fini(struct nes_emulator_console **console)
