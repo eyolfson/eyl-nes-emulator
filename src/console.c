@@ -23,14 +23,23 @@
 
 uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 {
-	*console = malloc(sizeof(struct nes_emulator_console));
+	struct nes_emulator_console *c;
+
+	c = malloc(sizeof(struct nes_emulator_console));
+	if (c == NULL) {
+		return EXIT_CODE_OS_ERROR_BIT;
+	}
+
+
+	cpu_init(c);
+
+	*console = c;
 	return 0;
 }
 
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
 {
-
-	return 0;
+	return cpu_step(console, NULL);
 }
 
 uint8_t nes_emulator_console_fini(struct nes_emulator_console **console)

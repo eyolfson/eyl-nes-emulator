@@ -42,7 +42,7 @@ struct cpu {
 };
 
 void cpu_init(struct nes_emulator_console *console);
-uint8_t cpu_step(struct nes_emulator_console *console, uint8_t *cycles);
+uint8_t cpu_step(struct nes_emulator_console *console, uint8_t *cpu_cycles);
 
 void init_registers(struct registers *registers);
 

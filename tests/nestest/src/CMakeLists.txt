@@ -24,6 +24,7 @@ add_executable(nes-emulator-nestest
 	main.c
 
 	../../../src/args.c
+	../../../src/console.c
 	../../../src/cpu.c
 	../../../src/exit_code.c
 	../../../src/memory_bus.c

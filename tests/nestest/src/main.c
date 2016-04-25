@@ -17,6 +17,7 @@
 
 #include "../../../src/args.h"
 #include "../../../src/exit_code.h"
+#include "../../../src/console.h"
 #include "../../../src/cpu.h"
 #include "../../../src/prg_rom.h"
 #include "../../../src/utils.h"
@@ -45,19 +46,26 @@ uint8_t main(int argc, char **argv)
 		return exit_code;
 	}
 
-	struct registers registers;
-	init_registers(&registers);
+	struct nes_emulator_console *console;
+	exit_code = nes_emulator_console_init(&console);
+	if (exit_code != 0) {
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
+
+	struct registers *registers = &console->cpu.registers;
 	while (exit_code == 0) {
 		printf("%04X "
 		       "                                           "
 		       "A:%02X X:%02X Y:%02X P:%02X SP:%02X "
 		       "CYC:    SL:   \n",
-		       registers.pc, registers.a, registers.x,
-		       registers.y, registers.p, registers.s);
-		exit_code = execute_instruction(&registers);
-		if (registers.pc == 0x0001) { break; }
+		       registers->pc, registers->a, registers->x,
+		       registers->y, registers->p, registers->s);
+		exit_code = nes_emulator_console_step(console);
+		if (registers->pc == 0x0001) { break; }
 	}
 
 	exit_code |= fini_memory_mapping(&mm);
+	exit_code |= nes_emulator_console_fini(&console);
 	return exit_code;
 }
