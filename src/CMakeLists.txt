@@ -52,6 +52,7 @@ add_executable(nes-emulator
 	main.c
 
 	args.c
+	cartridge.c
 	console.c
 	cpu.c
 	exit_code.c

@@ -28,26 +28,31 @@
 uint8_t main(int argc, char **argv)
 {
 	struct nes_emulator_console *console;
-	nes_emulator_console_init(&console);
-	nes_emulator_console_fini(&console);
-
 	struct memory_mapping mm;
 	uint8_t exit_code;
 
+	exit_code = nes_emulator_console_init(&console);
+	if (exit_code != 0) {
+		return exit_code;
+	}
+
 	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
 	if (exit_code != 0) {
+		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
 	exit_code = check_rom_size_raw(mm.data, mm.size);
 	if (exit_code != 0) {
 		exit_code |= fini_memory_mapping(&mm);
+		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
 	exit_code = initialize_rom(mm.data, mm.size);
 	if (exit_code != 0) {
 		exit_code |= fini_memory_mapping(&mm);
+		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
@@ -55,17 +60,16 @@ uint8_t main(int argc, char **argv)
 	exit_code = init_wayland(&wayland);
 	if (exit_code != 0) {
 		exit_code |= fini_memory_mapping(&mm);
+		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
-	struct registers registers;
-	init_registers(&registers);
-	reset_program_counter(&registers);
 	while (exit_code == 0) {
-		exit_code = execute_instruction(&registers);
+		exit_code = nes_emulator_console_step(console);
 	}
 
 	exit_code |= fini_wayland(&wayland);
 	exit_code |= fini_memory_mapping(&mm);
+	exit_code |= nes_emulator_console_fini(&console);
 	return exit_code;
 }

@@ -15,6 +15,13 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-struct nes_emulator_cartridge {
+#include "cartridge.h"
 
-};
+#include <stddef.h>
+#include <stdint.h>
+
+uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
+                                    uint8_t *data,
+                                    size_t size)
+{
+}

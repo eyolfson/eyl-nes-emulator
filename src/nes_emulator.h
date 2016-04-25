@@ -21,10 +21,15 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
 
+struct nes_emulator_cartridge;
 struct nes_emulator_console;
 
+uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
+                                    uint8_t *data,
+                                    size_t size);
 uint8_t nes_emulator_console_init(struct nes_emulator_console **console);
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console);
 uint8_t nes_emulator_console_fini(struct nes_emulator_console **console);
