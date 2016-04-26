@@ -17,11 +17,11 @@
 
 #include "cpu.h"
 
+#include <stdbool.h>
 #include "cartridge.h"
 #include "console.h"
 #include "exit_code.h"
-
-#include <stdbool.h>
+#include "ppu.h"
 
 static const uint16_t NMI_HANDLER_ADDRESS = 0xFFFA;
 static const uint16_t RESET_HANDLER_ADDRESS = 0xFFFC;
@@ -43,7 +43,7 @@ static int8_t cpu_bus_read(struct nes_emulator_console *console,
 		return cpu_bus_read(console, address - 0x1800);
 	}
 	else if (address < 0x4000) {
-
+		return ppu_cpu_bus_read(console, address);
 	}
 	else if (address < 0x4020) {
 
@@ -70,7 +70,7 @@ static void cpu_bus_write(struct nes_emulator_console *console,
 		cpu_bus_write(console, address - 0x1800, value);
 	}
 	else if (address < 0x4000) {
-
+		ppu_cpu_bus_write(console, address, value);
 	}
 	else if (address < 0x4020) {
 

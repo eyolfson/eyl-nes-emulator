@@ -344,6 +344,17 @@ void ppu_write(uint8_t address, uint8_t value)
 	}
 }
 
+uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
+                         uint16_t address)
+{
+}
+
+void ppu_cpu_bus_write(struct nes_emulator_console *console,
+                       uint16_t address,
+                       uint8_t value)
+{
+}
+
 void ppu_init(struct nes_emulator_console *console)
 {
 	console->ppu.computed_address_is_high = true;
