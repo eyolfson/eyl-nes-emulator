@@ -29,5 +29,6 @@ add_executable(nes-emulator-nestest
 	../../../src/cpu.c
 	../../../src/exit_code.c
 	../../../src/ppu.c
+	../../../src/ppu_register.c
 	../../../src/ram.c
 )

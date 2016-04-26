@@ -54,9 +54,10 @@ void ppu_cpu_bus_write(struct nes_emulator_console *console,
                        uint16_t address,
                        uint8_t value);
 
-void set_chr_rom(uint8_t *data);
-uint8_t ppu_read(uint8_t address);
-void ppu_write(uint8_t address, uint8_t value);
+uint8_t ppu_bus_read(struct nes_emulator_console *console, uint16_t address);
+void ppu_bus_write(struct nes_emulator_console *console,
+                   uint16_t address,
+                   uint8_t value);
 
 #ifdef __cpluscplus
 }
