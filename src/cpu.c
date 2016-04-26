@@ -2489,7 +2489,7 @@ void cpu_reset(struct nes_emulator_console *console)
 {
 	struct registers *registers = &console->cpu.registers;
 	registers->pc = cpu_bus_read(console, RESET_HANDLER_ADDRESS)
-	                + (cpu_bus_read(console, RESET_HANDLER_ADDRESS) << 8);
+	             + (cpu_bus_read(console, RESET_HANDLER_ADDRESS + 1) << 8);
 }
 
 uint8_t cpu_step(struct nes_emulator_console *console)
