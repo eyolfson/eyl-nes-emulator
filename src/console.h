@@ -26,6 +26,8 @@ extern "C" {
 struct nes_emulator_console {
 	struct cpu cpu;
 	uint8_t cpu_step_cycles;
+
+	struct nes_emulator_cartridge *cartridge;
 };
 
 #ifdef __cpluscplus

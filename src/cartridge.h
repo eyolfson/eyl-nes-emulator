@@ -15,6 +15,28 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-struct nes_emulator_cartridge {
+#pragma once
 
+#ifdef __cpluscplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+
+struct nes_emulator_console;
+
+struct nes_emulator_cartridge {
+	uint8_t *chr_rom;
+	uint8_t *prg_rom_bank_1;
+	uint8_t *prg_rom_bank_2;
 };
+
+uint8_t cartridge_cpu_bus_read(struct nes_emulator_console *console,
+                               uint16_t address);
+void cartridge_cpu_bus_write(struct nes_emulator_console *console,
+                             uint16_t address,
+                             uint8_t value);
+
+#ifdef __cpluscplus
+}
+#endif

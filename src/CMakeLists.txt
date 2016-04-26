@@ -56,11 +56,8 @@ add_executable(nes-emulator
 	console.c
 	cpu.c
 	exit_code.c
-	memory_bus.c
 	ppu.c
-	prg_rom.c
 	ram.c
-	utils.c
 	backend/wayland.c
 	backend/wayland_buffer.c
 

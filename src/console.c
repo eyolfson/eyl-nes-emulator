@@ -30,11 +30,20 @@ uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
 
-
 	cpu_init(c);
+
+	c->cartridge = NULL;
 
 	*console = c;
 	return 0;
+}
+
+uint8_t nes_emulator_console_insert_cartridge(
+	struct nes_emulator_console *console,
+	struct nes_emulator_cartridge *cartridge)
+{
+	console->cartridge = cartridge;
+	cpu_reset(console);
 }
 
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
@@ -42,9 +51,8 @@ uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
 	return cpu_step(console);
 }
 
-uint8_t nes_emulator_console_fini(struct nes_emulator_console **console)
+void nes_emulator_console_fini(struct nes_emulator_console **console)
 {
 	free(*console);
 	*console = NULL;
-	return 0;
 }

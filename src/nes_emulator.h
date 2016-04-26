@@ -30,9 +30,13 @@ struct nes_emulator_console;
 uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
                                     uint8_t *data,
                                     size_t size);
+void nes_emulator_cartridge_fini(struct nes_emulator_cartridge **cartridge);
 uint8_t nes_emulator_console_init(struct nes_emulator_console **console);
+uint8_t nes_emulator_console_insert_cartridge(
+	struct nes_emulator_console *console,
+	struct nes_emulator_cartridge *cartridge);
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console);
-uint8_t nes_emulator_console_fini(struct nes_emulator_console **console);
+void nes_emulator_console_fini(struct nes_emulator_console **console);
 
 #ifdef __cpluscplus
 }

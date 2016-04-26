@@ -19,8 +19,6 @@
 #include "exit_code.h"
 #include "cpu.h"
 #include "ppu.h"
-#include "prg_rom.h"
-#include "utils.h"
 #include "backend/wayland.h"
 
 #include "nes_emulator.h"
@@ -28,39 +26,37 @@
 uint8_t main(int argc, char **argv)
 {
 	struct nes_emulator_console *console;
+	struct nes_emulator_cartridge *cartridge;
 	struct memory_mapping mm;
 	uint8_t exit_code;
 
-	exit_code = nes_emulator_console_init(&console);
-	if (exit_code != 0) {
-		return exit_code;
-	}
-
 	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
 	if (exit_code != 0) {
-		exit_code |= nes_emulator_console_fini(&console);
+		nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
-	exit_code = check_rom_size_raw(mm.data, mm.size);
+	exit_code = nes_emulator_console_init(&console);
 	if (exit_code != 0) {
 		exit_code |= fini_memory_mapping(&mm);
-		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
-	exit_code = initialize_rom(mm.data, mm.size);
+	exit_code = nes_emulator_cartridge_init(&cartridge, mm.data, mm.size);
 	if (exit_code != 0) {
+		nes_emulator_console_fini(&console);
 		exit_code |= fini_memory_mapping(&mm);
-		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
+
+	nes_emulator_console_insert_cartridge(console, cartridge);
 
 	struct wayland wayland;
 	exit_code = init_wayland(&wayland);
 	if (exit_code != 0) {
+		nes_emulator_cartridge_fini(&cartridge);
+		nes_emulator_console_fini(&console);
 		exit_code |= fini_memory_mapping(&mm);
-		exit_code |= nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 
@@ -69,7 +65,8 @@ uint8_t main(int argc, char **argv)
 	}
 
 	exit_code |= fini_wayland(&wayland);
+	nes_emulator_cartridge_fini(&cartridge);
+	nes_emulator_console_fini(&console);
 	exit_code |= fini_memory_mapping(&mm);
-	exit_code |= nes_emulator_console_fini(&console);
 	return exit_code;
 }

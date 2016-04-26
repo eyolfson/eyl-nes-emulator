@@ -19,8 +19,7 @@
 #include "../../../src/exit_code.h"
 #include "../../../src/console.h"
 #include "../../../src/cpu.h"
-#include "../../../src/prg_rom.h"
-#include "../../../src/utils.h"
+#include "../../../src/nes_emulator.h"
 
 #include <stdio.h>
 
@@ -34,18 +33,6 @@ uint8_t main(int argc, char **argv)
 		return exit_code;
 	}
 
-	exit_code = check_rom_size_raw(mm.data, mm.size);
-	if (exit_code != 0) {
-		exit_code |= fini_memory_mapping(&mm);
-		return exit_code;
-	}
-
-	exit_code = initialize_rom(mm.data, mm.size);
-	if (exit_code != 0) {
-		exit_code |= fini_memory_mapping(&mm);
-		return exit_code;
-	}
-
 	struct nes_emulator_console *console;
 	exit_code = nes_emulator_console_init(&console);
 	if (exit_code != 0) {
@@ -53,7 +40,18 @@ uint8_t main(int argc, char **argv)
 		return exit_code;
 	}
 
+	struct nes_emulator_cartridge *cartridge;
+	exit_code = nes_emulator_cartridge_init(&cartridge, mm.data, mm.size);
+	if (exit_code != 0) {
+		nes_emulator_console_fini(&console);
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
+
+	nes_emulator_console_insert_cartridge(console, cartridge);
+
 	struct registers *registers = &console->cpu.registers;
+	registers->pc = 0xC000;
 	uint16_t cyc = 0;
 	while (exit_code == 0) {
 		printf("%04X "
@@ -71,7 +69,8 @@ uint8_t main(int argc, char **argv)
 		if (registers->pc == 0x0001) { break; }
 	}
 
+	nes_emulator_cartridge_fini(&cartridge);
+	nes_emulator_console_fini(&console);
 	exit_code |= fini_memory_mapping(&mm);
-	exit_code |= nes_emulator_console_fini(&console);
 	return exit_code;
 }
