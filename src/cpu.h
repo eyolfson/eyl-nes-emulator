@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "nes_emulator.h"
@@ -40,12 +41,14 @@ struct cpu {
 	struct registers registers;
 	uint8_t ram[CPU_RAM_SIZE];
 
+	bool nmi_queued;
 	uint16_t computed_address;
 };
 
 void cpu_init(struct nes_emulator_console *console);
 void cpu_reset(struct nes_emulator_console *console);
 uint8_t cpu_step(struct nes_emulator_console *console);
+void cpu_generate_nmi(struct nes_emulator_console *console);
 
 #ifdef __cpluscplus
 }

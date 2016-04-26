@@ -21,9 +21,15 @@
 
 static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 {
+	uint8_t value = 0;
 	/* Vertical blank has started */
+	if (console->ppu.trigger_vblank) {
+		value |= 0x80;
+		console->ppu.trigger_vblank = false;
+	}
 	/* Sprite 0 Hit */
 	/* Sprite overflow */
+	return value;
 }
 
 static void ppu_register_ctrl_write(struct nes_emulator_console *console,
@@ -32,6 +38,12 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	/* Generate an NMI at the start of the vertical blanking interval
 	   (0: off; 1: on) */
 	uint8_t v = (value & (1 << 7)) >> 7;
+	if (v == 0) {
+		console->ppu.generate_nmi = false;
+	}
+	else {
+		console->ppu.generate_nmi = true;
+	}
 
 	/* PPU master/slave select (0: read backdrop from EXT pins;
 	                            1: output color on EXT pins) */
@@ -42,6 +54,12 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 
 	/* Background pattern table address (0: $0000; 1: $1000) */
 	uint8_t b = (value & (1 << 4)) >> 4;
+	if (b == 0) {
+		console->ppu.background_address = 0x0000;
+	}
+	else {
+		console->ppu.background_address = 0x1000;
+	}
 
 	/* Sprite pattern table address for 8x8 sprites
 	   (0: $0000; 1: $1000; ignored in 8x16 mode) */
@@ -111,7 +129,7 @@ uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
                          uint16_t address)
 {
 	switch (address % 8) {
-	case 0:
+	case 2:
 		return ppu_register_status_read(console);
 	case 7:
 		return ppu_register_data_read(console);

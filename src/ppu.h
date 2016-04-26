@@ -41,6 +41,9 @@ struct ppu {
 	uint16_t background_address;
 	uint16_t nametable_address;
 
+	bool generate_nmi;
+	bool trigger_vblank;
+
 	uint16_t cycle;
 	int16_t scan_line;
 };

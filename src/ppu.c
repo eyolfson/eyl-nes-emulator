@@ -98,6 +98,8 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.computed_address = 0;
 	console->ppu.background_address = 0x1000;
 	console->ppu.nametable_address = 0x2000;
+	console->ppu.generate_nmi = false;
+	console->ppu.trigger_vblank = false;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
 }
@@ -108,6 +110,9 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 	int16_t scan_line = console->ppu.scan_line;
 	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
 
+		if (scan_line == 241 && cycle == 1) {
+			console->ppu.trigger_vblank = true;
+		}
 		cycle += 1;
 		if (cycle > 340) {
 			cycle = 0;
