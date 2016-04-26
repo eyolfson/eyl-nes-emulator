@@ -84,8 +84,8 @@ uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
 	}
 
 	if (data[6] == 0x01) {
-		/* TODO: chr_rom = data + HEADER_SIZE
-		                   + PRG_ROM_SIZE_PER_UNIT * prg_rom_units); */
+		c->chr_rom = data + HEADER_SIZE
+		             + PRG_ROM_SIZE_PER_UNIT * prg_rom_units;
 	}
 
 	*cartridge = c;
@@ -116,4 +116,10 @@ void cartridge_cpu_bus_write(struct nes_emulator_console *console,
                              uint16_t address,
                              uint8_t value)
 {
+}
+
+uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
+                               uint16_t address)
+{
+	return *(console->cartridge->chr_rom);
 }

@@ -36,6 +36,8 @@ uint8_t cartridge_cpu_bus_read(struct nes_emulator_console *console,
 void cartridge_cpu_bus_write(struct nes_emulator_console *console,
                              uint16_t address,
                              uint8_t value);
+uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
+                               uint16_t address);
 
 #ifdef __cpluscplus
 }

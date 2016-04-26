@@ -17,25 +17,10 @@
 
 #include "ppu.h"
 
+#include "cartridge.h"
 #include "console.h"
 
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
-
-static uint8_t *chr_rom_data;
-
-static uint8_t ram[PPU_RAM_SIZE];
-
-static uint8_t palette_ram[PPU_PALETTE_SIZE];
-
-static uint8_t object_attribute_memory[PPU_OAM_SIZE];
-
-static bool computed_address_is_high = true;
-static uint16_t computed_address = 0;
-static uint8_t computed_address_increment = 1;
-
-static uint16_t background_address = 0x1000;
-static uint16_t nametable_address = 0x2000;
-
 /* Each nametable is 1024 bytes (0x400) */
 /* It consists of 960 8x8 tiles to form the background */
 /* Each of these tiles are a byte */
@@ -43,25 +28,26 @@ static uint16_t nametable_address = 0x2000;
 /* There are 64 bytes remaining */
 /* Screen is divided into 64 32x32 tiles called attribute tiles */
 
-static uint8_t bus_read(uint16_t address)
+static uint8_t ppu_bus_read(struct nes_emulator_console *console,
+                            uint16_t address)
 {
 	if (address < 0x2000) {
-		return chr_rom_data[address];
+		return cartridge_ppu_bus_read(console, address);
 	}
 	else if (address < 0x2800) {
-		return ram[address - 0x2000];
+		return console->ppu.ram[address - 0x2000];
 	}
 	else if (address < 0x3000) {
 		/* Mirroring */
-		return ram[address - 0x2800];
+		return console->ppu.ram[address - 0x2800];
 	}
 	else if (address < 0x3F00) {
-		return bus_read(address - 0x1000);
+		return ppu_bus_read(console, address - 0x1000);
 	}
 	else if (address < 0x3F20) {
 		/* TODO: Internal palette control */
 		/* TODO: Mirrors */
-		return palette_ram[address - 0x3F00];
+		return console->ppu.palette[address - 0x3F00];
 	}
 	else if (address < 0x4000) {
 		/* TODO: Mirrors */
@@ -71,29 +57,33 @@ static uint8_t bus_read(uint16_t address)
 		/* TODO: Out-of-range */
 		return 0;
 	}
+
 }
 
-static void bus_write(uint16_t address, uint8_t value)
+static void ppu_bus_write(struct nes_emulator_console *console,
+                          uint16_t address,
+                          uint8_t value)
 {
 	if (address < 0x2000) {
 		return;
 	}
 	else if (address < 0x2800) {
-		ram[address - 0x2000] = value;
+		console->ppu.ram[address - 0x2000] = value;
 	}
 	else if (address < 0x3000) {
-		ram[address - 0x2800] = value;
+		console->ppu.ram[address - 0x2800] = value;
 	}
 	else if (address < 0x3F00) {
-		bus_write(address - 0x1000, value);
+		ppu_bus_write(console, address - 0x1000, value);
 	}
 	else if (address < 0x3F20) {
 		/* TODO: Internal palette control */
 		/* TODO: Mirrors */
-		palette_ram[address - 0x3F00] = value;
+		console->ppu.palette[address - 0x3F00] = value;
 	}
 	else if (address < 0x4000) {
 		/* TODO: Mirrors */
+		return;
 	}
 	else {
 		/* TODO: Out-of-range */
@@ -101,195 +91,11 @@ static void bus_write(uint16_t address, uint8_t value)
 	}
 }
 
-void set_chr_rom(uint8_t *data)
+static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 {
-	chr_rom_data = data;
-}
-
-#include <stdio.h>
-
-static void debug_tile(uint16_t address)
-{
-	uint8_t color_index[8][8] = { 0 };
-	uint8_t x = 0;
-	for (uint16_t i = address; i < address + 8; ++i) {
-		uint8_t b = bus_read(i);
-		for (uint8_t j = 0; j < 8; ++j) {
-			if (b & (1 << j)) {
-				color_index[x][7 - j] |= 0x02;
-			}
-		}
-		++x;
-	}
-	x = 0;
-	for (uint16_t i = address + 8; i < address + 16; ++i) {
-		uint8_t b = bus_read(i);
-		for (uint8_t j = 0; j < 8; ++j) {
-			if (b & (1 << j)) {
-				color_index[x][7 - j] |= 0x01;
-			}
-		}
-		++x;
-	}
-
-	printf("Tile 0x%04x\n", address);
-	for (uint8_t i = 0; i < 8; ++i) {
-		for (uint8_t j = 0; j < 8; ++j) {
-			if (j != 0) { printf(" "); }
-			printf("%x", color_index[i][j]);
-		}
-		printf("\n");
-	}
-}
-
-static uint8_t debug_background_pixel(uint8_t x, uint8_t y)
-{
-	/* Lookup in nametable */
-	uint16_t index_address = nametable_address + (y / 8) * 32 + (x / 8);
-	uint8_t index = bus_read(index_address);
-
-	/* Lookup referenced tile */
-	uint8_t column_offset = y % 8;
-	uint8_t high = bus_read(background_address + index * 16
-	                        + column_offset);
-	uint8_t low = bus_read(background_address + index * 16 + 8
-	                       + column_offset);
-	uint8_t pixel_value = 0;
-	if ((1 << (7 - (x % 8))) & high) {
-		pixel_value |= 0x02;
-	}
-	if ((1 << (7 - (x % 8))) & low) {
-		pixel_value |= 0x01;
-	}
-
-	if (pixel_value == 0) {
-		return bus_read(0x3F00);
-	}
-
-	/* Lookup attribute */
-	uint16_t attribute_address = nametable_address + 960 + (y / 32) * 8
-	                             + (x / 32);
-	uint8_t attribute = bus_read(attribute_address);
-
-	/* Lookup palette */
-	uint8_t palette_index = 0;
-	if ((x / 16) % 2) {
-		palette_index |= 0x01;
-	}
-	if ((y / 16) % 2) {
-		palette_index |= 0x02;
-	}
-
-	uint16_t palette_offset = 0x3F00 + 4 * palette_index;
-	return bus_read(palette_offset + pixel_value);
-}
-
-static uint8_t handle_status_read()
-{
-	return 0x80;
-}
-
-static uint8_t handle_oam_data_read()
-{
-	return 0;
-}
-
-static uint8_t handle_data_read()
-{
-	uint8_t value = bus_read(computed_address);
-	computed_address += computed_address_increment;
-	return value;
-}
-
-uint8_t ppu_read(uint8_t address)
-{
-	switch (address) {
-	case 0:
-		return 0;
-	case 1:
-		return 0;
-	case 2:
-		return handle_status_read();
-	case 3:
-		return 0;
-	case 4:
-		return handle_oam_data_read();
-	case 5:
-		return 0;
-	case 6:
-		return 0;
-	case 7:
-		return handle_data_read();
-	}
-	return 0;
-}
-
-static void handle_mask_write(uint8_t value)
-{
-
-}
-
-static void handle_oam_address_write(uint8_t value)
-{
-
-}
-
-static void handle_oam_data_write(uint8_t value)
-{
-
-}
-
-static void handle_scroll_write(uint8_t value)
-{
-
-}
-
-static void handle_address_write(uint8_t value)
-{
-	if (computed_address_is_high) {
-		computed_address &= 0x00FF;
-		computed_address |= (value << 8);
-		computed_address_is_high = false;
-	}
-	else {
-		computed_address &= 0xFF00;
-		computed_address |= value;
-		computed_address_is_high = true;
-	}
-}
-
-static void handle_data_write(uint8_t value)
-{
-	bus_write(computed_address, value);
-	computed_address += computed_address_increment;
-}
-
-void ppu_write(uint8_t address, uint8_t value)
-{
-	switch (address) {
-	case 0:
-		break;
-	case 1:
-		handle_mask_write(value);
-		break;
-	case 2:
-		break;
-	case 3:
-		handle_oam_address_write(value);
-		break;
-	case 4:
-		handle_oam_data_write(value);
-		break;
-	case 5:
-		handle_scroll_write(value);
-		break;
-	case 6:
-		handle_address_write(value);
-		break;
-	case 7:
-		handle_data_write(value);
-		break;
-	}
+	/* Vertical blank has started */
+	/* Sprite 0 Hit */
+	/* Sprite overflow */
 }
 
 static void ppu_register_ctrl_write(struct nes_emulator_console *console,
@@ -344,11 +150,18 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	}
 }
 
-static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
+static void ppu_register_data_write(struct nes_emulator_console *console,
+                                    uint8_t value)
 {
-	/* Vertical blank has started */
-	/* Sprite 0 Hit */
-	/* Sprite overflow */
+	ppu_bus_write(console, console->ppu.computed_address, value);
+	console->ppu.computed_address += console->ppu.computed_address_increment;
+}
+
+static uint8_t ppu_register_data_read(struct nes_emulator_console *console)
+{
+	uint8_t m = ppu_bus_read(console, console->ppu.computed_address);
+	console->ppu.computed_address += console->ppu.computed_address_increment;
+	return m;
 }
 
 uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
@@ -357,8 +170,25 @@ uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
 	switch (address % 8) {
 	case 0:
 		return ppu_register_status_read(console);
+	case 7:
+		return ppu_register_data_read(console);
 	default:
 		return 0;
+	}
+}
+
+static void ppu_register_addr_write(struct nes_emulator_console *console,
+                                    uint8_t value)
+{
+	if (console->ppu.computed_address_is_high) {
+		console->ppu.computed_address &= 0x00FF;
+		console->ppu.computed_address |= (value << 8);
+		console->ppu.computed_address_is_high = false;
+	}
+	else {
+		console->ppu.computed_address &= 0xFF00;
+		console->ppu.computed_address |= value;
+		console->ppu.computed_address_is_high = true;
 	}
 }
 
@@ -370,6 +200,10 @@ void ppu_cpu_bus_write(struct nes_emulator_console *console,
 	case 0:
 		ppu_register_ctrl_write(console, value);
 		break;
+	case 6:
+		ppu_register_addr_write(console, value);
+	case 7:
+		ppu_register_data_write(console, value);
 	default:
 		break;
 	}
@@ -404,4 +238,86 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 	console->ppu.cycle = cycle;
 	console->ppu.scan_line = scan_line;
 	return 0;
+}
+
+#include <stdio.h>
+
+static void debug_tile(struct nes_emulator_console *console,
+                       uint16_t address)
+{
+	uint8_t color_index[8][8] = { 0 };
+	uint8_t x = 0;
+	for (uint16_t i = address; i < address + 8; ++i) {
+		uint8_t b = ppu_bus_read(console, i);
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (b & (1 << j)) {
+				color_index[x][7 - j] |= 0x02;
+			}
+		}
+		++x;
+	}
+	x = 0;
+	for (uint16_t i = address + 8; i < address + 16; ++i) {
+		uint8_t b = ppu_bus_read(console, i);
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (b & (1 << j)) {
+				color_index[x][7 - j] |= 0x01;
+			}
+		}
+		++x;
+	}
+
+	printf("Tile 0x%04x\n", address);
+	for (uint8_t i = 0; i < 8; ++i) {
+		for (uint8_t j = 0; j < 8; ++j) {
+			if (j != 0) { printf(" "); }
+			printf("%x", color_index[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+static uint8_t debug_background_pixel(struct nes_emulator_console *console,
+                                      uint8_t x, uint8_t y)
+{
+	/* Lookup in nametable */
+	uint16_t index_address = console->ppu.nametable_address
+	                         + (y / 8) * 32 + (x / 8);
+	uint8_t index = ppu_bus_read(console, index_address);
+
+	/* Lookup referenced tile */
+	uint8_t column_offset = y % 8;
+	uint8_t high = ppu_bus_read(console,
+		console->ppu.background_address + index * 16 + column_offset);
+	uint8_t low = ppu_bus_read(console,
+		console->ppu.background_address + index * 16 + 8
+		+ column_offset);
+	uint8_t pixel_value = 0;
+	if ((1 << (7 - (x % 8))) & high) {
+		pixel_value |= 0x02;
+	}
+	if ((1 << (7 - (x % 8))) & low) {
+		pixel_value |= 0x01;
+	}
+
+	if (pixel_value == 0) {
+		return ppu_bus_read(console, 0x3F00);
+	}
+
+	/* Lookup attribute */
+	uint16_t attribute_address = console->ppu.nametable_address
+	                             + 960 + (y / 32) * 8 + (x / 32);
+	uint8_t attribute = ppu_bus_read(console, attribute_address);
+
+	/* Lookup palette */
+	uint8_t palette_index = 0;
+	if ((x / 16) % 2) {
+		palette_index |= 0x01;
+	}
+	if ((y / 16) % 2) {
+		palette_index |= 0x02;
+	}
+
+	uint16_t palette_offset = 0x3F00 + 4 * palette_index;
+	return ppu_bus_read(console, palette_offset + pixel_value);
 }
