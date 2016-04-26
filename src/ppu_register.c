@@ -130,8 +130,10 @@ void ppu_cpu_bus_write(struct nes_emulator_console *console,
 		break;
 	case 6:
 		ppu_register_addr_write(console, value);
+		break;
 	case 7:
 		ppu_register_data_write(console, value);
+		break;
 	default:
 		break;
 	}
