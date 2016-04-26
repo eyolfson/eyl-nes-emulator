@@ -21,7 +21,31 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
+
+struct nes_emulator_console;
+
+#define PPU_RAM_SIZE     0x0800 /*   2 KiB */
+#define PPU_PALETTE_SIZE 0x0020 /*  32 B   */
+#define PPU_OAM_SIZE     0x0100 /* 256 B   */
+
+struct ppu {
+	uint8_t ram[PPU_RAM_SIZE];
+	uint8_t palette[PPU_PALETTE_SIZE];
+	uint8_t oam[PPU_OAM_SIZE];
+
+	bool computed_address_is_high;
+	uint8_t computed_address_increment;
+	uint16_t computed_address;
+	uint16_t background_address;
+	uint16_t nametable_address;
+
+	uint16_t cycle;
+};
+
+void ppu_init(struct nes_emulator_console *console);
+uint8_t ppu_step(struct nes_emulator_console *console);
 
 void set_chr_rom(uint8_t *data);
 uint8_t ppu_read(uint8_t address);

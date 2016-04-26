@@ -17,33 +17,17 @@
 
 #include "ppu.h"
 
-#include <stdbool.h>
-
-#define RAM_SIZE     0x0800 /*   2 KiB */
-#define PALETTE_SIZE 0x0020 /*  32 B   */
-#define OAM_SIZE     0x0100 /* 256 B   */
-
-struct ppu {
-	uint8_t ram[RAM_SIZE];
-	uint8_t palette[PALETTE_SIZE];
-	uint8_t oam[OAM_SIZE];
-
-	bool computed_address_is_high;
-	uint8_t computed_address_increment;
-	uint16_t computed_address;
-	uint16_t background_address;
-	uint16_t nametable_address;
-};
+#include "console.h"
 
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 
 static uint8_t *chr_rom_data;
 
-static uint8_t ram[RAM_SIZE];
+static uint8_t ram[PPU_RAM_SIZE];
 
-static uint8_t palette_ram[PALETTE_SIZE];
+static uint8_t palette_ram[PPU_PALETTE_SIZE];
 
-static uint8_t object_attribute_memory[OAM_SIZE];
+static uint8_t object_attribute_memory[PPU_OAM_SIZE];
 
 static bool computed_address_is_high = true;
 static uint16_t computed_address = 0;
@@ -358,4 +342,28 @@ void ppu_write(uint8_t address, uint8_t value)
 		handle_data_write(value);
 		break;
 	}
+}
+
+void ppu_init(struct nes_emulator_console *console)
+{
+	console->ppu.computed_address_is_high = true;
+	console->ppu.computed_address_increment = 1;
+	console->ppu.computed_address = 0;
+	console->ppu.background_address = 0x1000;
+	console->ppu.nametable_address = 0x2000;
+	console->ppu.cycle = 0;
+}
+
+uint8_t ppu_step(struct nes_emulator_console *console)
+{
+	uint16_t cycle = console->ppu.cycle;
+	for (uint8_t i = 0; i < console->cpu_step_cycles; ++i) {
+
+		cycle += 1;
+		if (cycle == 341) {
+			cycle = 0;
+		}
+	}
+	console->ppu.cycle = cycle;
+	return 0;
 }

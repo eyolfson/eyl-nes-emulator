@@ -22,10 +22,13 @@ extern "C" {
 #endif
 
 #include "cpu.h"
+#include "ppu.h"
 
 struct nes_emulator_console {
 	struct cpu cpu;
 	uint8_t cpu_step_cycles;
+
+	struct ppu ppu;
 
 	struct nes_emulator_cartridge *cartridge;
 };

@@ -31,6 +31,7 @@ uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 	}
 
 	cpu_init(c);
+	ppu_init(c);
 
 	c->cartridge = NULL;
 
@@ -48,7 +49,19 @@ uint8_t nes_emulator_console_insert_cartridge(
 
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
 {
-	return cpu_step(console);
+	uint8_t exit_code;
+
+	exit_code = cpu_step(console);
+	if (exit_code != 0) {
+		return exit_code;
+	}
+
+	exit_code = ppu_step(console);
+	if (exit_code != 0) {
+		return exit_code;
+	}
+
+	return 0;
 }
 
 void nes_emulator_console_fini(struct nes_emulator_console **console)
