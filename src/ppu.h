@@ -42,6 +42,7 @@ struct ppu {
 	uint16_t nametable_address;
 
 	uint16_t cycle;
+	int16_t scan_line;
 };
 
 void ppu_init(struct nes_emulator_console *console);

@@ -224,57 +224,6 @@ uint8_t ppu_read(uint8_t address)
 	return 0;
 }
 
-static void handle_ctrl_write(uint8_t value)
-{
-	/* Generate an NMI at the start of the vertical blanking interval
-	   (0: off; 1: on) */
-	uint8_t v = (value & (1 << 7)) >> 7;
-
-	/* PPU master/slave select (0: read backdrop from EXT pins;
-	                            1: output color on EXT pins) */
-	uint8_t p = (value & (1 << 6)) >> 6;
-
-	/* Sprite size (0: 8x8; 1: 8x16) */
-	uint8_t h = (value & (1 << 5)) >> 5;
-
-	/* Background pattern table address (0: $0000; 1: $1000) */
-	uint8_t b = (value & (1 << 4)) >> 4;
-
-	/* Sprite pattern table address for 8x8 sprites
-	   (0: $0000; 1: $1000; ignored in 8x16 mode) */
-	uint8_t s = (value & (1 << 3)) >> 3;
-
-	/* VRAM address increment per CPU read/write of PPUDATA
-	   (0: add 1, going across; 1: add 32, going down) */
-	uint8_t i = (value & (1 << 2)) >> 2;
-	switch (i) {
-	case 0:
-		computed_address_increment = 1;
-		break;
-	case 1:
-		computed_address_increment = 32;
-		break;
-	}
-
-	/* Base nametable address
-	   (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00) */
-	uint8_t n = (value & 0x03);
-	switch (n) {
-	case 0:
-		nametable_address = 0x2000;
-		break;
-	case 1:
-		nametable_address = 0x2400;
-		break;
-	case 2:
-		nametable_address = 0x2800;
-		break;
-	case 3:
-		nametable_address = 0x2C00;
-		break;
-	}
-}
-
 static void handle_mask_write(uint8_t value)
 {
 
@@ -319,7 +268,6 @@ void ppu_write(uint8_t address, uint8_t value)
 {
 	switch (address) {
 	case 0:
-		handle_ctrl_write(value);
 		break;
 	case 1:
 		handle_mask_write(value);
@@ -344,15 +292,87 @@ void ppu_write(uint8_t address, uint8_t value)
 	}
 }
 
+static void ppu_register_ctrl_write(struct nes_emulator_console *console,
+                                    uint8_t value)
+{
+	/* Generate an NMI at the start of the vertical blanking interval
+	   (0: off; 1: on) */
+	uint8_t v = (value & (1 << 7)) >> 7;
+
+	/* PPU master/slave select (0: read backdrop from EXT pins;
+	                            1: output color on EXT pins) */
+	uint8_t p = (value & (1 << 6)) >> 6;
+
+	/* Sprite size (0: 8x8; 1: 8x16) */
+	uint8_t h = (value & (1 << 5)) >> 5;
+
+	/* Background pattern table address (0: $0000; 1: $1000) */
+	uint8_t b = (value & (1 << 4)) >> 4;
+
+	/* Sprite pattern table address for 8x8 sprites
+	   (0: $0000; 1: $1000; ignored in 8x16 mode) */
+	uint8_t s = (value & (1 << 3)) >> 3;
+
+	/* VRAM address increment per CPU read/write of PPUDATA
+	   (0: add 1, going across; 1: add 32, going down) */
+	uint8_t i = (value & (1 << 2)) >> 2;
+	switch (i) {
+	case 0:
+		console->ppu.computed_address_increment = 1;
+		break;
+	case 1:
+		console->ppu.computed_address_increment = 32;
+		break;
+	}
+
+	/* Base nametable address
+	   (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00) */
+	uint8_t n = (value & 0x03);
+	switch (n) {
+	case 0:
+		console->ppu.nametable_address = 0x2000;
+		break;
+	case 1:
+		console->ppu.nametable_address = 0x2400;
+		break;
+	case 2:
+		console->ppu.nametable_address = 0x2800;
+		break;
+	case 3:
+		console->ppu.nametable_address = 0x2C00;
+		break;
+	}
+}
+
+static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
+{
+	/* Vertical blank has started */
+	/* Sprite 0 Hit */
+	/* Sprite overflow */
+}
+
 uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
                          uint16_t address)
 {
+	switch (address % 8) {
+	case 0:
+		return ppu_register_status_read(console);
+	default:
+		return 0;
+	}
 }
 
 void ppu_cpu_bus_write(struct nes_emulator_console *console,
                        uint16_t address,
                        uint8_t value)
 {
+	switch (address % 8) {
+	case 0:
+		ppu_register_ctrl_write(console, value);
+		break;
+	default:
+		break;
+	}
 }
 
 void ppu_init(struct nes_emulator_console *console)
@@ -363,18 +383,25 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.background_address = 0x1000;
 	console->ppu.nametable_address = 0x2000;
 	console->ppu.cycle = 0;
+	console->ppu.scan_line = 241;
 }
 
 uint8_t ppu_step(struct nes_emulator_console *console)
 {
 	uint16_t cycle = console->ppu.cycle;
-	for (uint8_t i = 0; i < console->cpu_step_cycles; ++i) {
+	int16_t scan_line = console->ppu.scan_line;
+	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
 
 		cycle += 1;
-		if (cycle == 341) {
+		if (cycle > 340) {
 			cycle = 0;
+			scan_line += 1;
+			if (scan_line > 260) {
+				scan_line = -1;
+			}
 		}
 	}
 	console->ppu.cycle = cycle;
+	console->ppu.scan_line = scan_line;
 	return 0;
 }

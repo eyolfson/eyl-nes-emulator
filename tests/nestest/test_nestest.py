@@ -31,6 +31,7 @@ def check_build():
 	return True
 
 def check_line(expected_line, actual_line):
+	expected_line = expected_line.rstrip()
 	CHECKS = [
 		("PC", 0, 4),
 		("A", 50, 52),
@@ -49,6 +50,16 @@ def check_line(expected_line, actual_line):
 			print("{} mismatched, expected: {}, actual: {}".format(
 				check[0], expected.decode(), actual.decode()))
 			checks_passed = False
+
+	# SL check (to end-of-line)
+	expected = expected_line[85:]
+	actual = actual_line[85:]
+	if expected != actual:
+		print()
+		print("{} mismatched, expected: {}, actual: {}".format(
+			"SL", [expected.decode()], [actual.decode()]))
+		checks_passed = False
+
 	return checks_passed
 
 EXPECTED_LINES_PASSED = 8991
