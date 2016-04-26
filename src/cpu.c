@@ -633,9 +633,8 @@ static void execute_force_interrupt(struct nes_emulator_console *console,
 	push_to_stack(console, registers, return_address_low);
 
 	push_to_stack(console, registers, registers->p);
-
-	uint8_t address_low = cpu_bus_read(console, 0xFFFE);
-	uint8_t address_high = cpu_bus_read(console, 0xFFFF);
+	uint8_t address_low = cpu_bus_read(console, IRQ_HANDLER_ADDRESS);
+	uint8_t address_high = cpu_bus_read(console, IRQ_HANDLER_ADDRESS + 1);
 	uint16_t address = (address_high << 8) + address_low;
 	registers->pc = address;
 
