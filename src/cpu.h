@@ -39,6 +39,8 @@ struct registers {
 struct cpu {
 	struct registers registers;
 	uint8_t ram[CPU_RAM_SIZE];
+
+	uint16_t computed_address;
 };
 
 void cpu_init(struct nes_emulator_console *console);

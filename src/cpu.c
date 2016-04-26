@@ -23,6 +23,10 @@
 
 #include <stdbool.h>
 
+static const uint16_t NMI_HANDLER_ADDRESS = 0xFFFA;
+static const uint16_t RESET_HANDLER_ADDRESS = 0xFFFC;
+static const uint16_t IRQ_HANDLER_ADDRESS = 0xFFFE;
+
 static int8_t cpu_bus_read(struct nes_emulator_console *console,
                             uint16_t address)
 {
@@ -74,18 +78,6 @@ static void cpu_bus_write(struct nes_emulator_console *console,
 	else {
 		cartridge_cpu_bus_write(console, address, value);
 	}
-}
-
-static const uint16_t NMI_HANDLER_ADDRESS = 0xFFFA;
-static const uint16_t RESET_HANDLER_ADDRESS = 0xFFFC;
-static const uint16_t IRQ_HANDLER_ADDRESS = 0xFFFE;
-
-
-void cpu_reset(struct nes_emulator_console *console)
-{
-	struct registers *registers = &console->cpu.registers;
-	registers->pc = cpu_bus_read(console, RESET_HANDLER_ADDRESS)
-	                + (cpu_bus_read(console, RESET_HANDLER_ADDRESS) << 8);
 }
 
 static void init_registers(struct registers *registers)
@@ -140,19 +132,16 @@ static bool is_page_crossed(uint16_t a1, uint16_t a2)
 }
 
 /* Addressing modes */
-
-static uint16_t computed_address;
-
 static void compute_immediate_address(struct nes_emulator_console *console,
                                       struct registers *registers)
 {
-	computed_address = registers->pc + 1;
+	console->cpu.computed_address = registers->pc + 1;
 }
 
 static void compute_zero_page_address(struct nes_emulator_console *console,
                                       struct registers *registers)
 {
-	computed_address = get_byte_operand(console, registers);
+	console->cpu.computed_address = get_byte_operand(console, registers);
 }
 
 static void compute_zero_page_x_address(struct nes_emulator_console *console,
@@ -160,7 +149,7 @@ static void compute_zero_page_x_address(struct nes_emulator_console *console,
 {
 	uint8_t zero_page_address = get_byte_operand(console, registers);
 	zero_page_address += registers->x;
-	computed_address = zero_page_address;
+	console->cpu.computed_address = zero_page_address;
 }
 
 static void compute_zero_page_y_address(struct nes_emulator_console *console,
@@ -168,27 +157,27 @@ static void compute_zero_page_y_address(struct nes_emulator_console *console,
 {
 	uint8_t zero_page_address = get_byte_operand(console, registers);
 	zero_page_address += registers->y;
-	computed_address = zero_page_address;
+	console->cpu.computed_address = zero_page_address;
 }
 
 static void compute_absolute_address(struct nes_emulator_console *console,
                                      struct registers *registers)
 {
-	computed_address = get_2_byte_operand(console, registers);
+	console->cpu.computed_address = get_2_byte_operand(console, registers);
 }
 
 static void compute_absolute_x_address(struct nes_emulator_console *console,
                                        struct registers *registers)
 {
-	computed_address = get_2_byte_operand(console, registers);
-	computed_address += registers->x;
+	console->cpu.computed_address = get_2_byte_operand(console, registers);
+	console->cpu.computed_address += registers->x;
 }
 
 static void compute_absolute_y_address(struct nes_emulator_console *console,
                                        struct registers *registers)
 {
-	computed_address = get_2_byte_operand(console, registers);
-	computed_address += registers->y;
+	console->cpu.computed_address = get_2_byte_operand(console, registers);
+	console->cpu.computed_address += registers->y;
 }
 
 static void compute_indirect_x_address(struct nes_emulator_console *console,
@@ -202,7 +191,7 @@ static void compute_indirect_x_address(struct nes_emulator_console *console,
 	zero_page_address += 1;
 	uint8_t address_high = cpu_bus_read(console, zero_page_address);
 
-	computed_address = (address_high << 8) + address_low;
+	console->cpu.computed_address = (address_high << 8) + address_low;
 }
 
 static void compute_indirect_y_address(struct nes_emulator_console *console,
@@ -215,8 +204,8 @@ static void compute_indirect_y_address(struct nes_emulator_console *console,
 	zero_page_address += 1;
 	uint8_t address_high = cpu_bus_read(console, zero_page_address);
 
-	computed_address = (address_high << 8) + address_low;
-	computed_address += registers->y;
+	console->cpu.computed_address = (address_high << 8) + address_low;
+	console->cpu.computed_address += registers->y;
 }
 
 /* Carry Flag */
@@ -337,7 +326,7 @@ static void execute_compare(struct nes_emulator_console *console,
                             struct registers *registers,
                             uint8_t r)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 
 	uint16_t result = r - m;
 	assign_carry_flag(registers, result < 0x100);
@@ -347,7 +336,7 @@ static void execute_compare(struct nes_emulator_console *console,
 static void execute_add_with_carry(struct nes_emulator_console *console,
                                    struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 
 	uint16_t result = registers->a + m;
 	if (get_carry_flag(registers) == true) {
@@ -375,7 +364,7 @@ static void execute_add_with_carry(struct nes_emulator_console *console,
 static void execute_subtract_with_carry(struct nes_emulator_console *console,
                                         struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) m;
@@ -397,7 +386,7 @@ static void execute_subtract_with_carry(struct nes_emulator_console *console,
 static void execute_logical_and(struct nes_emulator_console *console,
                                 struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	registers->a &= m;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
@@ -405,7 +394,7 @@ static void execute_logical_and(struct nes_emulator_console *console,
 static void execute_logical_exclusive_or(struct nes_emulator_console *console,
                                          struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	registers->a ^= m;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
@@ -413,7 +402,7 @@ static void execute_logical_exclusive_or(struct nes_emulator_console *console,
 static void execute_logical_inclusive_or(struct nes_emulator_console *console,
                                          struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	registers->a |= m;
 	assign_negative_and_zero_flags_from_value(registers, registers->a);
 }
@@ -429,11 +418,11 @@ static void execute_arithmetic_shift_left_accumulator(
 static void execute_arithmetic_shift_left(struct nes_emulator_console *console,
                                           struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	assign_carry_flag(registers, m & 0x80);
 	m <<= 1;
 	assign_negative_and_zero_flags_from_value(registers, m);
-	cpu_bus_write(console, computed_address, m);
+	cpu_bus_write(console, console->cpu.computed_address, m);
 }
 
 static void execute_logical_shift_right_accumulator(struct registers *registers)
@@ -446,11 +435,11 @@ static void execute_logical_shift_right_accumulator(struct registers *registers)
 static void execute_logical_shift_right(struct nes_emulator_console *console,
                                         struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	assign_carry_flag(registers, m & 0x01);
 	m >>= 1;
 	assign_negative_and_zero_flags_from_value(registers, m);
-	cpu_bus_write(console, computed_address, m);
+	cpu_bus_write(console, console->cpu.computed_address, m);
 }
 
 static void execute_rotate_left_accumulator(struct registers *registers)
@@ -467,7 +456,7 @@ static void execute_rotate_left_accumulator(struct registers *registers)
 static void execute_rotate_left(struct nes_emulator_console *console,
                                 struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	bool current_carry_flag = get_carry_flag(registers);
 	assign_carry_flag(registers, m & 0x80);
 	m <<= 1;
@@ -475,7 +464,7 @@ static void execute_rotate_left(struct nes_emulator_console *console,
 		m |= 0x01;
 	}
 	assign_negative_and_zero_flags_from_value(registers, m);
-	cpu_bus_write(console, computed_address, m);
+	cpu_bus_write(console, console->cpu.computed_address, m);
 }
 
 static void execute_rotate_right_accumulator(struct registers *registers)
@@ -492,7 +481,7 @@ static void execute_rotate_right_accumulator(struct registers *registers)
 static void execute_rotate_right(struct nes_emulator_console *console,
                                  struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	bool current_carry_flag = get_carry_flag(registers);
 	assign_carry_flag(registers, m & 0x01);
 	m >>= 1;
@@ -500,31 +489,31 @@ static void execute_rotate_right(struct nes_emulator_console *console,
 		m |= 0x80;
 	}
 	assign_negative_and_zero_flags_from_value(registers, m);
-	cpu_bus_write(console, computed_address, m);
+	cpu_bus_write(console, console->cpu.computed_address, m);
 }
 
 static void execute_decrement_memory(struct nes_emulator_console *console,
                                      struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	m -= 1;
 	assign_negative_and_zero_flags_from_value(registers, m);
-	cpu_bus_write(console, computed_address, m);
+	cpu_bus_write(console, console->cpu.computed_address, m);
 }
 
 static void execute_increment_memory(struct nes_emulator_console *console,
                                      struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 	m += 1;
 	assign_negative_and_zero_flags_from_value(registers, m);
-	cpu_bus_write(console, computed_address, m);
+	cpu_bus_write(console, console->cpu.computed_address, m);
 }
 
 static void execute_bit_test(struct nes_emulator_console *console,
                              struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 
 	assign_negative_flag(registers, m & (1 << 7));
 	assign_overflow_flag(registers, m & (1 << 6));
@@ -657,7 +646,7 @@ static void execute_subtract_with_carry_for_isb(
 	struct nes_emulator_console *console,
 	struct registers *registers)
 {
-	uint8_t m = cpu_bus_read(console, computed_address);
+	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) m;
@@ -717,7 +706,7 @@ static void execute_sre(struct nes_emulator_console *console,
 static void execute_add_with_carry_rra(struct nes_emulator_console *console,
                                        struct registers *registers)
 {
-	uint8_t v = cpu_bus_read(console, computed_address);
+	uint8_t v = cpu_bus_read(console, console->cpu.computed_address);
 
 	int8_t a = (int8_t) registers->a;
 	int8_t b = (int8_t) v;
@@ -872,8 +861,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_inclusive_or(console, registers);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -923,8 +912,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_inclusive_or(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -945,8 +934,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		compute_absolute_x_address(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -956,8 +945,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_inclusive_or(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1079,8 +1068,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_and(console, registers);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1130,8 +1119,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_and(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1152,8 +1141,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		compute_absolute_x_address(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1163,8 +1152,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_and(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1283,8 +1272,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_exclusive_or(console, registers);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1328,8 +1317,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_exclusive_or(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1350,8 +1339,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		compute_absolute_x_address(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1361,8 +1350,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_logical_exclusive_or(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1483,8 +1472,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_add_with_carry(console, registers);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1534,8 +1523,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_add_with_carry(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1556,8 +1545,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		compute_absolute_x_address(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1567,8 +1556,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_add_with_carry(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1595,7 +1584,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0x81:
 		/* STA - Store Accumulator */
 		compute_indirect_x_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 2;
 		*step_cycles = 6;
 		break;
@@ -1608,35 +1597,35 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0x83:
 		/* SAX (Illegal Opcode) */
 		compute_indirect_x_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a & registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a & registers->x);
 		registers->pc += 2;
 		*step_cycles = 6;
 		break;
 	case 0x84:
 		/* STY - Store Y Register */
 		compute_zero_page_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->y);
+		cpu_bus_write(console, console->cpu.computed_address, registers->y);
 		registers->pc += 2;
 		*step_cycles = 3;
 		break;
 	case 0x85:
 		/* STA - Store Accumulator */
 		compute_zero_page_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 2;
 		*step_cycles = 3;
 		break;
 	case 0x86:
 		/* STX - Store X Register */
 		compute_zero_page_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->x);
 		registers->pc += 2;
 		*step_cycles = 3;
 		break;
 	case 0x87:
 		/* SAX (Illegal Opcode) */
 		compute_zero_page_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a & registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a & registers->x);
 		registers->pc += 2;
 		*step_cycles = 3;
 		break;
@@ -1665,28 +1654,28 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0x8C:
 		/* STY - Store Y Register */
 		compute_absolute_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->y);
+		cpu_bus_write(console, console->cpu.computed_address, registers->y);
 		registers->pc += 3;
 		*step_cycles = 4;
 		break;
 	case 0x8D:
 		/* STA - Store Accumulator */
 		compute_absolute_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 3;
 		*step_cycles = 4;
 		break;
 	case 0x8E:
 		/* STX - Store X Register */
 		compute_absolute_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->x);
 		registers->pc += 3;
 		*step_cycles = 4;
 		break;
 	case 0x8F:
 		/* SAX (Illegal Opcode) */
 		compute_absolute_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a & registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a & registers->x);
 		registers->pc += 3;
 		*step_cycles = 4;
 		break;
@@ -1697,35 +1686,35 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0x91:
 		/* STA - Store Accumulator */
 		compute_indirect_y_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 2;
 		*step_cycles = 6;
 		break;
 	case 0x94:
 		/* STY - Store Y Register */
 		compute_zero_page_x_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->y);
+		cpu_bus_write(console, console->cpu.computed_address, registers->y);
 		registers->pc += 2;
 		*step_cycles = 4;
 		break;
 	case 0x95:
 		/* STA - Store Accumulator */
 		compute_zero_page_x_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 2;
 		*step_cycles = 4;
 		break;
 	case 0x96:
 		/* STX - Store X Register */
 		compute_zero_page_y_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->x);
 		registers->pc += 2;
 		*step_cycles = 4;
 		break;
 	case 0x97:
 		/* SAX (Illegal Opcode) */
 		compute_zero_page_y_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a & registers->x);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a & registers->x);
 		registers->pc += 2;
 		*step_cycles = 4;
 		break;
@@ -1740,7 +1729,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0x99:
 		/* STA - Store Accumulator */
 		compute_absolute_y_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 3;
 		*step_cycles = 5;
 		break;
@@ -1753,14 +1742,14 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0x9D:
 		/* STA - Store Accumulator */
 		compute_absolute_x_address(console, registers);
-		cpu_bus_write(console, computed_address, registers->a);
+		cpu_bus_write(console, console->cpu.computed_address, registers->a);
 		registers->pc += 3;
 		*step_cycles = 5;
 		break;
 	case 0xA0:
 		/* LDY - Load Y Register */
 		compute_immediate_address(console, registers);
-		registers->y = cpu_bus_read(console, computed_address);
+		registers->y = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->y);
 		registers->pc += 2;
@@ -1769,7 +1758,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA1:
 		/* LDA - Load Accumlator */
 		compute_indirect_x_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1778,7 +1767,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA2:
 		/* LDX - Load X Register */
 		compute_immediate_address(console, registers);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->x);
 		registers->pc += 2;
@@ -1787,8 +1776,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA3:
 		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_indirect_x_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1797,7 +1786,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA4:
 		/* LDY - Load Y Register */
 		compute_zero_page_address(console, registers);
-		registers->y = cpu_bus_read(console, computed_address);
+		registers->y = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->y);
 		registers->pc += 2;
@@ -1806,7 +1795,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA5:
 		/* LDA - Load Accumlator */
 		compute_zero_page_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1815,7 +1804,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA6:
 		/* LDX - Load X Register */
 		compute_zero_page_address(console, registers);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->x);
 		registers->pc += 2;
@@ -1824,8 +1813,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA7:
 		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_zero_page_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1842,7 +1831,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xA9:
 		/* LDA - Load Accumlator */
 		compute_immediate_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1859,7 +1848,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xAC:
 		/* LDY - Load Y Register */
 		compute_absolute_address(console, registers);
-		registers->y = cpu_bus_read(console, computed_address);
+		registers->y = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->y);
 		registers->pc += 3;
@@ -1868,7 +1857,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xAD:
 		/* LDA - Load Acuumulator */
 		compute_absolute_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 3;
@@ -1877,7 +1866,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xAE:
 		/* LDX - Load X Register */
 		compute_absolute_address(console, registers);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->x);
 		registers->pc += 3;
@@ -1886,8 +1875,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xAF:
 		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_absolute_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 3;
@@ -1900,12 +1889,12 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xB1:
 		/* LDA - Load Accumlator */
 		compute_indirect_y_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		registers->pc += 2;
@@ -1913,21 +1902,21 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xB3:
 		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_indirect_y_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
 	case 0xB4:
 		/* LDY - Load Y Register */
 		compute_zero_page_x_address(console, registers);
-		registers->y = cpu_bus_read(console, computed_address);
+		registers->y = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->y);
 		registers->pc += 2;
@@ -1936,7 +1925,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xB5:
 		/* LDA - Load Accumlator */
 		compute_zero_page_x_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1945,7 +1934,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xB6:
 		/* LDX - Load X Register */
 		compute_zero_page_y_address(console, registers);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->x);
 		registers->pc += 2;
@@ -1954,8 +1943,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xB7:
 		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_zero_page_y_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 2;
@@ -1970,13 +1959,13 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xB9:
 		/* LDA - Load Acuumulator */
 		compute_absolute_y_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -1991,53 +1980,53 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	case 0xBC:
 		/* LDY - Load Y Register */
 		compute_absolute_x_address(console, registers);
-		registers->y = cpu_bus_read(console, computed_address);
+		registers->y = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->y);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
 	case 0xBD:
 		/* LDA - Load Acuumulator */
 		compute_absolute_x_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
 	case 0xBE:
 		/* LDX - Load X Register */
 		compute_absolute_y_address(console, registers);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->x);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
 	case 0xBF:
 		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_absolute_y_address(console, registers);
-		registers->a = cpu_bus_read(console, computed_address);
-		registers->x = cpu_bus_read(console, computed_address);
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->a);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2157,8 +2146,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_compare(console, registers, registers->a);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2208,8 +2197,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_compare(console, registers, registers->a);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2230,8 +2219,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		compute_absolute_x_address(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2241,8 +2230,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_compare(console, registers, registers->a);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2380,8 +2369,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_subtract_with_carry(console, registers);
 		registers->pc += 2;
 		*step_cycles = 5;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2431,8 +2420,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_subtract_with_carry(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->y,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->y,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2454,8 +2443,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		compute_absolute_x_address(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2465,8 +2454,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		execute_subtract_with_carry(console, registers);
 		registers->pc += 3;
 		*step_cycles = 4;
-		if (is_page_crossed(computed_address - registers->x,
-		                    computed_address)) {
+		if (is_page_crossed(console->cpu.computed_address - registers->x,
+		                    console->cpu.computed_address)) {
 			*step_cycles += 1;
 		}
 		break;
@@ -2494,6 +2483,13 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 void cpu_init(struct nes_emulator_console *console)
 {
 	init_registers(&console->cpu.registers);
+}
+
+void cpu_reset(struct nes_emulator_console *console)
+{
+	struct registers *registers = &console->cpu.registers;
+	registers->pc = cpu_bus_read(console, RESET_HANDLER_ADDRESS)
+	                + (cpu_bus_read(console, RESET_HANDLER_ADDRESS) << 8);
 }
 
 uint8_t cpu_step(struct nes_emulator_console *console)
