@@ -96,18 +96,17 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	}
 }
 
-static void ppu_register_data_write(struct nes_emulator_console *console,
+static void ppu_register_scroll_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
-	ppu_bus_write(console, console->ppu.computed_address, value);
-	console->ppu.computed_address += console->ppu.computed_address_increment;
-}
-
-static uint8_t ppu_register_data_read(struct nes_emulator_console *console)
-{
-	uint8_t m = ppu_bus_read(console, console->ppu.computed_address);
-	console->ppu.computed_address += console->ppu.computed_address_increment;
-	return m;
+	if (console->ppu.scroll_is_x) {
+		console->ppu.scroll_x = value;
+		console->ppu.scroll_is_x = false;
+	}
+	else {
+		console->ppu.scroll_y = value;
+		console->ppu.scroll_is_x = true;
+	}
 }
 
 static void ppu_register_addr_write(struct nes_emulator_console *console,
@@ -123,6 +122,20 @@ static void ppu_register_addr_write(struct nes_emulator_console *console,
 		console->ppu.computed_address |= value;
 		console->ppu.computed_address_is_high = true;
 	}
+}
+
+static uint8_t ppu_register_data_read(struct nes_emulator_console *console)
+{
+	uint8_t m = ppu_bus_read(console, console->ppu.computed_address);
+	console->ppu.computed_address += console->ppu.computed_address_increment;
+	return m;
+}
+
+static void ppu_register_data_write(struct nes_emulator_console *console,
+                                    uint8_t value)
+{
+	ppu_bus_write(console, console->ppu.computed_address, value);
+	console->ppu.computed_address += console->ppu.computed_address_increment;
 }
 
 uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
@@ -145,6 +158,9 @@ void ppu_cpu_bus_write(struct nes_emulator_console *console,
 	switch (address % 8) {
 	case 0:
 		ppu_register_ctrl_write(console, value);
+		break;
+	case 5:
+		ppu_register_scroll_write(console, value);
 		break;
 	case 6:
 		ppu_register_addr_write(console, value);

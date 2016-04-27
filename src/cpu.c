@@ -73,7 +73,9 @@ static void cpu_bus_write(struct nes_emulator_console *console,
 		ppu_cpu_bus_write(console, address, value);
 	}
 	else if (address < 0x4020) {
-
+		if (address == 0x4014) {
+			/* OAM Data */
+		}
 	}
 	else {
 		cartridge_cpu_bus_write(console, address, value);

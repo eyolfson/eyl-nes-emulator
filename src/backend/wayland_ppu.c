@@ -15,7 +15,11 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-static void paint_pixel(uint8_t x, uint8_t y, uint8_t c)
+#include <stdint.h>
+
+#include "wayland.h"
+
+void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c)
 {
 	static uint32_t palette[64] = {
 		[0x00] = 0xFF545454,
@@ -86,12 +90,7 @@ static void paint_pixel(uint8_t x, uint8_t y, uint8_t c)
 	wayland->back_data[x + (y * wayland->width)] = palette[c];
 }
 
-static void render_frame()
+void render_frame(struct wayland *wayland)
 {
-	for (int32_t x = 0; x < wayland->width; ++x) {
-		for (int32_t y = 0; y < wayland->height; ++y) {
-			paint_pixel(x, y, debug_background_pixel(x, y));
-		}
-	}
 	wl_display_dispatch(wayland->display);
 }

@@ -20,6 +20,9 @@
 #include "cartridge.h"
 #include "console.h"
 
+/* TODO: Refactor to backend */
+struct wayland *wayland_ppu;
+
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 /* Each nametable is 1024 bytes (0x400) */
 /* It consists of 960 8x8 tiles to form the background */
@@ -100,31 +103,11 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.nametable_address = 0x2000;
 	console->ppu.generate_nmi = false;
 	console->ppu.trigger_vblank = false;
+	console->ppu.scroll_is_x = true;
+	console->ppu.scroll_x = 0;
+	console->ppu.scroll_y = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
-}
-
-uint8_t ppu_step(struct nes_emulator_console *console)
-{
-	uint16_t cycle = console->ppu.cycle;
-	int16_t scan_line = console->ppu.scan_line;
-	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
-
-		if (scan_line == 241 && cycle == 1) {
-			console->ppu.trigger_vblank = true;
-		}
-		cycle += 1;
-		if (cycle > 340) {
-			cycle = 0;
-			scan_line += 1;
-			if (scan_line > 260) {
-				scan_line = -1;
-			}
-		}
-	}
-	console->ppu.cycle = cycle;
-	console->ppu.scan_line = scan_line;
-	return 0;
 }
 
 #include <stdio.h>
@@ -207,4 +190,42 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 
 	uint16_t palette_offset = 0x3F00 + 4 * palette_index;
 	return ppu_bus_read(console, palette_offset + pixel_value);
+}
+
+void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c);
+void render_frame(struct wayland *wayland);
+
+uint8_t ppu_step(struct nes_emulator_console *console)
+{
+	uint16_t cycle = console->ppu.cycle;
+	int16_t scan_line = console->ppu.scan_line;
+	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
+		/* Draw the pixel */
+		if (scan_line >= 0 && scan_line < 240) {
+			if (cycle >= 1 && scan_line <= 256) {
+				paint_pixel(wayland_ppu, cycle - 1, scan_line,
+					debug_background_pixel(console,
+						cycle - 1, scan_line));
+			}
+		}
+
+		if (scan_line == 241 && cycle == 1) {
+			render_frame(wayland_ppu);
+			console->ppu.trigger_vblank = true;
+			if (console->ppu.generate_nmi) {
+				cpu_generate_nmi(console);
+			}
+		}
+		cycle += 1;
+		if (cycle > 340) {
+			cycle = 0;
+			scan_line += 1;
+			if (scan_line > 260) {
+				scan_line = -1;
+			}
+		}
+	}
+	console->ppu.cycle = cycle;
+	console->ppu.scan_line = scan_line;
+	return 0;
 }

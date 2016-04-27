@@ -60,6 +60,7 @@ add_executable(nes-emulator
 	ppu_register.c
 	backend/wayland.c
 	backend/wayland_buffer.c
+	backend/wayland_ppu.c
 
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.c
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h

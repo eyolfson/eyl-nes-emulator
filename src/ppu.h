@@ -41,6 +41,10 @@ struct ppu {
 	uint16_t background_address;
 	uint16_t nametable_address;
 
+	bool scroll_is_x;
+	uint8_t scroll_x;
+	uint8_t scroll_y;
+
 	bool generate_nmi;
 	bool trigger_vblank;
 
@@ -61,6 +65,10 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console, uint16_t address);
 void ppu_bus_write(struct nes_emulator_console *console,
                    uint16_t address,
                    uint8_t value);
+
+/* TODO: Refactor to backend */
+#include "backend/wayland.h"
+extern struct wayland *wayland_ppu;
 
 #ifdef __cpluscplus
 }
