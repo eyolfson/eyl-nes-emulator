@@ -46,7 +46,7 @@ static int8_t cpu_bus_read(struct nes_emulator_console *console,
 		return ppu_cpu_bus_read(console, address);
 	}
 	else if (address < 0x4020) {
-
+		return 0xFF;
 	}
 	else {
 		return cartridge_cpu_bus_read(console, address);
