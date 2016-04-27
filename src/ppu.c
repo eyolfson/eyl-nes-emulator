@@ -31,6 +31,56 @@ struct wayland *wayland_ppu;
 /* There are 64 bytes remaining */
 /* Screen is divided into 64 32x32 tiles called attribute tiles */
 
+static uint8_t palette_ppu_bus_read(struct nes_emulator_console *console,
+                                    uint16_t address)
+{
+	uint8_t i = address - 0x3F00;
+	switch (i) {
+	case 0x00:
+	case 0x10:
+		return console->ppu.palette[0x00];
+	case 0x04:
+	case 0x14:
+		return console->ppu.palette[0x04];
+	case 0x08:
+	case 0x18:
+		return console->ppu.palette[0x08];
+	case 0x0C:
+	case 0x1C:
+		return console->ppu.palette[0x0C];
+	default:
+		return console->ppu.palette[i];
+	}
+}
+
+static void palette_ppu_bus_write(struct nes_emulator_console *console,
+                                  uint16_t address,
+                                  uint8_t value)
+{
+	uint8_t i = address - 0x3F00;
+	switch (i) {
+	case 0x00:
+	case 0x10:
+		console->ppu.palette[0x00] = value;
+		break;
+	case 0x04:
+	case 0x14:
+		console->ppu.palette[0x04] = value;
+		break;
+	case 0x08:
+	case 0x18:
+		console->ppu.palette[0x08] = value;
+		break;
+	case 0x0C:
+	case 0x1C:
+		console->ppu.palette[0x0C] = value;
+		break;
+	default:
+		console->ppu.palette[i] = value;
+		break;
+	}
+}
+
 uint8_t ppu_bus_read(struct nes_emulator_console *console,
                      uint16_t address)
 {
@@ -48,24 +98,17 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 		return ppu_bus_read(console, address - 0x1000);
 	}
 	else if (address < 0x3F20) {
-		/* TODO: Internal palette control */
-		/* TODO: Mirrors */
-		return console->ppu.palette[address - 0x3F00];
-	}
-	else if (address < 0x4000) {
-		/* TODO: Mirrors */
-		return 0;
+		return palette_ppu_bus_read(console, address);
 	}
 	else {
-		/* TODO: Out-of-range */
-		return 0;
+		uint16_t mirrored_address = (address % 0x20) + 0x3F00;
+		return palette_ppu_bus_read(console, mirrored_address);
 	}
-
 }
 
 void ppu_bus_write(struct nes_emulator_console *console,
-                          uint16_t address,
-                          uint8_t value)
+                   uint16_t address,
+                   uint8_t value)
 {
 	if (address < 0x2000) {
 		return;
@@ -80,17 +123,11 @@ void ppu_bus_write(struct nes_emulator_console *console,
 		ppu_bus_write(console, address - 0x1000, value);
 	}
 	else if (address < 0x3F20) {
-		/* TODO: Internal palette control */
-		/* TODO: Mirrors */
-		console->ppu.palette[address - 0x3F00] = value;
-	}
-	else if (address < 0x4000) {
-		/* TODO: Mirrors */
-		return;
+		palette_ppu_bus_write(console, address, value);
 	}
 	else {
-		/* TODO: Out-of-range */
-		return;
+		uint16_t mirrored_address = (address % 0x20) + 0x3F00;
+		palette_ppu_bus_write(console, mirrored_address, value);
 	}
 }
 
