@@ -121,5 +121,5 @@ void cartridge_cpu_bus_write(struct nes_emulator_console *console,
 uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
                                uint16_t address)
 {
-	return *(console->cartridge->chr_rom);
+	return *(console->cartridge->chr_rom + address);
 }
