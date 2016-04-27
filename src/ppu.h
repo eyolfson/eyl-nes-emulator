@@ -38,7 +38,10 @@ struct ppu {
 	bool computed_address_is_high;
 	uint8_t computed_address_increment;
 	uint16_t computed_address;
+
+	uint8_t oam_address;
 	uint16_t background_address;
+	uint16_t sprite_address;
 	uint16_t nametable_address;
 
 	bool scroll_is_x;
@@ -67,7 +70,7 @@ void ppu_bus_write(struct nes_emulator_console *console,
                    uint8_t value);
 
 /* TODO: Refactor to backend */
-#include "backend/wayland.h"
+struct wayland;
 extern struct wayland *wayland_ppu;
 
 #ifdef __cpluscplus

@@ -27,7 +27,7 @@ static const uint16_t NMI_HANDLER_ADDRESS = 0xFFFA;
 static const uint16_t RESET_HANDLER_ADDRESS = 0xFFFC;
 static const uint16_t IRQ_HANDLER_ADDRESS = 0xFFFE;
 
-static int8_t cpu_bus_read(struct nes_emulator_console *console,
+static uint8_t cpu_bus_read(struct nes_emulator_console *console,
                             uint16_t address)
 {
 	if (address < 0x0800) {

@@ -105,10 +105,10 @@ uint8_t cartridge_cpu_bus_read(struct nes_emulator_console *console,
 		return 0;
 	}
 	else if (address < 0xC000) {
-		return *(console->cartridge->prg_rom_bank_1 + (address - 0x8000));
+		return console->cartridge->prg_rom_bank_1[address - 0x8000];
 	}
 	else {
-		return *(console->cartridge->prg_rom_bank_2 + (address - 0xC000));
+		return console->cartridge->prg_rom_bank_2[address - 0xC000];
 	}
 }
 
@@ -121,5 +121,8 @@ void cartridge_cpu_bus_write(struct nes_emulator_console *console,
 uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
                                uint16_t address)
 {
-	return *(console->cartridge->chr_rom + address);
+	if (console->cartridge->chr_rom == NULL) {
+		return 0;
+	}
+	return console->cartridge->chr_rom[address];
 }

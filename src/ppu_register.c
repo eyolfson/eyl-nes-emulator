@@ -19,19 +19,6 @@
 
 #include "console.h"
 
-static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
-{
-	uint8_t value = 0;
-	/* Vertical blank has started */
-	if (console->ppu.trigger_vblank) {
-		value |= 0x80;
-		console->ppu.trigger_vblank = false;
-	}
-	/* Sprite 0 Hit */
-	/* Sprite overflow */
-	return value;
-}
-
 static void ppu_register_ctrl_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
@@ -64,6 +51,12 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	/* Sprite pattern table address for 8x8 sprites
 	   (0: $0000; 1: $1000; ignored in 8x16 mode) */
 	uint8_t s = (value & (1 << 3)) >> 3;
+	if (s == 0) {
+		console->ppu.sprite_address = 0x0000;
+	}
+	else {
+		console->ppu.sprite_address = 0x1000;
+	}
 
 	/* VRAM address increment per CPU read/write of PPUDATA
 	   (0: add 1, going across; 1: add 32, going down) */
@@ -96,8 +89,27 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	}
 }
 
+static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
+{
+	uint8_t value = 0;
+	/* Vertical blank has started */
+	if (console->ppu.trigger_vblank) {
+		value |= 0x80;
+		console->ppu.trigger_vblank = false;
+	}
+	/* Sprite 0 Hit */
+	/* Sprite overflow */
+	return value;
+}
+
+static void ppu_register_oam_addr_write(struct nes_emulator_console *console,
+                                        uint8_t value)
+{
+	console->ppu.oam_address = value;
+}
+
 static void ppu_register_scroll_write(struct nes_emulator_console *console,
-                                    uint8_t value)
+                                      uint8_t value)
 {
 	if (console->ppu.scroll_is_x) {
 		console->ppu.scroll_x = value;
@@ -158,6 +170,9 @@ void ppu_cpu_bus_write(struct nes_emulator_console *console,
 	switch (address % 8) {
 	case 0:
 		ppu_register_ctrl_write(console, value);
+		break;
+	case 3:
+		ppu_register_oam_addr_write(console, value);
 		break;
 	case 5:
 		ppu_register_scroll_write(console, value);

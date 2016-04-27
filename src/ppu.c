@@ -20,9 +20,6 @@
 #include "cartridge.h"
 #include "console.h"
 
-/* TODO: Refactor to backend */
-struct wayland *wayland_ppu;
-
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 /* Each nametable is 1024 bytes (0x400) */
 /* It consists of 960 8x8 tiles to form the background */
@@ -136,7 +133,9 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.computed_address_is_high = true;
 	console->ppu.computed_address_increment = 1;
 	console->ppu.computed_address = 0;
+	console->ppu.oam_address = 0;
 	console->ppu.background_address = 0x1000;
+	console->ppu.sprite_address = 0x0000;
 	console->ppu.nametable_address = 0x2000;
 	console->ppu.generate_nmi = false;
 	console->ppu.trigger_vblank = false;
@@ -226,9 +225,12 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	}
 
 	uint16_t palette_offset = 0x3F00 + 4 * palette_index;
-	return ppu_bus_read(console, palette_offset + pixel_value);
+	uint16_t palette_address = palette_offset + pixel_value;
+	return ppu_bus_read(console, palette_address);
 }
 
+/* TODO: Refactor to backend */
+struct wayland *wayland_ppu;
 void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c);
 void render_frame(struct wayland *wayland);
 
