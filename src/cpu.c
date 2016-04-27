@@ -2497,6 +2497,10 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 void cpu_init(struct nes_emulator_console *console)
 {
 	init_registers(&console->cpu.registers);
+	for (int i = 0; i < CPU_RAM_SIZE; ++i) {
+		console->cpu.ram[i] = 0;
+	}
+	console->cpu.computed_address = 0x0000;
 	console->cpu.nmi_queued = false;
 }
 

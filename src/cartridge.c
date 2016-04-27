@@ -87,6 +87,9 @@ uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
 		c->chr_rom = data + HEADER_SIZE
 		             + PRG_ROM_SIZE_PER_UNIT * prg_rom_units;
 	}
+	else {
+		c->chr_rom = NULL;
+	}
 
 	*cartridge = c;
 	return 0;

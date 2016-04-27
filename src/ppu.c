@@ -130,6 +130,16 @@ void ppu_bus_write(struct nes_emulator_console *console,
 
 void ppu_init(struct nes_emulator_console *console)
 {
+	for (int i = 0; i < PPU_RAM_SIZE; ++i) {
+		console->ppu.ram[i] = 0;
+	}
+	for (int i = 0; i < PPU_PALETTE_SIZE; ++i) {
+		console->ppu.palette[i] = 0;
+	}
+	for (int i = 0; i < PPU_OAM_SIZE; ++i) {
+		console->ppu.oam[i] = 0;
+	}
+
 	console->ppu.computed_address_is_high = true;
 	console->ppu.computed_address_increment = 1;
 	console->ppu.computed_address = 0;
