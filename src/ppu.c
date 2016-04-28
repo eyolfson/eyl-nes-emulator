@@ -265,6 +265,7 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 				cpu_generate_nmi(console);
 			}
 		}
+
 		cycle += 1;
 		if (cycle > 340) {
 			cycle = 0;

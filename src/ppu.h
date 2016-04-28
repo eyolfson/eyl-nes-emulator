@@ -39,6 +39,7 @@ struct ppu {
 	uint8_t computed_address_increment;
 	uint16_t computed_address;
 
+	uint8_t mask;
 	uint8_t oam_address;
 	uint16_t background_address;
 	uint16_t sprite_address;

@@ -89,6 +89,12 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	}
 }
 
+static void ppu_register_mask_write(struct nes_emulator_console *console,
+                                    uint8_t value)
+{
+	console->ppu.mask = value;
+}
+
 static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 {
 	uint8_t value = 0;
@@ -106,6 +112,13 @@ static void ppu_register_oam_addr_write(struct nes_emulator_console *console,
                                         uint8_t value)
 {
 	console->ppu.oam_address = value;
+}
+
+static void ppu_register_oam_data_write(struct nes_emulator_console *console,
+                                        uint8_t value)
+{
+	console->ppu.oam[console->ppu.oam_address] = value;
+	console->ppu.oam_address += 1;
 }
 
 static void ppu_register_scroll_write(struct nes_emulator_console *console,
@@ -171,8 +184,14 @@ void ppu_cpu_bus_write(struct nes_emulator_console *console,
 	case 0:
 		ppu_register_ctrl_write(console, value);
 		break;
+	case 1:
+		ppu_register_mask_write(console, value);
+		break;
 	case 3:
 		ppu_register_oam_addr_write(console, value);
+		break;
+	case 4:
+		ppu_register_oam_data_write(console, value);
 		break;
 	case 5:
 		ppu_register_scroll_write(console, value);
