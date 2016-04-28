@@ -32,7 +32,6 @@ uint8_t main(int argc, char **argv)
 
 	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
 	if (exit_code != 0) {
-		nes_emulator_console_fini(&console);
 		return exit_code;
 	}
 

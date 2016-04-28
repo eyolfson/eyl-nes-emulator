@@ -27,6 +27,7 @@ uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 
 	c = malloc(sizeof(struct nes_emulator_console));
 	if (c == NULL) {
+		*console = NULL;
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
 
@@ -66,6 +67,8 @@ uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
 
 void nes_emulator_console_fini(struct nes_emulator_console **console)
 {
-	free(*console);
+	if (*console == NULL) {
+		free(*console);
+	}
 	*console = NULL;
 }
