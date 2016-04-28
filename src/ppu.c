@@ -97,9 +97,12 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 	else if (address < 0x3F20) {
 		return palette_ppu_bus_read(console, address);
 	}
-	else {
+	else if (address < 0x4000) {
 		uint16_t mirrored_address = (address % 0x20) + 0x3F00;
 		return palette_ppu_bus_read(console, mirrored_address);
+	}
+	else {
+		return 0;
 	}
 }
 
@@ -122,9 +125,12 @@ void ppu_bus_write(struct nes_emulator_console *console,
 	else if (address < 0x3F20) {
 		palette_ppu_bus_write(console, address, value);
 	}
-	else {
+	else if (address < 0x4000) {
 		uint16_t mirrored_address = (address % 0x20) + 0x3F00;
 		palette_ppu_bus_write(console, mirrored_address, value);
+	}
+	else {
+		return;
 	}
 }
 
@@ -147,8 +153,8 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.background_address = 0x1000;
 	console->ppu.sprite_address = 0x0000;
 	console->ppu.nametable_address = 0x2000;
-	console->ppu.generate_nmi = false;
-	console->ppu.trigger_vblank = false;
+	console->ppu.nmi_output = false;
+	console->ppu.nmi_occurred = false;
 	console->ppu.scroll_is_x = true;
 	console->ppu.scroll_x = 0;
 	console->ppu.scroll_y = 0;
@@ -196,46 +202,80 @@ static void debug_tile(struct nes_emulator_console *console,
 static uint8_t debug_background_pixel(struct nes_emulator_console *console,
                                       uint8_t x, uint8_t y)
 {
-	/* Lookup in nametable */
-	uint16_t index_address = console->ppu.nametable_address
-	                         + (y / 8) * 32 + (x / 8);
-	uint8_t index = ppu_bus_read(console, index_address);
+	const uint8_t TILE_ROWS = 32;
+	uint8_t tile_row = x / 8;
+	uint8_t tile_column = y / 8;
+
+	/* Lookup tile index in nametable */
+	uint16_t nametable_address = console->ppu.nametable_address;
+	uint16_t tile_nametable_address = nametable_address
+	                                  + tile_column * TILE_ROWS
+	                                  + tile_row;
+	uint8_t tile_index = ppu_bus_read(console, tile_nametable_address);
 
 	/* Lookup referenced tile */
-	uint8_t column_offset = y % 8;
-	uint8_t high = ppu_bus_read(console,
-		console->ppu.background_address + index * 16 + column_offset);
-	uint8_t low = ppu_bus_read(console,
-		console->ppu.background_address + index * 16 + 8
-		+ column_offset);
+	const uint8_t TILE_PIXELS_PER_ROW = 8;
+	uint8_t tile_x = x % 8;
+	uint8_t tile_y = y % 8;
+	uint8_t pixel_index = tile_y * TILE_PIXELS_PER_ROW + tile_x;
+	uint8_t pixel_byte_offset = pixel_index / 8;
+	uint8_t pixel_bit_position = 7 - pixel_index % 8;
+
+	uint16_t background_address = console->ppu.background_address;
+	const uint8_t BYTES_PER_TILE = 16;
+	const uint8_t LOW_BYTE_OFFSET = 8;
+	uint16_t high_byte_address = background_address
+	                             + tile_index * BYTES_PER_TILE
+	                             + pixel_byte_offset;
+	uint16_t low_byte_address = background_address
+	                            + tile_index * BYTES_PER_TILE
+	                            + pixel_byte_offset
+                              + LOW_BYTE_OFFSET;
+	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
+	uint8_t low_byte = ppu_bus_read(console, low_byte_address);
 	uint8_t pixel_value = 0;
-	if ((1 << (7 - (x % 8))) & high) {
+	if (high_byte & (1 << pixel_bit_position)) {
 		pixel_value |= 0x02;
 	}
-	if ((1 << (7 - (x % 8))) & low) {
+	if (low_byte & (1 << pixel_bit_position)) {
 		pixel_value |= 0x01;
 	}
 
+	/* Default background color */
 	if (pixel_value == 0) {
 		return ppu_bus_read(console, 0x3F00);
 	}
 
 	/* Lookup attribute */
-	uint16_t attribute_address = console->ppu.nametable_address
-	                             + 960 + (y / 32) * 8 + (x / 32);
-	uint8_t attribute = ppu_bus_read(console, attribute_address);
-
-	/* Lookup palette */
-	uint8_t palette_index = 0;
-	if ((x / 16) % 2) {
-		palette_index |= 0x01;
+	const uint16_t ATTRIBUTE_OFFSET = 960;
+	const uint8_t ATTRIBUTE_ROWS = 8;
+	uint8_t attribute_row = x / 32;
+	uint8_t attribute_column = y / 32;
+	uint16_t attribute_address = nametable_address
+	                             + ATTRIBUTE_OFFSET
+	                             + attribute_column * ATTRIBUTE_ROWS
+	                             + attribute_row;
+	uint8_t attribute_byte = ppu_bus_read(console, attribute_address);
+	uint8_t quadrat_x = (x / 16) % 2;
+	uint8_t quadrat_y = (y / 16) % 2;
+	uint8_t quadrat_index = quadrat_y * 2 + quadrat_x;
+	uint8_t attribute_value = 0;
+	switch (quadrat_index) {
+	case 0:
+		attribute_value = attribute_byte & 0x03;
+		break;
+	case 1:
+		attribute_value = (attribute_byte & 0x0C) >> 2;
+		break;
+	case 2:
+		attribute_value = (attribute_byte & 0x30) >> 4;
+		break;
+	case 3:
+		attribute_value = (attribute_byte & 0xC0) >> 6;
+		break;
 	}
-	if ((y / 16) % 2) {
-		palette_index |= 0x02;
-	}
 
-	uint16_t palette_offset = 0x3F00 + 4 * palette_index;
-	uint16_t palette_address = palette_offset + pixel_value;
+	uint16_t palette_address = 0x3F00 + 4 * attribute_value + pixel_value;
 	return ppu_bus_read(console, palette_address);
 }
 
@@ -244,27 +284,49 @@ struct wayland *wayland_ppu;
 void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c);
 void render_frame(struct wayland *wayland);
 
+static bool is_rendering_disabled(struct nes_emulator_console *console)
+{
+	return (console->ppu.mask & 0x18) == 0x00;
+}
+
+static void ppu_single_cycle(struct nes_emulator_console *console,
+                             int16_t scan_line,
+                             uint16_t cycle)
+{
+	/* Draw the pixel */
+	if (scan_line >= 0 && scan_line < 240) {
+		if (cycle >= 1 && cycle <= 256) {
+			uint8_t x = cycle - 1;
+			uint8_t y = scan_line;
+			paint_pixel(wayland_ppu, x, y,
+				debug_background_pixel(console, x, y));
+		}
+	}
+
+	if (scan_line == 241 && cycle == 1) {
+		render_frame(wayland_ppu);
+
+		if (console->ppu.nmi_output) {
+			cpu_generate_nmi(console);
+		}
+		else {
+			console->ppu.nmi_occurred = true;
+		}
+	}
+
+	if (scan_line == -1 && cycle == 0) {
+		console->ppu.nmi_occurred = false;
+	}
+}
+
 uint8_t ppu_step(struct nes_emulator_console *console)
 {
 	uint16_t cycle = console->ppu.cycle;
 	int16_t scan_line = console->ppu.scan_line;
 	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
-		/* Draw the pixel */
-		if (scan_line >= 0 && scan_line < 240) {
-			if (cycle >= 1 && scan_line <= 256) {
-				paint_pixel(wayland_ppu, cycle - 1, scan_line,
-					debug_background_pixel(console,
-						cycle - 1, scan_line));
-			}
-		}
 
-		if (scan_line == 241 && cycle == 1) {
-			render_frame(wayland_ppu);
-			console->ppu.trigger_vblank = true;
-			if (console->ppu.generate_nmi) {
-				cpu_generate_nmi(console);
-			}
-		}
+
+		ppu_single_cycle(console, scan_line, cycle);
 
 		cycle += 1;
 		if (cycle > 340) {

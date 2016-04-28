@@ -49,8 +49,8 @@ struct ppu {
 	uint8_t scroll_x;
 	uint8_t scroll_y;
 
-	bool generate_nmi;
-	bool trigger_vblank;
+	bool nmi_output;
+	bool nmi_occurred;
 
 	uint16_t cycle;
 	int16_t scan_line;

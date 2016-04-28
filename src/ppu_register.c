@@ -26,10 +26,10 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	   (0: off; 1: on) */
 	uint8_t v = (value & (1 << 7)) >> 7;
 	if (v == 0) {
-		console->ppu.generate_nmi = false;
+		console->ppu.nmi_output = false;
 	}
 	else {
-		console->ppu.generate_nmi = true;
+		console->ppu.nmi_output = true;
 	}
 
 	/* PPU master/slave select (0: read backdrop from EXT pins;
@@ -99,9 +99,9 @@ static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 {
 	uint8_t value = 0;
 	/* Vertical blank has started */
-	if (console->ppu.trigger_vblank) {
+	if (console->ppu.nmi_occurred) {
 		value |= 0x80;
-		console->ppu.trigger_vblank = false;
+		console->ppu.nmi_occurred = false;
 	}
 	/* Sprite 0 Hit */
 	/* Sprite overflow */
