@@ -223,22 +223,22 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 
 	uint16_t background_address = console->ppu.background_address;
 	const uint8_t BYTES_PER_TILE = 16;
-	const uint8_t LOW_BYTE_OFFSET = 8;
-	uint16_t high_byte_address = background_address
-	                             + tile_index * BYTES_PER_TILE
-	                             + pixel_byte_offset;
 	uint16_t low_byte_address = background_address
 	                            + tile_index * BYTES_PER_TILE
-	                            + pixel_byte_offset
-                              + LOW_BYTE_OFFSET;
-	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
+	                            + pixel_byte_offset;
+	const uint8_t HIGH_BYTE_OFFSET = 8;
+	uint16_t high_byte_address = background_address
+	                             + tile_index * BYTES_PER_TILE
+	                             + pixel_byte_offset
+	                             + HIGH_BYTE_OFFSET;
 	uint8_t low_byte = ppu_bus_read(console, low_byte_address);
+	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
 	uint8_t pixel_value = 0;
-	if (high_byte & (1 << pixel_bit_position)) {
-		pixel_value |= 0x02;
-	}
 	if (low_byte & (1 << pixel_bit_position)) {
 		pixel_value |= 0x01;
+	}
+	if (high_byte & (1 << pixel_bit_position)) {
+		pixel_value |= 0x02;
 	}
 
 	/* Default background color */
