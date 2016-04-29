@@ -313,7 +313,8 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		}
 	}
 
-	if (scan_line == -1 && cycle == 1) {
+	/* TODO: probably related to even odd frames */
+	if (scan_line == -1 && cycle == 2) {
 		console->ppu.nmi_occurred = false;
 	}
 }
