@@ -766,9 +766,14 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	struct registers *registers = &console->cpu.registers;
 
 	if (console->cpu.nmi_queued) {
-		execute_interrupt(console, NMI_HANDLER_ADDRESS, step_cycles);
-		console->cpu.nmi_queued = false;
-		return 0;
+		if (console->cpu.nmi_delay) {
+			console->cpu.nmi_delay = false;
+		}
+		else {
+			execute_interrupt(console, NMI_HANDLER_ADDRESS, step_cycles);
+			console->cpu.nmi_queued = false;
+			return 0;
+		}
 	}
 
 	uint8_t opcode = cpu_bus_read(console, registers->pc);
@@ -2504,6 +2509,7 @@ void cpu_init(struct nes_emulator_console *console)
 	}
 	console->cpu.computed_address = 0x0000;
 	console->cpu.nmi_queued = false;
+	console->cpu.nmi_delay = false;
 }
 
 void cpu_reset(struct nes_emulator_console *console)
@@ -2512,6 +2518,7 @@ void cpu_reset(struct nes_emulator_console *console)
 	registers->pc = cpu_bus_read(console, RESET_HANDLER_ADDRESS)
 	             + (cpu_bus_read(console, RESET_HANDLER_ADDRESS + 1) << 8);
 	console->cpu.nmi_queued = false;
+	console->cpu.nmi_delay = false;
 }
 
 uint8_t cpu_step(struct nes_emulator_console *console)

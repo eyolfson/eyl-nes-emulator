@@ -42,6 +42,7 @@ struct cpu {
 	uint8_t ram[CPU_RAM_SIZE];
 
 	bool nmi_queued;
+	bool nmi_delay; /* Allow the CPU to execute it's next instruction */
 	uint16_t computed_address;
 };
 
