@@ -337,10 +337,12 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 		}
 
 		/* Even odd frames? */
+		/*
 		if (scan_line == -1 && cycle == 339) {
 			scan_line = 0;
 			cycle = 0;
 		}
+		*/
 	}
 	console->ppu.cycle = cycle;
 	console->ppu.scan_line = scan_line;

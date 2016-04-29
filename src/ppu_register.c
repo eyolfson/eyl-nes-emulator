@@ -103,7 +103,11 @@ static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 	uint8_t value = 0;
 	/* Vertical blank has started */
 	if (console->ppu.nmi_occurred) {
-		value |= 0x80;
+		/* TODO: This should probably be cycle 1, odd-even timing? */
+		if (!(console->ppu.scan_line == 241
+		      && console->ppu.cycle == 2)) {
+			value |= 0x80;
+		}
 		console->ppu.nmi_occurred = false;
 	}
 	/* Sprite 0 Hit */
