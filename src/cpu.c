@@ -626,10 +626,11 @@ static void execute_return_from_interrupt(struct nes_emulator_console *console,
 }
 
 static void execute_interrupt(struct nes_emulator_console *console,
-                              uint16_t handler_address)
+                              uint16_t handler_address,
+                              uint8_t *step_cycles)
 {
 	struct registers *registers = &console->cpu.registers;
-	uint16_t return_address = registers->pc + 2;
+	uint16_t return_address = registers->pc;
 	uint8_t return_address_high = (return_address & 0xFF00) >> 8;
 	uint8_t return_address_low = return_address & 0x00FF;
 	push_to_stack(console, registers, return_address_high);
@@ -641,13 +642,14 @@ static void execute_interrupt(struct nes_emulator_console *console,
 	uint16_t address = (address_high << 8) + address_low;
 	registers->pc = address;
 
-	console->cpu_step_cycles = 7;
+	*step_cycles = 7;
 }
 
 static void execute_force_interrupt(struct nes_emulator_console *console,
-                                    struct registers *registers)
+                                    struct registers *registers,
+                                    uint8_t *step_cycles)
 {
-	execute_interrupt(console, IRQ_HANDLER_ADDRESS);
+	execute_interrupt(console, IRQ_HANDLER_ADDRESS, step_cycles);
 	set_break_command_flag(registers);
 }
 
@@ -764,7 +766,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	struct registers *registers = &console->cpu.registers;
 
 	if (console->cpu.nmi_queued) {
-		execute_interrupt(console, NMI_HANDLER_ADDRESS);
+		execute_interrupt(console, NMI_HANDLER_ADDRESS, step_cycles);
 		console->cpu.nmi_queued = false;
 		return 0;
 	}
@@ -775,7 +777,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 	switch (opcode) {
 	case 0x00:
 		/* BRK - Force Interrupt */
-		execute_force_interrupt(console, registers);
+		execute_force_interrupt(console, registers, step_cycles);
 		break;
 	case 0x01:
 		/* ORA - Logical Inclusive OR */
