@@ -30,6 +30,9 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	}
 	else {
 		console->ppu.nmi_output = true;
+		if (console->ppu.nmi_occurred) {
+			cpu_generate_nmi(console);
+		}
 	}
 
 	/* PPU master/slave select (0: read backdrop from EXT pins;

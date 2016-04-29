@@ -306,15 +306,14 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	if (scan_line == 241 && cycle == 1) {
 		render_frame(wayland_ppu);
 
+		console->ppu.nmi_occurred = true;
+
 		if (console->ppu.nmi_output) {
 			cpu_generate_nmi(console);
 		}
-		else {
-			console->ppu.nmi_occurred = true;
-		}
 	}
 
-	if (scan_line == -1 && cycle == 0) {
+	if (scan_line == -1 && cycle == 1) {
 		console->ppu.nmi_occurred = false;
 	}
 }
@@ -335,6 +334,12 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 			if (scan_line > 260) {
 				scan_line = -1;
 			}
+		}
+
+		/* Even odd frames? */
+		if (scan_line == -1 && cycle == 339) {
+			scan_line = 0;
+			cycle = 0;
 		}
 	}
 	console->ppu.cycle = cycle;
