@@ -102,7 +102,7 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 		return palette_ppu_bus_read(console, mirrored_address);
 	}
 	else {
-		return 0;
+		return ppu_bus_read(console, address % 0x4000);
 	}
 }
 
@@ -130,7 +130,7 @@ void ppu_bus_write(struct nes_emulator_console *console,
 		palette_ppu_bus_write(console, mirrored_address, value);
 	}
 	else {
-		return;
+		ppu_bus_write(console, address % 0x4000, value);
 	}
 }
 
