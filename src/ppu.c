@@ -20,6 +20,11 @@
 #include "cartridge.h"
 #include "console.h"
 
+/* TODO: Refactor to backend */
+struct wayland *wayland_ppu;
+void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c);
+void render_frame(struct wayland *wayland);
+
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 /* Each nametable is 1024 bytes (0x400) */
 /* It consists of 960 8x8 tiles to form the background */
@@ -145,6 +150,9 @@ void ppu_init(struct nes_emulator_console *console)
 	for (int i = 0; i < PPU_OAM_SIZE; ++i) {
 		console->ppu.oam[i] = 0;
 	}
+	for (int i = 0; i < PPU_SECONDARY_OAM_SIZE; ++i) {
+		console->ppu.secondary_oam[i] = 0;
+	}
 
 	console->ppu.computed_address_is_high = true;
 	console->ppu.computed_address_increment = 1;
@@ -199,6 +207,96 @@ static void debug_tile(struct nes_emulator_console *console,
 	}
 }
 
+static void oam_render(struct nes_emulator_console *console,
+                       uint8_t x,
+                       uint8_t y,
+                       uint8_t found)
+{
+	for (uint8_t i = 0; i < found; ++i) {
+		uint8_t offset = i * 4;
+		uint8_t y_top = console->ppu.secondary_oam[offset];
+		uint8_t y_offset = y - y_top;
+
+		uint8_t x_left = console->ppu.secondary_oam[offset + 3];
+		if (!(x >= x_left && x < (x_left + 8))) {
+			continue;
+		}
+		uint8_t x_offset = x - x_left;
+
+		/* This tile is within range */
+		uint8_t tile_index = console->ppu.secondary_oam[offset + 1];
+		uint16_t sprite_address = console->ppu.sprite_address;
+		uint8_t pixel_index = y_offset * 8 + x_offset;
+		uint8_t pixel_byte_offset = pixel_index / 8;
+		uint8_t pixel_bit_position = 7 - pixel_index % 8;
+
+		/* TODO: Refactor */
+		const uint8_t BYTES_PER_TILE = 16;
+		uint16_t low_byte_address = sprite_address
+		                            + tile_index * BYTES_PER_TILE
+		                            + pixel_byte_offset;
+		const uint8_t high_byte_offset = 8;
+		uint16_t high_byte_address = sprite_address
+		                             + tile_index * BYTES_PER_TILE
+		                             + pixel_byte_offset
+		                             + high_byte_offset;
+		uint8_t low_byte = ppu_bus_read(console, low_byte_address);
+		uint8_t high_byte = ppu_bus_read(console, high_byte_address);
+		uint8_t pixel_value = 0;
+		if (low_byte & (1 << pixel_bit_position)) {
+			pixel_value |= 0x01;
+		}
+		if (high_byte & (1 << pixel_bit_position)) {
+			pixel_value |= 0x02;
+		}
+		if (pixel_value == 0) {
+			continue;
+		}
+
+		/* Lookup palette */
+		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
+		uint16_t palette_address = 0x3F10 + 4 * palette_index + pixel_value;
+		uint8_t pixel_color = ppu_bus_read(console, palette_address);
+		paint_pixel(wayland_ppu, x, y + 1, pixel_color);
+	}
+}
+
+static void oam_probe(struct nes_emulator_console *console,
+                      uint8_t y)
+{
+	uint8_t found = 0;
+	for (uint8_t i = 0; i < 64; ++i) {
+		uint8_t offset = i * 4;
+		uint8_t y_top = console->ppu.oam[offset];
+		if (y >= y_top && y < (y_top + 8)) {
+			/* Copy bytes to secondary OAM */
+			if (found < 8) {
+				for (uint8_t j = 0; j < 4; ++j) {
+					console->ppu.secondary_oam[found + j] =
+						console->ppu.oam[offset + j];
+				}
+			}
+			++found;
+		}
+	}
+	if (found > 8) {
+		printf("PPU sprite overflow\n");
+	}
+	for (uint8_t x = 0; ; ++x) {
+		oam_render(console, x, y, found < 8 ? found : 8);
+		if (x == 0xFF) {
+			break;
+		}
+	}
+}
+
+static void debug_oam(struct nes_emulator_console *console)
+{
+	for (uint8_t i = 0; i < 240; ++i) {
+		oam_probe(console, i);
+	}
+}
+
 static uint8_t background_pixel_value(struct nes_emulator_console *console,
                                       uint8_t x,
                                       uint8_t y)
@@ -227,11 +325,11 @@ static uint8_t background_pixel_value(struct nes_emulator_console *console,
 	uint16_t low_byte_address = background_address
 	                            + tile_index * BYTES_PER_TILE
 	                            + pixel_byte_offset;
-	const uint8_t HIGH_BYTE_OFFSET = 8;
+	const uint8_t high_byte_offset = 8;
 	uint16_t high_byte_address = background_address
 	                             + tile_index * BYTES_PER_TILE
 	                             + pixel_byte_offset
-	                             + HIGH_BYTE_OFFSET;
+	                             + high_byte_offset;
 	uint8_t low_byte = ppu_bus_read(console, low_byte_address);
 	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
 	uint8_t pixel_value = 0;
@@ -290,11 +388,6 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	return ppu_bus_read(console, palette_address);
 }
 
-/* TODO: Refactor to backend */
-struct wayland *wayland_ppu;
-void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c);
-void render_frame(struct wayland *wayland);
-
 static bool is_rendering_disabled(struct nes_emulator_console *console)
 {
 	return (console->ppu.mask & 0x18) == 0x00;
@@ -315,6 +408,8 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	}
 
 	if (scan_line == 241 && cycle == 1) {
+		debug_oam(console);
+
 		render_frame(wayland_ppu);
 
 		console->ppu.nmi_occurred = true;

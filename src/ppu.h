@@ -26,14 +26,16 @@ extern "C" {
 
 struct nes_emulator_console;
 
-#define PPU_RAM_SIZE     0x0800 /*   2 KiB */
-#define PPU_PALETTE_SIZE 0x0020 /*  32 B   */
-#define PPU_OAM_SIZE     0x0100 /* 256 B   */
+#define PPU_RAM_SIZE           0x0800 /*   2 KiB */
+#define PPU_PALETTE_SIZE       0x0020 /*  32 B   */
+#define PPU_OAM_SIZE           0x0100 /* 256 B   */
+#define PPU_SECONDARY_OAM_SIZE 0x0020 /*  32 B   */
 
 struct ppu {
 	uint8_t ram[PPU_RAM_SIZE];
 	uint8_t palette[PPU_PALETTE_SIZE];
 	uint8_t oam[PPU_OAM_SIZE];
+	uint8_t secondary_oam[PPU_SECONDARY_OAM_SIZE];
 
 	bool computed_address_is_high;
 	uint8_t computed_address_increment;

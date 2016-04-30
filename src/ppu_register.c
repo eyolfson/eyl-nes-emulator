@@ -19,6 +19,8 @@
 
 #include "console.h"
 
+#include <stdio.h>
+
 static void ppu_register_ctrl_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
@@ -41,10 +43,14 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 
 	/* PPU master/slave select (0: read backdrop from EXT pins;
 	                            1: output color on EXT pins) */
+	/* TODO: Remove */
 	uint8_t p = (value & (1 << 6)) >> 6;
+	if (p == 1) { printf("PPU master/slave select unimplemented\n"); }
 
 	/* Sprite size (0: 8x8; 1: 8x16) */
 	uint8_t h = (value & (1 << 5)) >> 5;
+	/* TODO: Remove */
+	if (h == 1) { printf("PPU sprite size unimplemented\n"); }
 
 	/* Background pattern table address (0: $0000; 1: $1000) */
 	uint8_t b = (value & (1 << 4)) >> 4;
@@ -138,10 +144,12 @@ static void ppu_register_scroll_write(struct nes_emulator_console *console,
 	if (console->ppu.scroll_is_x) {
 		console->ppu.scroll_x = value;
 		console->ppu.scroll_is_x = false;
+		if (value != 0) { printf("PPU scrolling unimplemented\n"); }
 	}
 	else {
 		console->ppu.scroll_y = value;
 		console->ppu.scroll_is_x = true;
+		if (value != 0) { printf("PPU scrolling unimplemented\n"); }
 	}
 }
 
