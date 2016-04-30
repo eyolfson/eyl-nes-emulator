@@ -261,8 +261,10 @@ static void oam_render(struct nes_emulator_console *console,
 
 		if (i == 0 && background_pixel_value(console, x, y) != 0) {
 			if (!(console->ppu.is_sprite_0_hit_frame)) {
-				console->ppu.is_sprite_0_hit = true;
-				console->ppu.is_sprite_0_hit_frame = true;
+				if ((console->ppu.mask & 0x18) == 0x18) {
+					console->ppu.is_sprite_0_hit = true;
+					console->ppu.is_sprite_0_hit_frame = true;
+				}
 			}
 		}
 
