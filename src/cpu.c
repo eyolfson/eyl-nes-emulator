@@ -649,6 +649,7 @@ static void execute_force_interrupt(struct nes_emulator_console *console,
                                     struct registers *registers,
                                     uint8_t *step_cycles)
 {
+	registers->pc += 2;
 	execute_interrupt(console, IRQ_HANDLER_ADDRESS, step_cycles);
 	set_break_command_flag(registers);
 }
