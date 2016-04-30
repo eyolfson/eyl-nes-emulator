@@ -47,6 +47,10 @@ struct ppu {
 	uint16_t sprite_address;
 	uint16_t nametable_address;
 
+	bool is_sprite_0_in_secondary;
+	bool is_sprite_0_hit_frame;
+	bool is_sprite_0_hit;
+
 	bool scroll_is_x;
 	uint8_t scroll_x;
 	uint8_t scroll_y;

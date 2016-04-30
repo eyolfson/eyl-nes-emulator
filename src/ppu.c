@@ -163,6 +163,8 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.nametable_address = 0x2000;
 	console->ppu.nmi_output = false;
 	console->ppu.nmi_occurred = false;
+	console->ppu.is_sprite_0_hit_frame = false;
+	console->ppu.is_sprite_0_hit = false;
 	console->ppu.scroll_is_x = true;
 	console->ppu.scroll_x = 0;
 	console->ppu.scroll_y = 0;
@@ -206,6 +208,10 @@ static void debug_tile(struct nes_emulator_console *console,
 		printf("\n");
 	}
 }
+
+static uint8_t background_pixel_value(struct nes_emulator_console *console,
+                                      uint8_t x,
+                                      uint8_t y);
 
 static void oam_render(struct nes_emulator_console *console,
                        uint8_t x,
@@ -253,6 +259,13 @@ static void oam_render(struct nes_emulator_console *console,
 			continue;
 		}
 
+		if (i == 0 && background_pixel_value(console, x, y) != 0) {
+			if (!(console->ppu.is_sprite_0_hit_frame)) {
+				console->ppu.is_sprite_0_hit = true;
+				console->ppu.is_sprite_0_hit_frame = true;
+			}
+		}
+
 		/* Lookup palette */
 		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
 		uint16_t palette_address = 0x3F10 + 4 * palette_index + pixel_value;
@@ -265,6 +278,7 @@ static void oam_probe(struct nes_emulator_console *console,
                       uint8_t y)
 {
 	uint8_t found = 0;
+	console->ppu.is_sprite_0_in_secondary = false;
 	for (uint8_t i = 0; i < 64; ++i) {
 		uint8_t offset = i * 4;
 		uint8_t y_top = console->ppu.oam[offset];
@@ -275,6 +289,9 @@ static void oam_probe(struct nes_emulator_console *console,
 					console->ppu.secondary_oam[found + j] =
 						console->ppu.oam[offset + j];
 				}
+			}
+			if (i == 0) {
+				console->ppu.is_sprite_0_in_secondary = false;
 			}
 			++found;
 		}
@@ -412,6 +429,8 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 
 		render_frame(wayland_ppu);
 
+		console->ppu.is_sprite_0_hit_frame = false;
+
 		console->ppu.nmi_occurred = true;
 
 		if (console->ppu.nmi_output) {
@@ -422,6 +441,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	/* TODO: probably related to even odd frames */
 	if (scan_line == -1 && cycle == 2) {
 		console->ppu.nmi_occurred = false;
+		console->ppu.is_sprite_0_hit_frame = false;
 	}
 }
 
