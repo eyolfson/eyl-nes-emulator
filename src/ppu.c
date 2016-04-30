@@ -199,8 +199,9 @@ static void debug_tile(struct nes_emulator_console *console,
 	}
 }
 
-static uint8_t debug_background_pixel(struct nes_emulator_console *console,
-                                      uint8_t x, uint8_t y)
+static uint8_t background_pixel_value(struct nes_emulator_console *console,
+                                      uint8_t x,
+                                      uint8_t y)
 {
 	const uint8_t TILE_ROWS = 32;
 	uint8_t tile_row = x / 8;
@@ -240,11 +241,21 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	if (high_byte & (1 << pixel_bit_position)) {
 		pixel_value |= 0x02;
 	}
+	return pixel_value;
+}
+
+static uint8_t debug_background_pixel(struct nes_emulator_console *console,
+                                      uint8_t x,
+                                      uint8_t y)
+{
+	uint8_t pixel_value = background_pixel_value(console, x, y);
 
 	/* Default background color */
 	if (pixel_value == 0) {
 		return ppu_bus_read(console, 0x3F00);
 	}
+
+	uint16_t nametable_address = console->ppu.nametable_address;
 
 	/* Lookup attribute */
 	const uint16_t ATTRIBUTE_OFFSET = 960;
