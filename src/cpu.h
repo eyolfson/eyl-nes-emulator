@@ -41,9 +41,11 @@ struct cpu {
 	struct registers registers;
 	uint8_t ram[CPU_RAM_SIZE];
 
+	uint16_t computed_address;
 	bool nmi_queued;
 	bool nmi_delay; /* Allow the CPU to execute it's next instruction */
-	uint16_t computed_address;
+
+	uint16_t dma_suspend_cycles;
 };
 
 void cpu_init(struct nes_emulator_console *console);

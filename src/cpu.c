@@ -53,6 +53,20 @@ static uint8_t cpu_bus_read(struct nes_emulator_console *console,
 	}
 }
 
+static void oam_dma(struct nes_emulator_console *console,
+                    uint8_t value)
+{
+	console->cpu.dma_suspend_cycles = 512;
+	uint16_t address = value << 8;
+	for (uint8_t offset = 0; ; ++offset) {
+		console->ppu.oam[offset] = cpu_bus_read(console,
+		                                        address + offset);
+		if (offset == 0xFF) {
+			break;
+		}
+	}
+}
+
 static void cpu_bus_write(struct nes_emulator_console *console,
                           uint16_t address,
                           uint8_t value)
@@ -74,7 +88,7 @@ static void cpu_bus_write(struct nes_emulator_console *console,
 	}
 	else if (address < 0x4020) {
 		if (address == 0x4014) {
-			/* OAM Data */
+			oam_dma(console, value);
 		}
 	}
 	else {
@@ -765,6 +779,12 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
                                    uint8_t *step_cycles)
 {
 	struct registers *registers = &console->cpu.registers;
+
+	if (console->cpu.dma_suspend_cycles > 0) {
+		*step_cycles = console->cpu.dma_suspend_cycles;
+		console->cpu.dma_suspend_cycles = 0;
+		return 0;
+	}
 
 	if (console->cpu.nmi_queued) {
 		if (console->cpu.nmi_delay) {
@@ -2511,6 +2531,7 @@ void cpu_init(struct nes_emulator_console *console)
 	console->cpu.computed_address = 0x0000;
 	console->cpu.nmi_queued = false;
 	console->cpu.nmi_delay = false;
+	console->cpu.dma_suspend_cycles = 0;
 }
 
 void cpu_reset(struct nes_emulator_console *console)
@@ -2520,6 +2541,7 @@ void cpu_reset(struct nes_emulator_console *console)
 	             + (cpu_bus_read(console, RESET_HANDLER_ADDRESS + 1) << 8);
 	console->cpu.nmi_queued = false;
 	console->cpu.nmi_delay = false;
+	console->cpu.dma_suspend_cycles = 0;
 }
 
 uint8_t cpu_step(struct nes_emulator_console *console)
