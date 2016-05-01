@@ -224,7 +224,10 @@ static void oam_render(struct nes_emulator_console *console,
 		uint8_t y_offset = y - y_top;
 
 		uint8_t x_left = console->ppu.secondary_oam[offset + 3];
-		if (!(x >= x_left && x < (x_left + 8))) {
+		if (x_left >= 0xF8) {
+			continue;
+		}
+		if (!(x >= x_left && x <= (x_left + 7))) {
 			continue;
 		}
 		uint8_t x_offset = x - x_left;
@@ -285,16 +288,20 @@ static void oam_probe(struct nes_emulator_console *console,
 	for (uint8_t i = 0; i < 64; ++i) {
 		uint8_t offset = i * 4;
 		uint8_t y_top = console->ppu.oam[offset];
-		if (y >= y_top && y < (y_top + 8)) {
+		/* Check would overflow */
+		if (y_top >= 0xF8) {
+			continue;
+		}
+		if (y >= y_top && y <= (y_top + 7)) {
 			/* Copy bytes to secondary OAM */
 			if (found < 8) {
 				for (uint8_t j = 0; j < 4; ++j) {
-					console->ppu.secondary_oam[found + j] =
+					console->ppu.secondary_oam[found * 4 + j] =
 						console->ppu.oam[offset + j];
 				}
 			}
 			if (i == 0) {
-				console->ppu.is_sprite_0_in_secondary = false;
+				console->ppu.is_sprite_0_in_secondary = true;
 			}
 			++found;
 		}
