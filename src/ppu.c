@@ -165,6 +165,7 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.nmi_occurred = false;
 	console->ppu.is_sprite_0_hit_frame = false;
 	console->ppu.is_sprite_0_hit = false;
+	console->ppu.is_sprite_overflow = false;
 	console->ppu.scroll_is_x = true;
 	console->ppu.scroll_x = 0;
 	console->ppu.scroll_y = 0;
@@ -307,7 +308,7 @@ static void oam_probe(struct nes_emulator_console *console,
 		}
 	}
 	if (found > 8) {
-		printf("PPU sprite overflow\n");
+		console->ppu.is_sprite_overflow = true;
 	}
 	for (uint8_t x = 0; ; ++x) {
 		oam_render(console, x, y, found < 8 ? found : 8);
@@ -440,6 +441,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		render_frame(wayland_ppu);
 
 		console->ppu.is_sprite_0_hit_frame = false;
+		console->ppu.is_sprite_overflow = false;
 
 		console->ppu.nmi_occurred = true;
 
@@ -452,6 +454,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	if (scan_line == -1 && cycle == 2) {
 		console->ppu.nmi_occurred = false;
 		console->ppu.is_sprite_0_hit_frame = false;
+		console->ppu.is_sprite_overflow = false;
 	}
 }
 

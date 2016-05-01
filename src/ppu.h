@@ -51,6 +51,9 @@ struct ppu {
 	bool is_sprite_0_hit_frame;
 	bool is_sprite_0_hit;
 
+	/* TODO: refactor */
+	bool is_sprite_overflow;
+
 	bool scroll_is_x;
 	uint8_t scroll_x;
 	uint8_t scroll_y;
