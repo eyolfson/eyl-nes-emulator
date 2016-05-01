@@ -272,7 +272,8 @@ static void oam_render(struct nes_emulator_console *console,
 		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
 		uint16_t palette_address = 0x3F10 + 4 * palette_index + pixel_value;
 		uint8_t pixel_color = ppu_bus_read(console, palette_address);
-		paint_pixel(wayland_ppu, x, y + 1, pixel_color);
+		paint_pixel(wayland_ppu, x, y , pixel_color);
+		break;
 	}
 }
 
@@ -311,8 +312,8 @@ static void oam_probe(struct nes_emulator_console *console,
 
 static void debug_oam(struct nes_emulator_console *console)
 {
-	for (uint8_t i = 0; i < 240; ++i) {
-		oam_probe(console, i);
+	for (uint8_t y = 0; y < 240; ++y) {
+		oam_probe(console, y);
 	}
 }
 
