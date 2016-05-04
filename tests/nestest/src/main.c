@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-uint8_t main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	struct memory_mapping mm;
 	uint8_t exit_code;

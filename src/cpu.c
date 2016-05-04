@@ -738,11 +738,7 @@ static void execute_add_with_carry_rra(struct nes_emulator_console *console,
 	int8_t b = (int8_t) v;
 
 	int16_t result = a + b;
-	bool inc_carry = false;
 	if (get_carry_flag(registers)) {
-		if (result == -1) {
-			inc_carry = true;
-		}
 		result += 1;
 	}
 

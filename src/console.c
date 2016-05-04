@@ -40,7 +40,7 @@ uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 	return 0;
 }
 
-uint8_t nes_emulator_console_insert_cartridge(
+void nes_emulator_console_insert_cartridge(
 	struct nes_emulator_console *console,
 	struct nes_emulator_cartridge *cartridge)
 {

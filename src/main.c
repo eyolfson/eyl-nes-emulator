@@ -23,7 +23,7 @@
 
 #include "nes_emulator.h"
 
-uint8_t main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	struct nes_emulator_console *console;
 	struct nes_emulator_cartridge *cartridge;

@@ -18,6 +18,8 @@ project(NES_EMULATOR C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+add_compile_options(-Wpedantic)
+add_compile_options(-Wall)
 add_compile_options(-Wextra)
 
 find_package(PkgConfig)
