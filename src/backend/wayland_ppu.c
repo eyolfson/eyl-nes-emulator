@@ -105,7 +105,7 @@ static void render_pixel(void *pointer,
 static void vertical_blank(void *pointer)
 {
   struct wayland *wayland = pointer;
-	wl_display_dispatch(wayland->display);
+	wl_display_roundtrip(wayland->display);
 }
 
 uint8_t nes_enumlator_ppu_backend_wayland_init(
