@@ -23,8 +23,8 @@
 
 #include "../exit_code.h"
 
-static const int32_t WIDTH = 256;
-static const int32_t HEIGHT = 240;
+static const int32_t WIDTH = 256 * 4;
+static const int32_t HEIGHT = 240 * 4;
 
 static void swap_buffers(struct wayland *wayland)
 {
