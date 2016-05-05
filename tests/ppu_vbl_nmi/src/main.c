@@ -25,13 +25,23 @@
 #include <stdio.h>
 
 static uint64_t frame = 0;
-static const uint64_t CHECK_FRAME = 40;
 static bool test_running = true;
+static bool check_success = true;
+
+#define WIDTH 256
+#define HEIGHT 240
+
+//const uint64_t CHECK_FRAME = 300;
+extern const uint64_t CHECK_FRAME;
+extern const uint8_t CHECK_DATA[HEIGHT][WIDTH];
 
 static void render_pixel(void *pointer, uint8_t x, uint8_t y, uint8_t c)
 {
 	if (frame == CHECK_FRAME) {
-		/* TODO: Add check */
+		if (CHECK_DATA[y][x] != c) {
+			test_running = false;
+			check_success = false;
+		}
 	}
 }
 
@@ -81,6 +91,13 @@ int main(int argc, char **argv)
 
 	while (exit_code == 0 && test_running) {
 		exit_code = nes_emulator_console_step(console);
+	}
+
+	if (check_success) {
+		printf("Check SUCCESS\n");
+	}
+	else {
+		printf("Check FAILURE\n");
 	}
 
 	nes_emulator_cartridge_fini(&cartridge);

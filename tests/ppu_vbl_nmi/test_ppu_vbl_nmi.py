@@ -49,7 +49,22 @@ def check_build():
 EXPECTED_TESTS_PASSED = 10
 
 def run_tests():
-	return 0
+	tests_passed = 0
+	for i in range(EXPECTED_TESTS_PASSED):
+		rom_file = REQUIRED_FILES[i][0]
+		test_prefix = rom_file[:2]
+		executable = "build/nes-emulator-ppu_vbl_nmi-{}".format(
+			test_prefix)
+		completed_process = subprocess.run([executable,
+		                                    rom_file],
+		                                   stdout=subprocess.PIPE)
+		lines = completed_process.stdout.splitlines()
+		last_line = lines[-1].decode()
+		if last_line == "Check SUCCESS":
+			tests_passed += 1
+		print("{}: {}".format(test_prefix, last_line))
+		break
+	return tests_passed
 
 if __name__ == "__main__":
 	if check_files() and check_build():

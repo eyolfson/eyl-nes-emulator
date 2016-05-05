@@ -20,9 +20,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wextra)
 
-add_executable(nes-emulator-ppu_vbl_nmi
-	main.c
-
+set(COMMON_SRC
 	../../../src/args.c
 	../../../src/cartridge.c
 	../../../src/console.c
@@ -30,4 +28,10 @@ add_executable(nes-emulator-ppu_vbl_nmi
 	../../../src/exit_code.c
 	../../../src/ppu.c
 	../../../src/ppu_register.c
+)
+
+add_executable(nes-emulator-ppu_vbl_nmi-01
+	main.c
+	01.c
+	${COMMON_SRC}
 )
