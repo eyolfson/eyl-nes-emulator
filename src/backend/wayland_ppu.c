@@ -16,11 +16,18 @@
  */
 
 #include <stdint.h>
+#include <stdlib.h>
 
-#include "wayland.h"
+#include "../exit_code.h"
+#include "../ppu.h"
+#include "wayland_private.h"
 
-void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c)
+static void render_pixel(void *pointer,
+                         uint8_t x,
+                         uint8_t y,
+                         uint8_t c)
 {
+	struct wayland *wayland = pointer;
 	static uint32_t palette[64] = {
 		[0x00] = 0xFF545454,
 		[0x01] = 0xFF001E74,
@@ -90,7 +97,54 @@ void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c)
 	wayland->back_data[x + (y * wayland->width)] = palette[c];
 }
 
-void render_frame(struct wayland *wayland)
+static void vertical_blank(void *pointer)
 {
+  struct wayland *wayland = pointer;
 	wl_display_dispatch(wayland->display);
+}
+
+uint8_t nes_enumlator_ppu_backend_wayland_init(
+	struct nes_emulator_ppu_backend **ppu_backend)
+{
+	if (ppu_backend == NULL) {
+		return EXIT_CODE_ARG_ERROR_BIT;
+	}
+	*ppu_backend = NULL;
+
+	struct nes_emulator_ppu_backend *b =
+		malloc(sizeof(struct nes_emulator_ppu_backend));
+	if (b == NULL) {
+		return EXIT_CODE_OS_ERROR_BIT;
+	}
+
+	struct wayland *w = malloc(sizeof(struct wayland));
+	if (w == NULL) {
+		free(b);
+		return EXIT_CODE_OS_ERROR_BIT;
+	}
+
+	uint8_t exit_code = init_wayland(w);
+	if (exit_code != 0) {
+		free(w);
+		free(b);
+		return exit_code;
+	}
+
+	b->pointer = w;
+	b->render_pixel = render_pixel;
+	b->vertical_blank = vertical_blank;
+	*ppu_backend = b;
+	return 0;
+}
+
+uint8_t nes_enumlator_ppu_backend_wayland_fini(
+	struct nes_emulator_ppu_backend **ppu_backend)
+{
+	uint8_t exit_code = 0;
+	struct wayland *wayland = (struct wayland *) &((*ppu_backend)->pointer);
+	exit_code |= fini_wayland(wayland);
+	free(wayland);
+	free(*ppu_backend);
+	*ppu_backend = NULL;
+	return exit_code;
 }

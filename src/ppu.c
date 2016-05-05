@@ -25,7 +25,7 @@ void nes_emulator_console_add_ppu_backend(
 	struct nes_emulator_ppu_backend *ppu_backend)
 {
 	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
-		if (console->ppu.backends[i] != NULL) {
+		if (console->ppu.backends[i] == NULL) {
 			console->ppu.backends[i] = ppu_backend;
 		}
 	}
@@ -202,7 +202,9 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.scroll_y = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
-	console->ppu.backends[0] = NULL;
+	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
+		console->ppu.backends[i] = NULL;
+	}
 }
 
 #include <stdio.h>

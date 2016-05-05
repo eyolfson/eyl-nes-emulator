@@ -17,11 +17,9 @@
 
 #include "args.h"
 #include "exit_code.h"
-#include "cpu.h"
-#include "ppu.h"
-#include "backend/wayland.h"
 
 #include "nes_emulator.h"
+#include "backend/wayland.h"
 
 int main(int argc, char **argv)
 {
@@ -48,14 +46,15 @@ int main(int argc, char **argv)
 		return exit_code;
 	}
 
-	struct wayland wayland;
-	exit_code = init_wayland(&wayland);
+	struct nes_emulator_ppu_backend *ppu_backend;
+	exit_code = nes_enumlator_ppu_backend_wayland_init(&ppu_backend);
 	if (exit_code != 0) {
 		nes_emulator_cartridge_fini(&cartridge);
 		nes_emulator_console_fini(&console);
 		exit_code |= fini_memory_mapping(&mm);
 		return exit_code;
 	}
+	nes_emulator_console_add_ppu_backend(console, ppu_backend);
 
 	nes_emulator_console_insert_cartridge(console, cartridge);
 
@@ -63,7 +62,7 @@ int main(int argc, char **argv)
 		exit_code = nes_emulator_console_step(console);
 	}
 
-	exit_code |= fini_wayland(&wayland);
+	exit_code |= nes_enumlator_ppu_backend_wayland_fini(&ppu_backend);
 	nes_emulator_cartridge_fini(&cartridge);
 	nes_emulator_console_fini(&console);
 	exit_code |= fini_memory_mapping(&mm);

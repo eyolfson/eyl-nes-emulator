@@ -17,7 +17,7 @@
 
 #include "wayland_buffer.h"
 
-#include "wayland.h"
+#include "wayland_private.h"
 
 #include <linux/memfd.h>
 #include <sys/mman.h>

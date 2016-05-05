@@ -15,7 +15,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "wayland.h"
+#include "wayland_private.h"
 
 #include "wayland_buffer.h"
 
