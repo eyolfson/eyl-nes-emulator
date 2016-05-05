@@ -27,6 +27,7 @@ void nes_emulator_console_add_ppu_backend(
 	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
 		if (console->ppu.backends[i] == NULL) {
 			console->ppu.backends[i] = ppu_backend;
+			break;
 		}
 	}
 }
