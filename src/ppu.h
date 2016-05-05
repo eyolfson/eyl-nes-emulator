@@ -30,6 +30,13 @@ struct nes_emulator_console;
 #define PPU_PALETTE_SIZE       0x0020 /*  32 B   */
 #define PPU_OAM_SIZE           0x0100 /* 256 B   */
 #define PPU_SECONDARY_OAM_SIZE 0x0020 /*  32 B   */
+#define PPU_BACKENDS_MAX 3
+
+struct nes_emulator_ppu_backend {
+	void *pointer;
+	void (*render_pixel)(void *, uint8_t, uint8_t, uint8_t);
+	void (*vertical_blank)(void *);
+};
 
 struct ppu {
 	uint8_t ram[PPU_RAM_SIZE];
@@ -63,6 +70,8 @@ struct ppu {
 
 	uint16_t cycle;
 	int16_t scan_line;
+
+	struct nes_emulator_ppu_backend *backends[PPU_BACKENDS_MAX];
 };
 
 void ppu_init(struct nes_emulator_console *console);
@@ -78,10 +87,6 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console, uint16_t address);
 void ppu_bus_write(struct nes_emulator_console *console,
                    uint16_t address,
                    uint8_t value);
-
-/* TODO: Refactor to backend */
-struct wayland;
-extern struct wayland *wayland_ppu;
 
 #ifdef __cpluscplus
 }

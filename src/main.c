@@ -56,7 +56,6 @@ int main(int argc, char **argv)
 		exit_code |= fini_memory_mapping(&mm);
 		return exit_code;
 	}
-	wayland_ppu = &wayland;
 
 	nes_emulator_console_insert_cartridge(console, cartridge);
 

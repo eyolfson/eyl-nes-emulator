@@ -20,10 +20,41 @@
 #include "cartridge.h"
 #include "console.h"
 
-/* TODO: Refactor to backend */
-struct wayland *wayland_ppu;
-void paint_pixel(struct wayland *wayland, uint8_t x, uint8_t y, uint8_t c);
-void render_frame(struct wayland *wayland);
+void nes_emulator_console_add_ppu_backend(
+	struct nes_emulator_console *console,
+	struct nes_emulator_ppu_backend *ppu_backend)
+{
+	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
+		if (console->ppu.backends[i] != NULL) {
+			console->ppu.backends[i] = ppu_backend;
+		}
+	}
+}
+
+static void render_pixel(struct nes_emulator_console *console,
+                         uint8_t x,
+                         uint8_t y,
+                         uint8_t c)
+{
+	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
+		struct nes_emulator_ppu_backend *backend;
+		backend = console->ppu.backends[i];
+		if (backend != NULL) {
+			backend->render_pixel(backend->pointer, x, y, c);
+		}
+	}
+}
+
+static void vertical_blank(struct nes_emulator_console *console)
+{
+	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
+		struct nes_emulator_ppu_backend *backend;
+		backend = console->ppu.backends[i];
+		if (backend != NULL) {
+			backend->vertical_blank(backend->pointer);
+		}
+	}
+}
 
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 /* Each nametable is 1024 bytes (0x400) */
@@ -171,6 +202,7 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.scroll_y = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
+	console->ppu.backends[0] = NULL;
 }
 
 #include <stdio.h>
@@ -276,7 +308,7 @@ static void oam_render(struct nes_emulator_console *console,
 		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
 		uint16_t palette_address = 0x3F10 + 4 * palette_index + pixel_value;
 		uint8_t pixel_color = ppu_bus_read(console, palette_address);
-		paint_pixel(wayland_ppu, x, y , pixel_color);
+		render_pixel(console, x, y , pixel_color);
 		break;
 	}
 }
@@ -430,15 +462,15 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
 			uint8_t y = scan_line;
-			paint_pixel(wayland_ppu, x, y,
-				debug_background_pixel(console, x, y));
+			render_pixel(console, x, y,
+			             debug_background_pixel(console, x, y));
 		}
 	}
 
 	if (scan_line == 241 && cycle == 1) {
 		debug_oam(console);
 
-		render_frame(wayland_ppu);
+		vertical_blank(console);
 
 		console->ppu.is_sprite_0_hit_frame = false;
 		console->ppu.is_sprite_overflow = false;
@@ -463,7 +495,6 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 	uint16_t cycle = console->ppu.cycle;
 	int16_t scan_line = console->ppu.scan_line;
 	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
-
 
 		ppu_single_cycle(console, scan_line, cycle);
 
