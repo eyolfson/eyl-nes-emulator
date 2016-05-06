@@ -490,6 +490,8 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		console->ppu.nmi_occurred = false;
 		console->ppu.is_sprite_0_hit_frame = false;
 		console->ppu.is_sprite_overflow = false;
+		console->ppu.current_x_scroll = console->ppu.scroll_x;
+		console->ppu.current_y_scroll = console->ppu.scroll_y;
 	}
 }
 
