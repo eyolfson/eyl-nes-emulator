@@ -454,8 +454,20 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
                                       uint8_t x,
                                       uint8_t y)
 {
-	uint16_t nametable_address = console->ppu.nametable_address;
-	return background_pixel(console, nametable_address, x, y);
+	uint8_t x_scroll = console->ppu.current_x_scroll;
+	uint16_t x_offset = x + x_scroll;
+	uint16_t nametable_address;
+	if (x_offset < 256) {
+		nametable_address = console->ppu.nametable_address;
+	}
+	else {
+		x_offset -= 256;
+		nametable_address += 0x0400;
+		if (nametable_address > 0x3000) {
+			nametable_address -= 0x1000;
+		}
+	}
+	return background_pixel(console, nametable_address, x_offset, y);
 }
 
 static bool is_rendering_disabled(struct nes_emulator_console *console)
