@@ -405,9 +405,10 @@ static uint8_t background_pixel_value(struct nes_emulator_console *console,
 	return pixel_value;
 }
 
-static uint8_t debug_background_pixel(struct nes_emulator_console *console,
-                                      uint8_t x,
-                                      uint8_t y)
+static uint8_t background_pixel(struct nes_emulator_console *console,
+                                uint16_t nametable_address,
+                                uint8_t x,
+                                uint8_t y)
 {
 	uint8_t pixel_value = background_pixel_value(console, x, y);
 
@@ -415,8 +416,6 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	if (pixel_value == 0) {
 		return ppu_bus_read(console, 0x3F00);
 	}
-
-	uint16_t nametable_address = console->ppu.nametable_address;
 
 	/* Lookup attribute */
 	const uint16_t ATTRIBUTE_OFFSET = 960;
@@ -449,6 +448,14 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 
 	uint16_t palette_address = 0x3F00 + 4 * attribute_value + pixel_value;
 	return ppu_bus_read(console, palette_address);
+}
+
+static uint8_t debug_background_pixel(struct nes_emulator_console *console,
+                                      uint8_t x,
+                                      uint8_t y)
+{
+	uint16_t nametable_address = console->ppu.nametable_address;
+	return background_pixel(console, nametable_address, x, y);
 }
 
 static bool is_rendering_disabled(struct nes_emulator_console *console)
