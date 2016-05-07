@@ -57,6 +57,16 @@ static void vertical_blank(struct nes_emulator_console *console)
 	}
 }
 
+static bool is_rendering_disabled(struct nes_emulator_console *console)
+{
+	return (console->ppu.mask & 0x18) == 0x00;
+}
+
+static bool is_show_background(struct nes_emulator_console *console)
+{
+	return (console->ppu.mask & 0x08) == 0x08;
+}
+
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 /* Each nametable is 1024 bytes (0x400) */
 /* It consists of 960 8x8 tiles to form the background */
@@ -153,6 +163,13 @@ void ppu_bus_write(struct nes_emulator_console *console,
                    uint16_t address,
                    uint8_t value)
 {
+	int16_t scan_line = console->ppu.scan_line;
+	if (scan_line >= 0 && scan_line < 240) {
+		if (!is_rendering_disabled(console)) {
+			return;
+		}
+	}
+
 	if (address < 0x2000) {
 		return;
 	}
@@ -466,13 +483,13 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
                                       uint8_t x,
                                       uint8_t y)
 {
+	if (!is_show_background(console)) {
+		return 0x00;
+	}
 	uint8_t x_scroll = console->ppu.current_x_scroll;
 	uint16_t x_offset = x + x_scroll;
-	uint16_t nametable_address;
-	if (x_offset < 256) {
-		nametable_address = console->ppu.nametable_address;
-	}
-	else {
+	uint16_t nametable_address = console->ppu.nametable_address;
+	if (x_offset >= 256) {
 		x_offset -= 256;
 		nametable_address += 0x0400;
 		if (nametable_address > 0x3000) {
@@ -480,11 +497,6 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 		}
 	}
 	return background_pixel(console, nametable_address, x_offset, y);
-}
-
-static bool is_rendering_disabled(struct nes_emulator_console *console)
-{
-	return (console->ppu.mask & 0x18) == 0x00;
 }
 
 static void ppu_single_cycle(struct nes_emulator_console *console,
