@@ -138,8 +138,14 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 		uint16_t mirrored_address = (address % 0x20) + 0x3F00;
 		return palette_ppu_bus_read(console, mirrored_address);
 	}
+	else if (address < 0x8000) {
+		return ppu_bus_read(console, address - 0x4000);
+	}
+	else if (address < 0xC000) {
+		return ppu_bus_read(console, address - 0x8000);
+	}
 	else {
-		return ppu_bus_read(console, address % 0x4000);
+		return ppu_bus_read(console, address - 0xC000);
 	}
 }
 
@@ -166,8 +172,14 @@ void ppu_bus_write(struct nes_emulator_console *console,
 		uint16_t mirrored_address = (address % 0x20) + 0x3F00;
 		palette_ppu_bus_write(console, mirrored_address, value);
 	}
+	else if (address < 0x8000) {
+		ppu_bus_write(console, address - 0x4000, value);
+	}
+	else if (address < 0xC000) {
+		ppu_bus_write(console, address - 0x8000, value);
+	}
 	else {
-		ppu_bus_write(console, address % 0x4000, value);
+		ppu_bus_write(console, address - 0xC000, value);
 	}
 }
 
