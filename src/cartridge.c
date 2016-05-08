@@ -83,12 +83,17 @@ uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
 	}
 
-	if (data[6] == 0x01) {
+	if (chr_rom_units == 1) {
 		c->chr_rom = data + HEADER_SIZE
 		             + PRG_ROM_SIZE_PER_UNIT * prg_rom_units;
+		c->owns_chr_rom = false;
 	}
 	else {
-		c->chr_rom = NULL;
+		c->chr_rom = malloc(CHR_ROM_SIZE_PER_UNIT);
+		c->owns_chr_rom = true;
+		if (c->chr_rom == NULL) {
+			return EXIT_CODE_OS_ERROR_BIT;
+		}
 	}
 
 	*cartridge = c;
@@ -97,6 +102,9 @@ uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
 
 void nes_emulator_cartridge_fini(struct nes_emulator_cartridge **cartridge)
 {
+	if ( (*cartridge)->owns_chr_rom) {
+		free((*cartridge)->chr_rom);
+	}
 	free(*cartridge);
 	*cartridge = NULL;
 }
@@ -128,4 +136,14 @@ uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
 		return 0;
 	}
 	return console->cartridge->chr_rom[address];
+}
+
+void cartridge_ppu_bus_write(struct nes_emulator_console *console,
+                             uint16_t address,
+                             uint8_t value)
+{
+	if (console->cartridge->chr_rom == NULL) {
+		return;
+	}
+	console->cartridge->chr_rom[address] = value;
 }

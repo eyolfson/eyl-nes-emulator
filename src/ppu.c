@@ -171,7 +171,7 @@ void ppu_bus_write(struct nes_emulator_console *console,
 	}
 
 	if (address < 0x2000) {
-		return;
+		cartridge_ppu_bus_write(console, address, value);
 	}
 	else if (address < 0x2800) {
 		console->ppu.ram[address - 0x2000] = value;

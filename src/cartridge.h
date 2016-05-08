@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 
 struct nes_emulator_console;
@@ -29,6 +30,7 @@ struct nes_emulator_cartridge {
 	uint8_t *chr_rom;
 	uint8_t *prg_rom_bank_1;
 	uint8_t *prg_rom_bank_2;
+	bool owns_chr_rom;
 };
 
 uint8_t cartridge_cpu_bus_read(struct nes_emulator_console *console,
@@ -38,6 +40,9 @@ void cartridge_cpu_bus_write(struct nes_emulator_console *console,
                              uint8_t value);
 uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
                                uint16_t address);
+void cartridge_ppu_bus_write(struct nes_emulator_console *console,
+                             uint16_t address,
+                             uint8_t value);
 
 #ifdef __cpluscplus
 }

@@ -48,7 +48,7 @@ static uint8_t memory_map_from_path(const char *path, struct memory_mapping *mm)
 
 	uint8_t *data;
 	if (exit_code == 0) {
-		data = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+		data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 		if (data == MAP_FAILED) {
 			exit_code |= EXIT_CODE_OS_ERROR_BIT;
 		}
