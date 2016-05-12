@@ -499,6 +499,31 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	return background_pixel(console, nametable_address, x_offset, y);
 }
 
+static void ppu_vertical_blank_start(struct nes_emulator_console *console)
+{
+	debug_oam(console);
+
+	vertical_blank(console);
+
+	console->ppu.is_sprite_0_hit_frame = false;
+	console->ppu.is_sprite_overflow = false;
+
+	console->ppu.nmi_occurred = true;
+
+	if (console->ppu.nmi_output) {
+		cpu_generate_nmi(console);
+	}
+}
+
+static void ppu_vertical_blank_end(struct nes_emulator_console *console)
+{
+	console->ppu.nmi_occurred = false;
+	console->ppu.is_sprite_0_hit_frame = false;
+	console->ppu.is_sprite_overflow = false;
+	console->ppu.current_x_scroll = console->ppu.scroll_x;
+	console->ppu.current_y_scroll = console->ppu.scroll_y;
+}
+
 static void ppu_single_cycle(struct nes_emulator_console *console,
                              int16_t scan_line,
                              uint16_t cycle)
@@ -514,27 +539,12 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	}
 
 	if (scan_line == 241 && cycle == 1) {
-		debug_oam(console);
-
-		vertical_blank(console);
-
-		console->ppu.is_sprite_0_hit_frame = false;
-		console->ppu.is_sprite_overflow = false;
-
-		console->ppu.nmi_occurred = true;
-
-		if (console->ppu.nmi_output) {
-			cpu_generate_nmi(console);
-		}
+		ppu_vertical_blank_start(console);
 	}
 
 	/* TODO: probably related to even odd frames */
 	if (scan_line == -1 && cycle == 2) {
-		console->ppu.nmi_occurred = false;
-		console->ppu.is_sprite_0_hit_frame = false;
-		console->ppu.is_sprite_overflow = false;
-		console->ppu.current_x_scroll = console->ppu.scroll_x;
-		console->ppu.current_y_scroll = console->ppu.scroll_y;
+		ppu_vertical_blank_end(console);
 	}
 }
 
