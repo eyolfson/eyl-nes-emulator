@@ -136,7 +136,19 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 	}
 	else if (address < 0x3000) {
 		/* Mirroring */
-		return console->ppu.ram[address - 0x2800];
+		switch (console->cartridge->mirroring) {
+		case 0:
+			if (address < 0x2C00) {
+				return console->ppu.ram[address - 0x2000];
+			}
+			else {
+				return console->ppu.ram[address - 0x2C00];
+			}
+		case 1:
+			return console->ppu.ram[address - 0x2800];
+		default:
+			return 0;
+		}
 	}
 	else if (address < 0x3F00) {
 		return ppu_bus_read(console, address - 0x1000);

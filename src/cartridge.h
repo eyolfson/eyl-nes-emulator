@@ -30,6 +30,7 @@ struct nes_emulator_cartridge {
 	uint8_t *chr_rom;
 	uint8_t *prg_rom_bank_1;
 	uint8_t *prg_rom_bank_2;
+	uint8_t mirroring;
 	bool owns_chr_rom;
 };
 

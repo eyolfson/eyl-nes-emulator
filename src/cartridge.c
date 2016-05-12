@@ -79,9 +79,11 @@ uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
 	}
 
 	/* TODO: Assume horizontal arrangement / vertical mirroring */
-	if ((data[6] != 0x00) && (data[6] != 0x01)) {
+	uint8_t mirroring = data[6];
+	if ((mirroring != 0) && (mirroring != 1)) {
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
 	}
+	c->mirroring = mirroring;
 
 	if (chr_rom_units == 1) {
 		c->chr_rom = data + HEADER_SIZE
@@ -127,6 +129,9 @@ void cartridge_cpu_bus_write(struct nes_emulator_console *console,
                              uint16_t address,
                              uint8_t value)
 {
+	(void) console;
+	(void) address;
+	(void) value;
 }
 
 uint8_t cartridge_ppu_bus_read(struct nes_emulator_console *console,
