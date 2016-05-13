@@ -287,6 +287,7 @@ static void debug_tile(struct nes_emulator_console *console,
 }
 
 static uint8_t background_pixel_value(struct nes_emulator_console *console,
+                                      uint16_t nametable_address,
                                       uint8_t x,
                                       uint8_t y);
 
@@ -339,7 +340,10 @@ static void oam_render(struct nes_emulator_console *console,
 			continue;
 		}
 
-		if (i == 0 && background_pixel_value(console, x, y) != 0) {
+		uint16_t nametable_address = console->ppu.nametable_address;
+		if (i == 0
+		    && background_pixel_value(console, nametable_address, x, y)
+		       != 0) {
 			if (!(console->ppu.is_sprite_0_hit_frame)) {
 				if ((console->ppu.mask & 0x18) == 0x18) {
 					console->ppu.is_sprite_0_hit = true;
@@ -402,6 +406,7 @@ static void debug_oam(struct nes_emulator_console *console)
 }
 
 static uint8_t background_pixel_value(struct nes_emulator_console *console,
+                                      uint16_t nametable_address,
                                       uint8_t x,
                                       uint8_t y)
 {
@@ -410,7 +415,6 @@ static uint8_t background_pixel_value(struct nes_emulator_console *console,
 	uint8_t tile_column = y / 8;
 
 	/* Lookup tile index in nametable */
-	uint16_t nametable_address = console->ppu.nametable_address;
 	uint16_t tile_nametable_address = nametable_address
 	                                  + tile_column * TILE_ROWS
 	                                  + tile_row;
@@ -451,7 +455,8 @@ static uint8_t background_pixel(struct nes_emulator_console *console,
                                 uint8_t x,
                                 uint8_t y)
 {
-	uint8_t pixel_value = background_pixel_value(console, x, y);
+	uint8_t pixel_value = background_pixel_value(console, nametable_address,
+	                                             x, y);
 
 	/* Default background color */
 	if (pixel_value == 0) {
@@ -501,14 +506,17 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	uint8_t x_scroll = console->ppu.current_x_scroll;
 	uint16_t x_offset = x + x_scroll;
 	uint16_t nametable_address = console->ppu.nametable_address;
+	uint8_t y_scroll = console->ppu.current_y_scroll;
+	uint16_t y_offset = y + y_scroll;
 	if (x_offset >= 256) {
 		x_offset -= 256;
-		nametable_address += 0x0400;
-		if (nametable_address > 0x3000) {
-			nametable_address -= 0x1000;
-		}
+		nametable_address ^= 0x0400;
 	}
-	return background_pixel(console, nametable_address, x_offset, y);
+	if (y_offset >= 256) {
+		y_offset -= 240;
+		nametable_address ^= 0x0800;
+	}
+	return background_pixel(console, nametable_address, x_offset, y_offset);
 }
 
 static void ppu_vertical_blank_start(struct nes_emulator_console *console)
