@@ -38,6 +38,13 @@ struct nes_emulator_ppu_backend {
 	void (*vertical_blank)(void *);
 };
 
+struct ppu_internal_registers {
+	uint16_t v;
+	uint16_t t;
+	uint8_t x;
+	uint8_t w;
+};
+
 struct ppu {
 	uint8_t ram[PPU_RAM_SIZE];
 	uint8_t palette[PPU_PALETTE_SIZE];
@@ -73,6 +80,8 @@ struct ppu {
 
 	uint16_t cycle;
 	int16_t scan_line;
+
+	struct ppu_internal_registers internal_registers;
 
 	struct nes_emulator_ppu_backend *backends[PPU_BACKENDS_MAX];
 };

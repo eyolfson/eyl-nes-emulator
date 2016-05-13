@@ -553,7 +553,15 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
 			uint8_t y = scan_line;
-			render_pixel(console, x, y,
+			uint8_t offset_y;
+			if (y >= console->ppu.scroll_y) {
+				offset_y = y - console->ppu.scroll_y;
+			}
+			else {
+				offset_y = 240 - console->ppu.scroll_y + y;
+			}
+			if (offset_y >= 240) { offset_y -= 240; }
+			render_pixel(console, x, offset_y,
 			             debug_background_pixel(console, x, y));
 		}
 	}

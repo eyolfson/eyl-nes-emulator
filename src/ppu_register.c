@@ -21,6 +21,16 @@
 
 #include <stdio.h>
 
+static void assign_bit(uint16_t *data, uint8_t n, bool value)
+{
+	if (value) {
+		*data |= (1 << n);
+	}
+	else {
+		*data &= ~(1 << n);
+	}
+}
+
 static void ppu_register_ctrl_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
@@ -100,6 +110,11 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 		console->ppu.nametable_address = 0x2C00;
 		break;
 	}
+
+	uint16_t t = console->ppu.internal_registers.t;
+	assign_bit(&t, 10, (n & 0x01) == 0x01);
+	assign_bit(&t, 11, (n & 0x02) == 0x02);
+	console->ppu.internal_registers.t = t;
 }
 
 static void ppu_register_mask_write(struct nes_emulator_console *console,
