@@ -21,9 +21,9 @@
 extern "C" {
 #endif
 
-uint8_t nes_enumlator_ppu_backend_wayland_init(
+uint8_t nes_emulator_ppu_backend_wayland_init(
 	struct nes_emulator_ppu_backend **ppu_backend);
-uint8_t nes_enumlator_ppu_backend_wayland_fini(
+uint8_t nes_emulator_ppu_backend_wayland_fini(
 	struct nes_emulator_ppu_backend **ppu_backend);
 
 #ifdef __cplusplus

@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	}
 
 	struct nes_emulator_ppu_backend *ppu_backend;
-	exit_code = nes_enumlator_ppu_backend_wayland_init(&ppu_backend);
+	exit_code = nes_emulator_ppu_backend_wayland_init(&ppu_backend);
 	if (exit_code != 0) {
 		nes_emulator_cartridge_fini(&cartridge);
 		nes_emulator_console_fini(&console);
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 		exit_code = nes_emulator_console_step(console);
 	}
 
-	exit_code |= nes_enumlator_ppu_backend_wayland_fini(&ppu_backend);
+	exit_code |= nes_emulator_ppu_backend_wayland_fini(&ppu_backend);
 	nes_emulator_cartridge_fini(&cartridge);
 	nes_emulator_console_fini(&console);
 	exit_code |= fini_memory_mapping(&mm);

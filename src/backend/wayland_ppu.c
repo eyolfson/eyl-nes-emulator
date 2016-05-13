@@ -108,7 +108,7 @@ static void vertical_blank(void *pointer)
 	wl_display_roundtrip(wayland->display);
 }
 
-uint8_t nes_enumlator_ppu_backend_wayland_init(
+uint8_t nes_emulator_ppu_backend_wayland_init(
 	struct nes_emulator_ppu_backend **ppu_backend)
 {
 	if (ppu_backend == NULL) {
@@ -142,7 +142,7 @@ uint8_t nes_enumlator_ppu_backend_wayland_init(
 	return 0;
 }
 
-uint8_t nes_enumlator_ppu_backend_wayland_fini(
+uint8_t nes_emulator_ppu_backend_wayland_fini(
 	struct nes_emulator_ppu_backend **ppu_backend)
 {
 	uint8_t exit_code = 0;
