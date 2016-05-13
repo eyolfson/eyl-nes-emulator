@@ -4,6 +4,36 @@ Screen resolution is $256 \times 240$ pixels.
 Tiles are $8 \times 8$, $8 \times 16$, or $16 \times 8$ pixels.
 There are $64$ possible colours.
 
+However, some of these colours are duplicates (black).
+
+The PPU runs at $3 \times$ the frequency of the CPU.
+
+Each PPU cycle (during the drawing phase) the PPU outputs one pixel to the
+screen.
+
+It has per pixel scrolling.
+
+It can support up to $64$ sprites.
+
+A scanline is one row of the screen, it renders line by line ($y$ is fixed, $x$
+ranges over $0-256$).
+
+On a single scanline, it only supports $8$ sprites.
+
+If there are more than $8$ sprites, it will set a sprite overflow bit.
+
+It can detect hits to sprite 0.
+
+It is controlled by memory mapped registers to the CPU.
+
+It has \texttt{2 KiB} of RAM.
+
+It has \texttt{256 B} of RAM for sprites.
+
+It has \texttt{64 B} of RAM for sprites on the current scanline.
+
+Each sprite takes \texttt{4 B}.
+
 \section{Memory}
 
 \section{Object Attribute Memory (OAM)}
@@ -11,6 +41,26 @@ There are $64$ possible colours.
 \section{Registers}
 
 \section{Drawing a Pixel}
+
+Background is drawn from the current nametable.
+
+\subsection{Screen}
+
+The current scanline is the $y$ coordinate.
+
+A grid of the pixels is shown below:
+
+\begin{tikzpicture}
+  \draw (0, 0) -- (80mm, 0);
+  \node [above] at (40mm, 0) {$x$};
+  \node [above] at (0, 0) {\texttt{0}};
+  \node [above] at (80mm, 0) {\texttt{255}};
+
+  \draw (0, 0) -- (0, -70mm);
+  \node [left] at (0, -35mm) {$y$};
+  \node [left] at (0, 0) {\texttt{0}};
+  \node [left] at (0, -70mm) {\texttt{239}};
+\end{tikzpicture}
 
 \subsection{Background}
 
