@@ -80,6 +80,19 @@ static void coarse_x_increment(struct nes_emulator_console *console)
 	console->ppu.internal_registers.v = v;
 }
 
+static void fine_x_increment(struct nes_emulator_console *console)
+{
+	uint8_t x = console->ppu.internal_registers.x;
+	if (x == 7) {
+		coarse_x_increment(console);
+		x = 0;
+	}
+	else {
+		x += 1;
+	}
+	console->ppu.internal_registers.x = x;
+}
+
 static void coarse_y_increment(struct nes_emulator_console *console)
 {
 	uint16_t v = console->ppu.internal_registers.v;
@@ -96,6 +109,20 @@ static void coarse_y_increment(struct nes_emulator_console *console)
 	}
 	v = (v & ~0x03E0) | (coarse_y << 5);
 	console->ppu.internal_registers.v = v;
+}
+
+static void fine_y_increment(struct nes_emulator_console *console)
+{
+	uint16_t v = console->ppu.internal_registers.v;
+	if ((v & 0x7000) == 0x7000) {
+		v &= ~0x7000;
+		console->ppu.internal_registers.v = v;
+		coarse_y_increment(console);
+	}
+	else {
+		v += 0x1000;
+		console->ppu.internal_registers.v = v;
+	}
 }
 
 static bool is_rendering_disabled(struct nes_emulator_console *console)
@@ -604,6 +631,11 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			if (offset_y >= 240) { offset_y -= 240; }
 			render_pixel(console, x, offset_y,
 			             debug_background_pixel(console, x, y));
+		}
+
+		fine_x_increment(console);
+		if (cycle == 256) {
+			fine_y_increment(console);
 		}
 	}
 
