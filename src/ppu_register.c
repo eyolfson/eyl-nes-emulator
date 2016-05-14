@@ -206,6 +206,27 @@ static void ppu_register_addr_write(struct nes_emulator_console *console,
 		console->ppu.computed_address |= value;
 		console->ppu.computed_address_is_high = true;
 	}
+
+	if (console->ppu.internal_registers.w == 0) {
+		uint8_t d = value;
+		uint16_t t = console->ppu.internal_registers.t;
+		t &= ~(0x00FF);
+		t += d;
+		console->ppu.internal_registers.t = t;
+		console->ppu.internal_registers.v = t;
+		console->ppu.internal_registers.w = 1;
+	}
+	else {
+		uint8_t y = value;
+		uint8_t coarse_y = (y & 0xF8) >> 3;
+		uint8_t fine_y = y & 0x07;
+		uint16_t t = console->ppu.internal_registers.t;
+		t &= ~(0x73E0);
+		t += fine_y << 12;
+		t += coarse_y << 5;
+		console->ppu.internal_registers.t = t;
+		console->ppu.internal_registers.w = 0;
+	}
 }
 
 static uint8_t ppu_register_data_read(struct nes_emulator_console *console)
