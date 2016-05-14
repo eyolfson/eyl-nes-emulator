@@ -208,22 +208,20 @@ static void ppu_register_addr_write(struct nes_emulator_console *console,
 
 	if (console->ppu.internal_registers.w == 0) {
 		uint8_t d = value;
+		d &= 0x3F;
 		uint16_t t = console->ppu.internal_registers.t;
-		t &= ~(0x00FF);
-		t += d;
+		t &= ~(0xFF00);
+		t += (d << 8);
 		console->ppu.internal_registers.t = t;
-		console->ppu.internal_registers.v = t;
 		console->ppu.internal_registers.w = 1;
 	}
 	else {
-		uint8_t y = value;
-		uint8_t coarse_y = (y & 0xF8) >> 3;
-		uint8_t fine_y = y & 0x07;
+		uint8_t d = value;
 		uint16_t t = console->ppu.internal_registers.t;
-		t &= ~(0x73E0);
-		t += fine_y << 12;
-		t += coarse_y << 5;
+		t += d;
+		t &= ~(0x00FF);
 		console->ppu.internal_registers.t = t;
+		console->ppu.internal_registers.v = t;
 		console->ppu.internal_registers.w = 0;
 	}
 }

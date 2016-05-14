@@ -30,7 +30,6 @@ void nes_emulator_console_add_ppu_backend(
 		}
 	}
 }
-
 static void render_pixel(struct nes_emulator_console *console,
                          uint8_t x,
                          uint8_t y,
@@ -54,6 +53,49 @@ static void vertical_blank(struct nes_emulator_console *console)
 			backend->vertical_blank(backend->pointer);
 		}
 	}
+}
+
+static uint16_t get_tile_address(struct nes_emulator_console *console)
+{
+	uint16_t v = console->ppu.internal_registers.v;
+	return 0x2000 | (v & 0x0FFF);
+}
+
+static uint16_t get_attribute_address(struct nes_emulator_console *console)
+{
+	uint16_t v = console->ppu.internal_registers.v;
+	return 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
+}
+
+static void coarse_x_increment(struct nes_emulator_console *console)
+{
+	uint16_t v = console->ppu.internal_registers.v;
+	if ((v & 0x001F) == 0x001F) {
+		v &= ~0x001F;
+		v ^= 0x0400;
+	}
+	else {
+		v += 1;
+	}
+	console->ppu.internal_registers.v = v;
+}
+
+static void coarse_y_increment(struct nes_emulator_console *console)
+{
+	uint16_t v = console->ppu.internal_registers.v;
+	uint8_t coarse_y = (v & 0x03E0) >> 5;
+	if (coarse_y == 29) {
+		coarse_y = 0;
+		v ^= 0x0800;
+	}
+	else if (coarse_y == 31) {
+		coarse_y = 0;
+	}
+	else {
+		coarse_y += 1;
+	}
+	v = (v & ~0x03E0) | (coarse_y << 5);
+	console->ppu.internal_registers.v = v;
 }
 
 static bool is_rendering_disabled(struct nes_emulator_console *console)
