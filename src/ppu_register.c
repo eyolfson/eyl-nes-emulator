@@ -21,16 +21,6 @@
 
 #include <stdio.h>
 
-static void assign_bit(uint16_t *data, uint8_t n, bool value)
-{
-	if (value) {
-		*data |= (1 << n);
-	}
-	else {
-		*data &= ~(1 << n);
-	}
-}
-
 static void ppu_register_ctrl_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
@@ -112,8 +102,8 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	}
 
 	uint16_t t = console->ppu.internal_registers.t;
-	assign_bit(&t, 10, (n & 0x01) == 0x01);
-	assign_bit(&t, 11, (n & 0x02) == 0x02);
+	t &= ~(0x0003 << 10);
+	t += (n << 10);
 	console->ppu.internal_registers.t = t;
 }
 
@@ -146,6 +136,9 @@ static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 		value |= 0x20;
 		console->ppu.is_sprite_overflow = false;
 	}
+
+	console->ppu.internal_registers.w = 0;
+
 	return value;
 }
 
@@ -174,6 +167,29 @@ static void ppu_register_scroll_write(struct nes_emulator_console *console,
 		console->ppu.scroll_y = value;
 		console->ppu.scroll_is_x = true;
 		if (value != 0) { printf("PPU y scrolling unimplemented\n"); }
+	}
+
+	if (console->ppu.internal_registers.w == 0) {
+		uint8_t x = value;
+		uint8_t coarse_x = (x & 0xF8) >> 3;
+		uint8_t fine_x = x & 0x07;
+		console->ppu.internal_registers.x = fine_x;
+		uint16_t t = console->ppu.internal_registers.t;
+		t &= ~(0x001F);
+		t += coarse_x;
+		console->ppu.internal_registers.t = t;
+		console->ppu.internal_registers.w = 1;
+	}
+	else {
+		uint8_t y = value;
+		uint8_t coarse_y = (y & 0xF8) >> 3;
+		uint8_t fine_y = y & 0x07;
+		uint16_t t = console->ppu.internal_registers.t;
+		t &= ~(0x73E0);
+		t += fine_y << 12;
+		t += coarse_y << 5;
+		console->ppu.internal_registers.t = t;
+		console->ppu.internal_registers.w = 0;
 	}
 }
 
