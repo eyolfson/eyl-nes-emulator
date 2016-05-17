@@ -508,6 +508,44 @@ static uint8_t bg_pixel_value(struct nes_emulator_console *console)
 	return pixel_value;
 }
 
+static uint8_t bg_pixel(struct nes_emulator_console *console)
+{
+	uint8_t pixel_value = bg_pixel_value(console);
+
+	/* Default background color */
+	if (pixel_value == 0) {
+		return ppu_bus_read(console, 0x3F00);
+	}
+
+	/* Lookup attribute */
+	uint16_t attribute_address = get_attribute_address(console);
+
+	uint8_t attribute_byte = ppu_bus_read(console, attribute_address);
+	uint16_t v = console->ppu.internal_registers.v;
+	uint8_t x_bit = (v & 0x0010) >> 4;
+	uint8_t y_bit = (v & 0x0200) >> 9;
+
+	uint8_t quad_index = y_bit * 2 + x_bit;
+	uint8_t attribute_value = 0;
+	switch (quad_index) {
+	case 0:
+		attribute_value = attribute_byte & 0x03;
+		break;
+	case 1:
+		attribute_value = (attribute_byte & 0x0C) >> 2;
+		break;
+	case 2:
+		attribute_value = (attribute_byte & 0x30) >> 4;
+		break;
+	case 3:
+		attribute_value = (attribute_byte & 0xC0) >> 6;
+		break;
+	}
+
+	uint16_t palette_address = 0x3F00 + 4 * attribute_value + pixel_value;
+	return ppu_bus_read(console, palette_address);
+}
+
 static uint8_t background_pixel_value(struct nes_emulator_console *console,
                                       uint16_t nametable_address,
                                       uint8_t x,
@@ -664,14 +702,17 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 				offset_y = 240 - console->ppu.scroll_y + y;
 			}
 			if (offset_y >= 240) { offset_y -= 240; }
-			render_pixel(console, x, offset_y,
-			             debug_background_pixel(console, x, y));
-		}
 
-		bg_pixel_value(console);
-		fine_x_increment(console);
-		if (cycle == 256) {
-			fine_y_increment(console);
+			uint8_t background_pixel = debug_background_pixel(console, x, y);
+			render_pixel(console, x, offset_y, background_pixel);
+
+			// uint8_t bg_pv = bg_pixel(console);
+			// render_pixel(console, x, y, bg_pv);
+
+			fine_x_increment(console);
+			if (cycle == 256) {
+				fine_y_increment(console);
+			}
 		}
 	}
 
