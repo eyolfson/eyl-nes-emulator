@@ -491,11 +491,11 @@ static uint8_t bg_pixel_value(struct nes_emulator_console *console)
 	uint16_t low_byte_address = background_address
 	                            + tile_index * BYTES_PER_TILE
 	                            + pixel_byte_offset;
-	const uint8_t high_byte_offset = 8;
+	const uint8_t HIGH_BYTE_OFFSET = 8;
 	uint16_t high_byte_address = background_address
 	                             + tile_index * BYTES_PER_TILE
 	                             + pixel_byte_offset
-	                             + high_byte_offset;
+	                             + HIGH_BYTE_OFFSET;
 	uint8_t low_byte = ppu_bus_read(console, low_byte_address);
 	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
 	uint8_t pixel_value = 0;
@@ -510,6 +510,9 @@ static uint8_t bg_pixel_value(struct nes_emulator_console *console)
 
 static uint8_t bg_pixel(struct nes_emulator_console *console)
 {
+	if (!is_show_background(console)) {
+		return 0x00;
+	}
 	uint8_t pixel_value = bg_pixel_value(console);
 
 	/* Default background color */
@@ -704,20 +707,25 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			if (offset_y >= 240) { offset_y -= 240; }
 
 			uint8_t background_pixel = debug_background_pixel(console, x, y);
-			render_pixel(console, x, offset_y, background_pixel);
+			//render_pixel(console, x, y, background_pixel);
 
-			// uint8_t bg_pv = bg_pixel(console);
-			// render_pixel(console, x, y, bg_pv);
+			uint8_t bg_pv = bg_pixel(console);
+			render_pixel(console, x, y, bg_pv);
 
-			fine_x_increment(console);
+			if (cycle != 256) { fine_x_increment(console); }
 			if (cycle == 256) {
 				fine_y_increment(console);
+				uint16_t t = console->ppu.internal_registers.t & 0x001F;
+				console->ppu.internal_registers.v &= ~0x001F;
+				console->ppu.internal_registers.v += t;
+				console->ppu.internal_registers.x = 0;
 			}
 		}
 	}
 
 	if (scan_line == 241 && cycle == 1) {
 		ppu_vertical_blank_start(console);
+		console->ppu.internal_registers.v = console->ppu.internal_registers.t;
 	}
 
 	/* TODO: probably related to even odd frames */
