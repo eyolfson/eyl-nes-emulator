@@ -525,8 +525,8 @@ static uint8_t bg_pixel(struct nes_emulator_console *console)
 
 	uint8_t attribute_byte = ppu_bus_read(console, attribute_address);
 	uint16_t v = console->ppu.internal_registers.v;
-	uint8_t x_bit = (v & 0x0010) >> 4;
-	uint8_t y_bit = (v & 0x0200) >> 9;
+	uint8_t x_bit = (v & 0x0002) >> 1;
+	uint8_t y_bit = (v & 0x0040) >> 6;
 
 	uint8_t quad_index = y_bit * 2 + x_bit;
 	uint8_t attribute_value = 0;
