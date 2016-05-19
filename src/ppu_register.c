@@ -160,12 +160,10 @@ static void ppu_register_scroll_write(struct nes_emulator_console *console,
 	if (console->ppu.scroll_is_x) {
 		console->ppu.scroll_x = value;
 		console->ppu.scroll_is_x = false;
-		if (value != 0) { printf("PPU x scrolling unimplemented\n"); }
 	}
 	else {
 		console->ppu.scroll_y = value;
 		console->ppu.scroll_is_x = true;
-		if (value != 0) { printf("PPU y scrolling unimplemented\n"); }
 	}
 
 	if (console->ppu.internal_registers.w == 0) {

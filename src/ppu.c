@@ -715,8 +715,8 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			if (cycle != 256) { fine_x_increment(console); }
 			if (cycle == 256) {
 				fine_y_increment(console);
-				uint16_t t = console->ppu.internal_registers.t & 0x001F;
-				console->ppu.internal_registers.v &= ~0x001F;
+				uint16_t t = console->ppu.internal_registers.t & 0x041F;
+				console->ppu.internal_registers.v &= ~0x041F;
 				console->ppu.internal_registers.v += t;
 				console->ppu.internal_registers.x = 0;
 			}
