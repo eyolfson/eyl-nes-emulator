@@ -79,7 +79,7 @@ uint8_t fini_memory_mapping(struct memory_mapping *mm)
 uint8_t init_memory_mapping_from_args(int argc, char** argv,
                                       struct memory_mapping *mm)
 {
-	if (argc != 2) {
+	if (argc < 2) {
 		return EXIT_CODE_ARG_ERROR_BIT;
 	}
 

@@ -22,7 +22,28 @@ REQUIRED_FILES = [
 	 b"1ac04283021ddd9294cc74ee709c55e20a350dc4815c15a8a93b3654837e858d"),
 	("10-even_odd_timing.nes",
 	 b"7217d2d172ce11ad45c4da40c2f22201cf0eb758bc2cd8dd39d2cf0a7d4ca83e"),
+	("01.bin",
+	 b"a9ad96191e457688027dec67c336622b88e3a252f30b5a0e29a6b33c8997e89c"),
+	("02.bin",
+	 b"367721ee9a9ad697d7196d5de497a6c7d91a7c61e2526d772eb916035ec42842"),
+	("03.bin",
+	 b"07640328238be855577873465e2d7e445658d078064ccdc15aef8c5208155f3f"),
+	("04.bin",
+	 b"98015df0197e34f354fafca9d14eb8763c842761a38a88b5709ebc5335db0863"),
 ]
+
+CHECK_FRAME = {
+	'01': '143',
+	'02': '170',
+	'03': '170',
+	'04': '33',
+	'05': '1',
+	'06': '1',
+	'07': '1',
+	'08': '1',
+	'09': '1',
+	'10': '1',
+}
 
 def check_files():
 	checks_passed = True
@@ -53,17 +74,21 @@ def run_tests():
 	for i in range(EXPECTED_TESTS_PASSED):
 		rom_file = REQUIRED_FILES[i][0]
 		test_prefix = rom_file[:2]
-		executable = "build/nes-emulator-ppu_vbl_nmi-{}".format(
-			test_prefix)
+		executable = "build/nes-emulator-ppu_vbl_nmi"
+		bin_file = "{}.bin".format(test_prefix)
 		completed_process = subprocess.run([executable,
-		                                    rom_file],
+		                                    rom_file,
+		                                    bin_file,
+		                                    CHECK_FRAME[test_prefix]],
 		                                   stdout=subprocess.PIPE)
+		if completed_process.returncode != 0:
+			print("{}: Process FAILED".format(test_prefix))
+			continue
 		lines = completed_process.stdout.splitlines()
 		last_line = lines[-1].decode()
 		if last_line == "Check SUCCESS":
 			tests_passed += 1
 		print("{}: {}".format(test_prefix, last_line))
-		break
 	return tests_passed
 
 if __name__ == "__main__":

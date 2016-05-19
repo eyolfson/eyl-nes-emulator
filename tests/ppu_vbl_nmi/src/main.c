@@ -21,23 +21,29 @@
 #include "../../../src/ppu.h"
 #include "../../../src/nes_emulator.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
-
-static uint64_t frame = 0;
-static bool test_running = true;
-static bool check_success = true;
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define WIDTH 256
 #define HEIGHT 240
+#define SIZE WIDTH * HEIGHT
 
-//const uint64_t CHECK_FRAME = 300;
-extern const uint64_t CHECK_FRAME;
-extern const uint8_t CHECK_DATA[HEIGHT][WIDTH];
+static int fd;
+static long long check_frame;
+static uint8_t buffer[SIZE];
+
+static long long frame = 0;
+static bool test_running = true;
+static bool check_success = true;
 
 static void render_pixel(void *pointer, uint8_t x, uint8_t y, uint8_t c)
 {
-	if (frame == CHECK_FRAME) {
-		if (CHECK_DATA[y][x] != c) {
+	if (frame == check_frame) {
+		if (buffer[y * WIDTH + x] != c) {
 			test_running = false;
 			check_success = false;
 		}
@@ -46,7 +52,7 @@ static void render_pixel(void *pointer, uint8_t x, uint8_t y, uint8_t c)
 
 static void vertical_blank(void *pointer)
 {
-	if (frame == CHECK_FRAME) {
+	if (frame == check_frame) {
 		test_running = false;
 	}
 	else {
@@ -63,6 +69,25 @@ int main(int argc, char **argv)
 	if (exit_code != 0) {
 		return exit_code;
 	}
+
+	if (argc != 4) {
+		return EXIT_CODE_ARG_ERROR_BIT;
+	}
+
+	fd = open(argv[2], O_RDONLY);
+	if (fd == -1) {
+		exit_code = EXIT_CODE_OS_ERROR_BIT;
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
+
+	if (read(fd, buffer, SIZE) == -1) {
+		exit_code = EXIT_CODE_OS_ERROR_BIT;
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
+
+	check_frame = atoll(argv[3]);
 
 	struct nes_emulator_console *console;
 	exit_code = nes_emulator_console_init(&console);
