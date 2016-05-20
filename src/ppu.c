@@ -522,31 +522,16 @@ static uint8_t bg_pixel(struct nes_emulator_console *console)
 
 	/* Lookup attribute */
 	uint16_t attribute_address = get_attribute_address(console);
-
 	uint8_t attribute_byte = ppu_bus_read(console, attribute_address);
+
 	uint16_t v = console->ppu.internal_registers.v;
-	uint8_t x_bit = (v & 0x0002) >> 1;
-	uint8_t y_bit = (v & 0x0040) >> 6;
+	uint8_t shift = (v & 0x0040) >> 4 | (v & 0x0002);
+	uint8_t mask = 0x03 << shift;
+	uint8_t attribute_value = (attribute_byte & mask) >> shift;
 
-	uint8_t quad_index = y_bit * 2 + x_bit;
-	uint8_t attribute_value = 0;
-	switch (quad_index) {
-	case 0:
-		attribute_value = attribute_byte & 0x03;
-		break;
-	case 1:
-		attribute_value = (attribute_byte & 0x0C) >> 2;
-		break;
-	case 2:
-		attribute_value = (attribute_byte & 0x30) >> 4;
-		break;
-	case 3:
-		attribute_value = (attribute_byte & 0xC0) >> 6;
-		break;
-	}
-
-	uint16_t palette_address = 0x3F00 + 4 * attribute_value + pixel_value;
-	return ppu_bus_read(console, palette_address);
+	const uint8_t ENTRY_SIZE = 4;
+	uint8_t palette_index = ENTRY_SIZE * attribute_value + pixel_value;
+	return console->ppu.palette[palette_index];
 }
 
 static uint8_t background_pixel_value(struct nes_emulator_console *console,
