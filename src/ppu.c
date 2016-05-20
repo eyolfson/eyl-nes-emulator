@@ -295,9 +295,7 @@ void ppu_init(struct nes_emulator_console *console)
 		console->ppu.secondary_oam[i] = 0;
 	}
 
-	console->ppu.computed_address_is_high = true;
 	console->ppu.computed_address_increment = 1;
-	console->ppu.computed_address = 0;
 	console->ppu.oam_address = 0;
 	console->ppu.background_address = 0x1000;
 	console->ppu.sprite_address = 0x0000;
@@ -355,6 +353,13 @@ static uint8_t background_pixel_value(struct nes_emulator_console *console,
                                       uint16_t nametable_address,
                                       uint8_t x,
                                       uint8_t y);
+
+static void populate_secondary_oam(struct nes_emulator_console *console,
+                                   uint8_t y)
+{
+
+}
+
 
 static void oam_render(struct nes_emulator_console *console,
                        uint8_t x,
@@ -656,6 +661,11 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 
 	console->ppu.nmi_occurred = true;
 
+	if (is_show_background(console)) {
+		uint16_t t = console->ppu.internal_registers.t;
+		console->ppu.internal_registers.v = t;
+	}
+
 	if (console->ppu.nmi_output) {
 		cpu_generate_nmi(console);
 	}
@@ -683,6 +693,9 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 {
 	/* Draw the pixel */
 	if (scan_line >= 0 && scan_line < 240) {
+		if (!is_show_background(console)) {
+			return;
+		}
 		if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
 			uint8_t y = scan_line;
@@ -702,7 +715,6 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 
 	if (scan_line == 241 && cycle == 1) {
 		ppu_vertical_blank_start(console);
-		console->ppu.internal_registers.v = console->ppu.internal_registers.t;
 	}
 
 	/* TODO: probably related to even odd frames */

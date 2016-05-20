@@ -49,10 +49,9 @@ struct ppu {
 	uint8_t palette[PPU_PALETTE_SIZE];
 	uint8_t oam[PPU_OAM_SIZE];
 	uint8_t secondary_oam[PPU_SECONDARY_OAM_SIZE];
+	uint8_t secondary_oam_entries;
 
-	bool computed_address_is_high;
 	uint8_t computed_address_increment;
-	uint16_t computed_address;
 
 	uint8_t mask;
 	uint8_t oam_address;

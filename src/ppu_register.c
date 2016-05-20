@@ -184,31 +184,20 @@ static void ppu_register_scroll_write(struct nes_emulator_console *console,
 static void ppu_register_addr_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
-	if (console->ppu.computed_address_is_high) {
-		console->ppu.computed_address &= 0x00FF;
-		console->ppu.computed_address |= (value << 8);
-		console->ppu.computed_address_is_high = false;
-	}
-	else {
-		console->ppu.computed_address &= 0xFF00;
-		console->ppu.computed_address |= value;
-		console->ppu.computed_address_is_high = true;
-	}
-
 	if (console->ppu.internal_registers.w == 0) {
 		uint8_t d = value;
 		d &= 0x3F;
 		uint16_t t = console->ppu.internal_registers.t;
 		t &= ~(0xFF00);
-		t += (d << 8);
+		t |= (d << 8);
 		console->ppu.internal_registers.t = t;
 		console->ppu.internal_registers.w = 1;
 	}
 	else {
 		uint8_t d = value;
 		uint16_t t = console->ppu.internal_registers.t;
-		t += d;
 		t &= ~(0x00FF);
+		t |= d;
 		console->ppu.internal_registers.t = t;
 		console->ppu.internal_registers.v = t;
 		console->ppu.internal_registers.w = 0;
@@ -217,16 +206,20 @@ static void ppu_register_addr_write(struct nes_emulator_console *console,
 
 static uint8_t ppu_register_data_read(struct nes_emulator_console *console)
 {
-	uint8_t m = ppu_bus_read(console, console->ppu.computed_address);
-	console->ppu.computed_address += console->ppu.computed_address_increment;
+	uint16_t v = console->ppu.internal_registers.v;
+	uint8_t m = ppu_bus_read(console, v);
+	v += console->ppu.computed_address_increment;
+	console->ppu.internal_registers.v = v;
 	return m;
 }
 
 static void ppu_register_data_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
-	ppu_bus_write(console, console->ppu.computed_address, value);
-	console->ppu.computed_address += console->ppu.computed_address_increment;
+	uint16_t v = console->ppu.internal_registers.v;
+	ppu_bus_write(console, v, value);
+	v += console->ppu.computed_address_increment;
+	console->ppu.internal_registers.v = v;
 }
 
 uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
