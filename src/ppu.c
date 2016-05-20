@@ -693,12 +693,14 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 {
 	/* Draw the pixel */
 	if (scan_line >= 0 && scan_line < 240) {
-		if (!is_show_background(console)) {
-			return;
-		}
 		if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
 			uint8_t y = scan_line;
+
+			if (!is_show_background(console)) {
+				render_pixel(console, x, y, 0x00);
+				return;
+			}
 
 			uint8_t bg_pv = bg_pixel(console);
 			render_pixel(console, x, y, bg_pv);
@@ -709,7 +711,9 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			}
 		}
 		else if (cycle == 257) {
-			reset_horizontal(console);
+			if (is_show_background(console)) {
+				reset_horizontal(console);
+			}
 		}
 	}
 
