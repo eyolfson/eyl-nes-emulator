@@ -688,6 +688,15 @@ static void ppu_vertical_blank_end(struct nes_emulator_console *console)
 	console->ppu.current_y_scroll = console->ppu.scroll_y;
 }
 
+static void reset_horizontal(struct nes_emulator_console *console)
+{
+	const uint16_t MASK = 0x041F;
+	uint16_t t = console->ppu.internal_registers.t;
+	uint16_t v = console->ppu.internal_registers.v;
+	v = (v & ~MASK) | (t & MASK);
+	console->ppu.internal_registers.v = v;
+}
+
 static void ppu_single_cycle(struct nes_emulator_console *console,
                              int16_t scan_line,
                              uint16_t cycle)
@@ -697,29 +706,17 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
 			uint8_t y = scan_line;
-			uint8_t offset_y;
-			if (y >= console->ppu.scroll_y) {
-				offset_y = y - console->ppu.scroll_y;
-			}
-			else {
-				offset_y = 240 - console->ppu.scroll_y + y;
-			}
-			if (offset_y >= 240) { offset_y -= 240; }
-
-			uint8_t background_pixel = debug_background_pixel(console, x, y);
-			//render_pixel(console, x, y, background_pixel);
 
 			uint8_t bg_pv = bg_pixel(console);
 			render_pixel(console, x, y, bg_pv);
 
-			if (cycle != 256) { fine_x_increment(console); }
+			fine_x_increment(console);
 			if (cycle == 256) {
 				fine_y_increment(console);
-				uint16_t t = console->ppu.internal_registers.t & 0x041F;
-				console->ppu.internal_registers.v &= ~0x041F;
-				console->ppu.internal_registers.v += t;
-				console->ppu.internal_registers.x = 0;
 			}
+		}
+		else if (cycle == 257) {
+			reset_horizontal(console);
 		}
 	}
 
