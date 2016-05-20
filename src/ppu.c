@@ -307,9 +307,6 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.is_sprite_0_hit_frame = false;
 	console->ppu.is_sprite_0_hit = false;
 	console->ppu.is_sprite_overflow = false;
-	console->ppu.scroll_is_x = true;
-	console->ppu.scroll_x = 0;
-	console->ppu.scroll_y = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
 	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
@@ -632,10 +629,10 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 	if (!is_show_background(console)) {
 		return 0x00;
 	}
-	uint8_t x_scroll = console->ppu.current_x_scroll;
+	uint8_t x_scroll = 0;
 	uint16_t x_offset = x + x_scroll;
 	uint16_t nametable_address = console->ppu.nametable_address;
-	uint8_t y_scroll = console->ppu.current_y_scroll;
+	uint8_t y_scroll = 0;
 	uint16_t y_offset = y + y_scroll;
 	if (x_offset >= 256) {
 		x_offset -= 256;
@@ -669,8 +666,6 @@ static void ppu_vertical_blank_end(struct nes_emulator_console *console)
 	console->ppu.nmi_occurred = false;
 	console->ppu.is_sprite_0_hit_frame = false;
 	console->ppu.is_sprite_overflow = false;
-	console->ppu.current_x_scroll = console->ppu.scroll_x;
-	console->ppu.current_y_scroll = console->ppu.scroll_y;
 }
 
 static void reset_horizontal(struct nes_emulator_console *console)

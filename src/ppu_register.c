@@ -157,15 +157,6 @@ static void ppu_register_oam_data_write(struct nes_emulator_console *console,
 static void ppu_register_scroll_write(struct nes_emulator_console *console,
                                       uint8_t value)
 {
-	if (console->ppu.scroll_is_x) {
-		console->ppu.scroll_x = value;
-		console->ppu.scroll_is_x = false;
-	}
-	else {
-		console->ppu.scroll_y = value;
-		console->ppu.scroll_is_x = true;
-	}
-
 	if (console->ppu.internal_registers.w == 0) {
 		uint8_t x = value;
 		uint8_t coarse_x = (x & 0xF8) >> 3;

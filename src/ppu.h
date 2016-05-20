@@ -67,13 +67,6 @@ struct ppu {
 	/* TODO: refactor */
 	bool is_sprite_overflow;
 
-	bool scroll_is_x;
-	uint8_t scroll_x;
-	uint8_t scroll_y;
-
-	uint8_t current_x_scroll;
-	uint8_t current_y_scroll;
-
 	bool nmi_output;
 	bool nmi_occurred;
 
