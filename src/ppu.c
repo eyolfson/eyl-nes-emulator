@@ -135,6 +135,11 @@ static bool is_show_background(struct nes_emulator_console *console)
 	return (console->ppu.mask & 0x08) == 0x08;
 }
 
+static bool is_show_sprites(struct nes_emulator_console *console)
+{
+	return (console->ppu.mask & 0x10) == 0x10;
+}
+
 /* TODO: Assume horizontal arrangement / vertical mirroring (64x30 tilemap) */
 /* Each nametable is 1024 bytes (0x400) */
 /* It consists of 960 8x8 tiles to form the background */
@@ -294,6 +299,7 @@ void ppu_init(struct nes_emulator_console *console)
 	for (int i = 0; i < PPU_SECONDARY_OAM_SIZE; ++i) {
 		console->ppu.secondary_oam[i] = 0;
 	}
+	console->ppu.secondary_oam_entries = 0;
 
 	console->ppu.computed_address_increment = 1;
 	console->ppu.oam_address = 0;
@@ -357,9 +363,40 @@ static uint8_t background_pixel_value(struct nes_emulator_console *console,
 static void populate_secondary_oam(struct nes_emulator_console *console,
                                    uint8_t y)
 {
-
+	uint8_t entries = 0;
+	console->ppu.is_sprite_0_in_secondary = false;
+	for (uint8_t i = 0; i < 64; ++i) {
+		uint8_t offset = i * 4;
+		uint8_t y_top = console->ppu.oam[offset];
+		if (y_top == 0) {
+			continue;
+		}
+		/* Check would overflow */
+		if (y_top >= 0xF8) {
+			continue;
+		}
+		if (y >= y_top && y <= (y_top + 7)) {
+			/* Copy bytes to Secondary OAM */
+			if (entries < 8) {
+				for (uint8_t j = 0; j < 4; ++j) {
+					console->ppu.secondary_oam[entries * 4 + j] =
+						console->ppu.oam[offset + j];
+				}
+			}
+			if (i == 0) {
+				console->ppu.is_sprite_0_in_secondary = true;
+			}
+			++entries;
+		}
+	}
+	if (entries > 8) {
+		console->ppu.is_sprite_overflow = true;
+		console->ppu.secondary_oam_entries = 8;
+	}
+	else {
+		console->ppu.secondary_oam_entries = entries;
+	}
 }
-
 
 static void oam_render(struct nes_emulator_console *console,
                        uint8_t x,
@@ -693,9 +730,12 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 {
 	/* Draw the pixel */
 	if (scan_line >= 0 && scan_line < 240) {
-		if (cycle >= 1 && cycle <= 256) {
+		uint8_t y = scan_line;
+		if (cycle == 0 && is_show_sprites(console)) {
+			populate_secondary_oam(console, y);
+		}
+		else if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
-			uint8_t y = scan_line;
 
 			if (!is_show_background(console)) {
 				render_pixel(console, x, y, 0x00);
