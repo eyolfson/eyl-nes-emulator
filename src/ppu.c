@@ -732,6 +732,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	if (scan_line >= 0 && scan_line < 240) {
 		uint8_t y = scan_line;
 		if (cycle == 0 && is_show_sprites(console)) {
+			/* TODO: might need +1? */
 			populate_secondary_oam(console, y);
 		}
 		else if (cycle >= 1 && cycle <= 256) {
