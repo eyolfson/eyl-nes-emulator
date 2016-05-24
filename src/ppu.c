@@ -689,7 +689,7 @@ static uint8_t debug_background_pixel(struct nes_emulator_console *console,
 
 static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 {
-	debug_oam(console);
+	// debug_oam(console);
 
 	vertical_blank(console);
 
