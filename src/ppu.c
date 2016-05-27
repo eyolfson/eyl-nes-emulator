@@ -549,9 +549,6 @@ static uint8_t bg_pixel_value(struct nes_emulator_console *console)
 
 static uint8_t bg_pixel(struct nes_emulator_console *console)
 {
-	if (!is_show_background(console)) {
-		return 0x00;
-	}
 	uint8_t pixel_value = bg_pixel_value(console);
 
 	/* Default background color */
