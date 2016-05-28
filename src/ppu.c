@@ -347,6 +347,7 @@ static void populate_secondary_oam(struct nes_emulator_console *console,
 			++entries;
 		}
 	}
+
 	if (entries > 8) {
 		console->ppu.is_sprite_overflow = true;
 		console->ppu.secondary_oam_entries = 8;
@@ -363,6 +364,10 @@ static void sprite_pixel(struct nes_emulator_console *console,
                          uint8_t *pixel_colour)
 {
 	*pixel_value = 0;
+	if (!is_show_sprites(console)) {
+		return;
+	}
+
 	for (uint8_t i = 0; i < console->ppu.secondary_oam_entries; ++i) {
 		uint8_t offset = i * 4;
 		uint8_t y_top = console->ppu.secondary_oam[offset];
@@ -638,7 +643,17 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	uint8_t bg_pixel_value = background_pixel_value(console);
 	uint8_t bg_pixel_colour = background_pixel_colour(console,
 	                                                  bg_pixel_value);
-	render_pixel(console, x, y, bg_pixel_colour);
+	uint8_t sprite_pixel_value;
+	uint8_t sprite_pixel_colour;
+	sprite_pixel(console, x, y, &sprite_pixel_value, &sprite_pixel_colour);
+
+	if (sprite_pixel_value != 0) {
+		render_pixel(console, x, y, sprite_pixel_colour);
+	}
+	else {
+		render_pixel(console, x, y, bg_pixel_colour);
+	}
+
 	return true;
 }
 
