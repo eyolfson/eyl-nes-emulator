@@ -318,43 +318,6 @@ void ppu_init(struct nes_emulator_console *console)
 	}
 }
 
-#include <stdio.h>
-
-static void debug_tile(struct nes_emulator_console *console,
-                       uint16_t address)
-{
-	uint8_t color_index[8][8] = { 0 };
-	uint8_t x = 0;
-	for (uint16_t i = address; i < address + 8; ++i) {
-		uint8_t b = ppu_bus_read(console, i);
-		for (uint8_t j = 0; j < 8; ++j) {
-			if (b & (1 << j)) {
-				color_index[x][7 - j] |= 0x02;
-			}
-		}
-		++x;
-	}
-	x = 0;
-	for (uint16_t i = address + 8; i < address + 16; ++i) {
-		uint8_t b = ppu_bus_read(console, i);
-		for (uint8_t j = 0; j < 8; ++j) {
-			if (b & (1 << j)) {
-				color_index[x][7 - j] |= 0x01;
-			}
-		}
-		++x;
-	}
-
-	printf("Tile 0x%04x\n", address);
-	for (uint8_t i = 0; i < 8; ++i) {
-		for (uint8_t j = 0; j < 8; ++j) {
-			if (j != 0) { printf(" "); }
-			printf("%x", color_index[i][j]);
-		}
-		printf("\n");
-	}
-}
-
 static uint8_t background_pixel_value(struct nes_emulator_console *console,
                                       uint16_t nametable_address,
                                       uint8_t x,
