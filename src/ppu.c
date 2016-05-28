@@ -318,11 +318,6 @@ void ppu_init(struct nes_emulator_console *console)
 	}
 }
 
-static uint8_t background_pixel_value(struct nes_emulator_console *console,
-                                      uint16_t nametable_address,
-                                      uint8_t x,
-                                      uint8_t y);
-
 static void populate_secondary_oam(struct nes_emulator_console *console,
                                    uint8_t y)
 {
@@ -410,6 +405,7 @@ static void oam_render(struct nes_emulator_console *console,
 			continue;
 		}
 
+/*
 		uint16_t nametable_address = console->ppu.nametable_address;
 		if (i == 0
 		    && background_pixel_value(console, nametable_address, x, y)
@@ -421,6 +417,7 @@ static void oam_render(struct nes_emulator_console *console,
 				}
 			}
 		}
+*/
 
 		/* Lookup palette */
 		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
@@ -475,7 +472,8 @@ static void debug_oam(struct nes_emulator_console *console)
 	}
 }
 
-static uint8_t bg_pixel_value(struct nes_emulator_console *console)
+static uint8_t background_pixel_value(
+	struct nes_emulator_console *console)
 {
   uint16_t tile_address = get_tile_address(console);
 	uint8_t fine_x = console->ppu.internal_registers.x;
@@ -510,11 +508,10 @@ static uint8_t bg_pixel_value(struct nes_emulator_console *console)
 	return pixel_value;
 }
 
-static uint8_t bg_pixel(struct nes_emulator_console *console)
+static uint8_t background_pixel_colour(struct nes_emulator_console *console,
+                                       uint8_t pixel_value)
 {
-	uint8_t pixel_value = bg_pixel_value(console);
-
-	/* Default background color */
+	/* Default background colour */
 	if (pixel_value == 0) {
 		return ppu_bus_read(console, 0x3F00);
 	}
@@ -531,120 +528,6 @@ static uint8_t bg_pixel(struct nes_emulator_console *console)
 	const uint8_t ENTRY_SIZE = 4;
 	uint8_t palette_index = ENTRY_SIZE * attribute_value + pixel_value;
 	return console->ppu.palette[palette_index];
-}
-
-static uint8_t background_pixel_value(struct nes_emulator_console *console,
-                                      uint16_t nametable_address,
-                                      uint8_t x,
-                                      uint8_t y)
-{
-	const uint8_t TILE_ROWS = 32;
-	uint8_t tile_row = x / 8;
-	uint8_t tile_column = y / 8;
-
-	/* Lookup tile index in nametable */
-	uint16_t tile_nametable_address = nametable_address
-	                                  + tile_column * TILE_ROWS
-	                                  + tile_row;
-	uint8_t tile_index = ppu_bus_read(console, tile_nametable_address);
-
-	/* Lookup referenced tile */
-	const uint8_t TILE_PIXELS_PER_ROW = 8;
-	uint8_t tile_x = x % 8;
-	uint8_t tile_y = y % 8;
-	uint8_t pixel_index = tile_y * TILE_PIXELS_PER_ROW + tile_x;
-	uint8_t pixel_byte_offset = pixel_index / 8;
-	uint8_t pixel_bit_position = 7 - pixel_index % 8;
-
-	uint16_t background_address = console->ppu.background_address;
-	const uint8_t BYTES_PER_TILE = 16;
-	uint16_t low_byte_address = background_address
-	                            + tile_index * BYTES_PER_TILE
-	                            + pixel_byte_offset;
-	const uint8_t high_byte_offset = 8;
-	uint16_t high_byte_address = background_address
-	                             + tile_index * BYTES_PER_TILE
-	                             + pixel_byte_offset
-	                             + high_byte_offset;
-	uint8_t low_byte = ppu_bus_read(console, low_byte_address);
-	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
-	uint8_t pixel_value = 0;
-	if (low_byte & (1 << pixel_bit_position)) {
-		pixel_value |= 0x01;
-	}
-	if (high_byte & (1 << pixel_bit_position)) {
-		pixel_value |= 0x02;
-	}
-	return pixel_value;
-}
-
-static uint8_t background_pixel(struct nes_emulator_console *console,
-                                uint16_t nametable_address,
-                                uint8_t x,
-                                uint8_t y)
-{
-	uint8_t pixel_value = background_pixel_value(console, nametable_address,
-	                                             x, y);
-
-	/* Default background color */
-	if (pixel_value == 0) {
-		return ppu_bus_read(console, 0x3F00);
-	}
-
-	/* Lookup attribute */
-	const uint16_t ATTRIBUTE_OFFSET = 960;
-	const uint8_t ATTRIBUTE_ROWS = 8;
-	uint8_t attribute_row = x / 32;
-	uint8_t attribute_column = y / 32;
-	uint16_t attribute_address = nametable_address
-	                             + ATTRIBUTE_OFFSET
-	                             + attribute_column * ATTRIBUTE_ROWS
-	                             + attribute_row;
-	uint8_t attribute_byte = ppu_bus_read(console, attribute_address);
-	uint8_t quadrat_x = (x / 16) % 2;
-	uint8_t quadrat_y = (y / 16) % 2;
-	uint8_t quadrat_index = quadrat_y * 2 + quadrat_x;
-	uint8_t attribute_value = 0;
-	switch (quadrat_index) {
-	case 0:
-		attribute_value = attribute_byte & 0x03;
-		break;
-	case 1:
-		attribute_value = (attribute_byte & 0x0C) >> 2;
-		break;
-	case 2:
-		attribute_value = (attribute_byte & 0x30) >> 4;
-		break;
-	case 3:
-		attribute_value = (attribute_byte & 0xC0) >> 6;
-		break;
-	}
-
-	uint16_t palette_address = 0x3F00 + 4 * attribute_value + pixel_value;
-	return ppu_bus_read(console, palette_address);
-}
-
-static uint8_t debug_background_pixel(struct nes_emulator_console *console,
-                                      uint8_t x,
-                                      uint8_t y)
-{
-	if (!is_show_background(console)) {
-		return 0x00;
-	}
-	uint8_t x_scroll = 0;
-	uint16_t x_offset = x + x_scroll;
-	uint16_t nametable_address = console->ppu.nametable_address;
-	uint8_t y_scroll = 0;
-	uint16_t y_offset = y + y_scroll;
-	if (x_offset >= 256) {
-		x_offset -= 256;
-		nametable_address ^= 0x0400;
-	}
-	if (y_offset >= 256) {
-		y_offset -= 240;
-		nametable_address ^= 0x0800;
-	}
-	return background_pixel(console, nametable_address, x_offset, y_offset);
 }
 
 static void ppu_vertical_blank_start(struct nes_emulator_console *console)
@@ -684,6 +567,22 @@ static void reset_horizontal(struct nes_emulator_console *console)
 	console->ppu.internal_registers.v = v;
 }
 
+static bool handle_pixel(struct nes_emulator_console *console,
+                         uint8_t x,
+                         uint8_t y)
+{
+	if (!is_show_background(console)) {
+		render_pixel(console, x, y, 0x00);
+		return false;
+	}
+
+	uint8_t bg_pixel_value = background_pixel_value(console);
+	uint8_t bg_pixel_colour = background_pixel_colour(console,
+	                                                  bg_pixel_value);
+	render_pixel(console, x, y, bg_pixel_colour);
+	return true;
+}
+
 static void ppu_single_cycle(struct nes_emulator_console *console,
                              int16_t scan_line,
                              uint16_t cycle)
@@ -698,13 +597,9 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		else if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
 
-			if (!is_show_background(console)) {
-				render_pixel(console, x, y, 0x00);
+			if (!handle_pixel(console, x, y)) {
 				return;
 			}
-
-			uint8_t bg_pv = bg_pixel(console);
-			render_pixel(console, x, y, bg_pv);
 
 			fine_x_increment(console);
 			if (cycle == 256) {
