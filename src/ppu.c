@@ -419,122 +419,6 @@ static void sprite_pixel(struct nes_emulator_console *console,
 	}
 }
 
-static void oam_render(struct nes_emulator_console *console,
-                       uint8_t x,
-                       uint8_t y,
-                       uint8_t found)
-{
-	for (uint8_t i = 0; i < found; ++i) {
-		uint8_t offset = i * 4;
-		uint8_t y_top = console->ppu.secondary_oam[offset];
-		uint8_t y_offset = y - y_top;
-
-		uint8_t x_left = console->ppu.secondary_oam[offset + 3];
-		if (x_left >= 0xF8) {
-			continue;
-		}
-		if (!(x >= x_left && x <= (x_left + 7))) {
-			continue;
-		}
-		uint8_t x_offset = x - x_left;
-
-		/* This tile is within range */
-		uint8_t tile_index = console->ppu.secondary_oam[offset + 1];
-		uint16_t sprite_address = console->ppu.sprite_address;
-		uint8_t pixel_index = y_offset * 8 + x_offset;
-		uint8_t pixel_byte_offset = pixel_index / 8;
-		uint8_t pixel_bit_position = 7 - pixel_index % 8;
-
-		/* TODO: Refactor */
-		const uint8_t BYTES_PER_TILE = 16;
-		uint16_t low_byte_address = sprite_address
-		                            + tile_index * BYTES_PER_TILE
-		                            + pixel_byte_offset;
-		const uint8_t high_byte_offset = 8;
-		uint16_t high_byte_address = sprite_address
-		                             + tile_index * BYTES_PER_TILE
-		                             + pixel_byte_offset
-		                             + high_byte_offset;
-		uint8_t low_byte = ppu_bus_read(console, low_byte_address);
-		uint8_t high_byte = ppu_bus_read(console, high_byte_address);
-		uint8_t pixel_value = 0;
-		if (low_byte & (1 << pixel_bit_position)) {
-			pixel_value |= 0x01;
-		}
-		if (high_byte & (1 << pixel_bit_position)) {
-			pixel_value |= 0x02;
-		}
-		if (pixel_value == 0) {
-			continue;
-		}
-
-/*
-		uint16_t nametable_address = console->ppu.nametable_address;
-		if (i == 0
-		    && background_pixel_value(console, nametable_address, x, y)
-		       != 0) {
-			if (!(console->ppu.is_sprite_0_hit_frame)) {
-				if ((console->ppu.mask & 0x18) == 0x18) {
-					console->ppu.is_sprite_0_hit = true;
-					console->ppu.is_sprite_0_hit_frame = true;
-				}
-			}
-		}
-*/
-
-		/* Lookup palette */
-		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
-		uint16_t palette_address = 0x3F10 + 4 * palette_index + pixel_value;
-		uint8_t pixel_color = ppu_bus_read(console, palette_address);
-		render_pixel(console, x, y , pixel_color);
-		break;
-	}
-}
-
-static void oam_probe(struct nes_emulator_console *console,
-                      uint8_t y)
-{
-	uint8_t found = 0;
-	console->ppu.is_sprite_0_in_secondary = false;
-	for (uint8_t i = 0; i < 64; ++i) {
-		uint8_t offset = i * 4;
-		uint8_t y_top = console->ppu.oam[offset];
-		/* Check would overflow */
-		if (y_top >= 0xF8) {
-			continue;
-		}
-		if (y >= y_top && y <= (y_top + 7)) {
-			/* Copy bytes to secondary OAM */
-			if (found < 8) {
-				for (uint8_t j = 0; j < 4; ++j) {
-					console->ppu.secondary_oam[found * 4 + j] =
-						console->ppu.oam[offset + j];
-				}
-			}
-			if (i == 0) {
-				console->ppu.is_sprite_0_in_secondary = true;
-			}
-			++found;
-		}
-	}
-	if (found > 8) {
-		console->ppu.is_sprite_overflow = true;
-	}
-	for (uint8_t x = 0; ; ++x) {
-		oam_render(console, x, y, found < 8 ? found : 8);
-		if (x == 0xFF) {
-			break;
-		}
-	}
-}
-
-static void debug_oam(struct nes_emulator_console *console)
-{
-	for (uint8_t y = 0; y < 240; ++y) {
-		oam_probe(console, y);
-	}
-}
-
 static uint8_t background_pixel_value(
 	struct nes_emulator_console *console)
 {
@@ -595,8 +479,6 @@ static uint8_t background_pixel_colour(struct nes_emulator_console *console,
 
 static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 {
-	// debug_oam(console);
-
 	vertical_blank(console);
 
 	console->ppu.is_sprite_0_hit_frame = false;
