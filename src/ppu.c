@@ -322,13 +322,11 @@ static void populate_secondary_oam(struct nes_emulator_console *console,
                                    uint8_t y)
 {
 	uint8_t entries = 0;
+	y -= 1;
 	console->ppu.is_sprite_0_in_secondary = false;
 	for (uint8_t i = 0; i < 64; ++i) {
 		uint8_t offset = i * 4;
 		uint8_t y_top = console->ppu.oam[offset];
-		if (y_top == 0) {
-			continue;
-		}
 		/* Check would overflow */
 		if (y_top >= 0xF8) {
 			continue;
@@ -364,9 +362,10 @@ static void sprite_pixel(struct nes_emulator_console *console,
                          uint8_t *pixel_colour)
 {
 	*pixel_value = 0;
-	if (!is_show_sprites(console)) {
+	if (!is_show_sprites(console) || y == 0) {
 		return;
 	}
+	y -= 1;
 
 	for (uint8_t i = 0; i < console->ppu.secondary_oam_entries; ++i) {
 		uint8_t offset = i * 4;
@@ -648,6 +647,12 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	sprite_pixel(console, x, y, &sprite_pixel_value, &sprite_pixel_colour);
 
 	if (sprite_pixel_value != 0) {
+		if (bg_pixel_value != 0) {
+			if (!console->ppu.is_sprite_0_hit_frame) {
+				console->ppu.is_sprite_0_hit_frame = true;
+				console->ppu.is_sprite_0_hit = true;
+			}
+		}
 		render_pixel(console, x, y, sprite_pixel_colour);
 	}
 	else {
@@ -664,7 +669,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	/* Draw the pixel */
 	if (scan_line >= 0 && scan_line < 240) {
 		uint8_t y = scan_line;
-		if (cycle == 0 && is_show_sprites(console)) {
+		if (y > 0 && cycle == 0 && is_show_sprites(console)) {
 			/* TODO: might need +1? */
 			populate_secondary_oam(console, y);
 		}
