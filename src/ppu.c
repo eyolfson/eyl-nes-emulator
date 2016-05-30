@@ -372,6 +372,10 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		uint8_t y_top = console->ppu.secondary_oam[offset];
 		uint8_t y_offset = y - y_top;
 
+		uint8_t attribute = console->ppu.secondary_oam[offset + 2];
+		bool flip_vertical = attribute & 0x80;
+		bool flip_horizontal = attribute & 0x40;
+
 		uint8_t x_left = console->ppu.secondary_oam[offset + 3];
 		if (x_left >= 0xF8) {
 			continue;
@@ -384,7 +388,13 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		/* This tile is within range */
 		uint8_t tile_index = console->ppu.secondary_oam[offset + 1];
 		uint16_t sprite_address = console->ppu.sprite_address;
-		uint8_t pixel_index = y_offset * 8 + x_offset;
+		if (flip_vertical) {
+			y_offset = 7 - y_offset;
+		}
+		if (flip_horizontal) {
+			x_offset = 7 - x_offset;
+		}
+		uint8_t pixel_index = pixel_index = y_offset * 8 + x_offset;
 		uint8_t pixel_byte_offset = pixel_index / 8;
 		uint8_t pixel_bit_position = 7 - pixel_index % 8;
 
@@ -412,7 +422,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		}
 
 		/* Lookup palette */
-		uint8_t palette_index = console->ppu.secondary_oam[offset + 2] & 0x03;
+		uint8_t palette_index = attribute & 0x03;
 		uint16_t palette_address = 0x3F10 + 4 * palette_index + *pixel_value;
 		*pixel_colour = ppu_bus_read(console, palette_address);
 		return;
