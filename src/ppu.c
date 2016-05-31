@@ -491,9 +491,6 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 {
 	vertical_blank(console);
 
-	console->ppu.is_sprite_0_hit_frame = false;
-	console->ppu.is_sprite_overflow = false;
-
 	console->ppu.nmi_occurred = true;
 
 	if (is_show_background(console)) {
@@ -510,6 +507,7 @@ static void ppu_vertical_blank_end(struct nes_emulator_console *console)
 {
 	console->ppu.nmi_occurred = false;
 	console->ppu.is_sprite_0_hit_frame = false;
+	console->ppu.is_sprite_0_hit = false;
 	console->ppu.is_sprite_overflow = false;
 }
 
