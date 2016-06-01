@@ -60,14 +60,14 @@ struct ppu {
 	uint16_t nametable_address;
 
 	bool is_sprite_0_in_secondary;
-	bool is_sprite_0_hit_frame;
-	bool is_sprite_0_hit;
 
 	/* TODO: refactor */
 	bool is_sprite_overflow;
 
 	bool nmi_output;
 	bool nmi_occurred;
+
+	uint8_t status;
 
 	uint16_t cycle;
 	int16_t scan_line;

@@ -125,10 +125,7 @@ static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 		console->ppu.nmi_occurred = false;
 	}
 	/* Sprite 0 Hit */
-	if (console->ppu.is_sprite_0_hit) {
-		value |= 0x40;
-		console->ppu.is_sprite_0_hit = false;
-	}
+	value |= console->ppu.status;
 
 	/* Sprite overflow */
 	if (console->ppu.is_sprite_overflow) {

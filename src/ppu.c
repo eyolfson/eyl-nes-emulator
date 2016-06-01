@@ -308,9 +308,8 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.nametable_address = 0x2000;
 	console->ppu.nmi_output = false;
 	console->ppu.nmi_occurred = false;
-	console->ppu.is_sprite_0_hit_frame = false;
-	console->ppu.is_sprite_0_hit = false;
 	console->ppu.is_sprite_overflow = false;
+	console->ppu.status = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
 	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
@@ -506,8 +505,7 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 static void ppu_vertical_blank_end(struct nes_emulator_console *console)
 {
 	console->ppu.nmi_occurred = false;
-	console->ppu.is_sprite_0_hit_frame = false;
-	console->ppu.is_sprite_0_hit = false;
+	console->ppu.status = 0;
 	console->ppu.is_sprite_overflow = false;
 }
 
@@ -538,10 +536,7 @@ static bool handle_pixel(struct nes_emulator_console *console,
 
 	if (sprite_pixel_value != 0) {
 		if (bg_pixel_value != 0) {
-			if (!console->ppu.is_sprite_0_hit_frame) {
-				console->ppu.is_sprite_0_hit_frame = true;
-				console->ppu.is_sprite_0_hit = true;
-			}
+			console->ppu.status = 0x40;
 		}
 		render_pixel(console, x, y, sprite_pixel_colour);
 	}
