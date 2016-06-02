@@ -539,7 +539,7 @@ static void execute_branch(struct nes_emulator_console *console,
                            struct registers *registers,
                            bool (*get_flag)(struct registers *registers),
                            bool condition,
-                           uint8_t *step_cycles)
+                           uint16_t *step_cycles)
 {
 	uint8_t relative = cpu_bus_read(console, registers->pc + 1);
 	registers->pc += 2;
@@ -606,7 +606,7 @@ static void execute_jump_to_subroutine(struct nes_emulator_console *console,
 
 static void execute_return_from_subroutine(struct nes_emulator_console *console,
                                            struct registers *registers,
-                                           uint8_t *step_cycles)
+                                           uint16_t *step_cycles)
 {
 	uint8_t address_low = pop_from_stack(console, registers);
 	uint8_t address_high = pop_from_stack(console, registers);;
@@ -628,7 +628,7 @@ static void execute_pull_processor_status(struct nes_emulator_console *console,
 
 static void execute_return_from_interrupt(struct nes_emulator_console *console,
                                           struct registers *registers,
-                                          uint8_t *step_cycles)
+                                          uint16_t *step_cycles)
 {
 	execute_pull_processor_status(console, registers);
 	uint8_t address_low = pop_from_stack(console, registers);
@@ -640,7 +640,7 @@ static void execute_return_from_interrupt(struct nes_emulator_console *console,
 
 static void execute_interrupt(struct nes_emulator_console *console,
                               uint16_t handler_address,
-                              uint8_t *step_cycles)
+                              uint16_t *step_cycles)
 {
 	struct registers *registers = &console->cpu.registers;
 	uint16_t return_address = registers->pc;
@@ -660,7 +660,7 @@ static void execute_interrupt(struct nes_emulator_console *console,
 
 static void execute_force_interrupt(struct nes_emulator_console *console,
                                     struct registers *registers,
-                                    uint8_t *step_cycles)
+                                    uint16_t *step_cycles)
 {
 	registers->pc += 2;
 	execute_interrupt(console, IRQ_HANDLER_ADDRESS, step_cycles);
@@ -771,7 +771,7 @@ static void execute_rra(struct nes_emulator_console *console,
 }
 
 static uint8_t execute_instruction(struct nes_emulator_console *console,
-                                   uint8_t *step_cycles)
+                                   uint16_t *step_cycles)
 {
 	struct registers *registers = &console->cpu.registers;
 

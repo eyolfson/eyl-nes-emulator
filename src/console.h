@@ -25,7 +25,7 @@ extern "C" {
 
 struct nes_emulator_console {
 	struct cpu cpu;
-	uint8_t cpu_step_cycles;
+	uint16_t cpu_step_cycles;
 
 	struct ppu ppu;
 

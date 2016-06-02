@@ -591,7 +591,7 @@ uint8_t ppu_step(struct nes_emulator_console *console)
 {
 	uint16_t cycle = console->ppu.cycle;
 	int16_t scan_line = console->ppu.scan_line;
-	for (uint8_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
+	for (uint16_t i = 0; i < console->cpu_step_cycles * 3; ++i) {
 
 		ppu_single_cycle(console, scan_line, cycle);
 
