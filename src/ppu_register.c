@@ -110,6 +110,15 @@ static void ppu_register_mask_write(struct nes_emulator_console *console,
                                     uint8_t value)
 {
 	console->ppu.mask = value;
+	if ((value & 0xE0) != 0) {
+		printf("PPU emphasize colours unimplemented\n");
+	}
+	if ((value & 0x06) != 0) {
+		printf("PPU 8-bit wrap around unimplemented\n");
+	}
+	if ((value & 0x01) != 0) {
+		printf("PPU grayscale unimplemented\n");
+	}
 }
 
 static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
