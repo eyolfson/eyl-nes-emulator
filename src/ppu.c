@@ -500,6 +500,7 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 	if (console->ppu.nmi_output) {
 		cpu_generate_nmi(console);
 	}
+
 }
 
 static void ppu_vertical_blank_end(struct nes_emulator_console *console)

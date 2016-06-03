@@ -98,7 +98,7 @@ static void render_pixel(void *pointer,
 			wayland->back_data[i + (j * wayland->width)] =
 				palette[c];
 		}
-        }
+	}
 }
 
 static void vertical_blank(void *pointer)
