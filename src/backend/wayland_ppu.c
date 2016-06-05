@@ -21,6 +21,19 @@
 #include "../ppu.h"
 #include "wayland_private.h"
 
+static void swap_buffers(struct wayland *wayland)
+{
+	uint32_t *tmp_data;
+	tmp_data = wayland->front_data;
+	wayland->front_data = wayland->back_data;
+	wayland->back_data = tmp_data;
+
+	struct wl_buffer *tmp_buffer;
+	tmp_buffer = wayland->front_buffer;
+	wayland->front_buffer = wayland->back_buffer;
+	wayland->back_buffer = tmp_buffer;
+}
+
 static void render_pixel(void *pointer,
                          uint8_t x,
                          uint8_t y,
@@ -104,6 +117,20 @@ static void render_pixel(void *pointer,
 static void vertical_blank(void *pointer)
 {
   struct wayland *wayland = pointer;
+
+	wl_display_roundtrip(wayland->display);
+
+	swap_buffers(wayland);
+
+	wayland->frame_callback = wl_surface_frame(wayland->surface);
+	wl_callback_add_listener(wayland->frame_callback,
+	                         &frame_callback_listener, wayland);
+
+	wl_surface_damage(wayland->surface, 0, 0,
+	                  wayland->width, wayland->height);
+	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
+	wl_surface_commit(wayland->surface);
+
 	wl_display_roundtrip(wayland->display);
 }
 

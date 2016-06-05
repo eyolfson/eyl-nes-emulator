@@ -48,6 +48,8 @@ struct wayland {
 uint8_t init_wayland(struct wayland *wayland);
 uint8_t fini_wayland(struct wayland *wayland);
 
+struct wl_callback_listener frame_callback_listener;
+
 #ifdef __cplusplus
 }
 #endif

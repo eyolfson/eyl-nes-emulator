@@ -25,19 +25,6 @@
 static const int32_t WIDTH = 256 * 4;
 static const int32_t HEIGHT = 240 * 4;
 
-static void swap_buffers(struct wayland *wayland)
-{
-	uint32_t *tmp_data;
-	tmp_data = wayland->front_data;
-	wayland->front_data = wayland->back_data;
-	wayland->back_data = tmp_data;
-
-	struct wl_buffer *tmp_buffer;
-	tmp_buffer = wayland->front_buffer;
-	wayland->front_buffer = wayland->back_buffer;
-	wayland->back_buffer = tmp_buffer;
-}
-
 static void registry_global(void *data,
                             struct wl_registry *wl_registry,
                             uint32_t name,
@@ -83,26 +70,14 @@ static struct xdg_shell_listener shell_listener = {
 static void frame_callback_done(void *data, struct wl_callback *wl_callback,
                                 uint32_t time);
 
-static struct wl_callback_listener frame_callback_listener = {
+struct wl_callback_listener frame_callback_listener = {
 	.done = frame_callback_done,
 };
 
 static void frame_callback_done(void *data, struct wl_callback *wl_callback,
                                 uint32_t time)
 {
-	struct wayland *wayland = (struct wayland *) data;
-
-	wl_callback_destroy(wayland->frame_callback);
-	wayland->frame_callback = wl_surface_frame(wayland->surface);
-	wl_callback_add_listener(wayland->frame_callback,
-	                         &frame_callback_listener, wayland);
-
-	swap_buffers(wayland);
-
-	wl_surface_damage(wayland->surface, 0, 0,
-	                  wayland->width, wayland->height);
-	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
-	wl_surface_commit(wayland->surface);
+	/* TODO: check the time to ensure we don't have a frame miss */
 }
 
 uint8_t init_wayland(struct wayland *wayland)
@@ -207,6 +182,8 @@ uint8_t init_wayland(struct wayland *wayland)
 	wl_callback_add_listener(wayland->frame_callback,
 	                         &frame_callback_listener, wayland);
 
+	wl_surface_damage(wayland->surface, 0, 0,
+	                  wayland->width, wayland->height);
 	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
 	wl_surface_commit(wayland->surface);
 
