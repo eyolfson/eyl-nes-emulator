@@ -24,6 +24,7 @@ add_compile_options(-Wextra)
 
 find_package(PkgConfig)
 
+pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 pkg_get_variable(WAYLAND_PROTOCOLS_DATADIR wayland-protocols pkgdatadir)
@@ -47,6 +48,7 @@ add_custom_command(
 
 include_directories(
 	${CMAKE_BINARY_DIR}
+	${CAIRO_INCLUDE_DIRS}
 	${WAYLAND_CLIENT_INCLUDE_DIRS}
 )
 
@@ -69,5 +71,6 @@ add_executable(nes-emulator
 )
 
 target_link_libraries(nes-emulator
+	${CAIRO_LIBRARIES}
 	${WAYLAND_CLIENT_LIBRARIES}
 )

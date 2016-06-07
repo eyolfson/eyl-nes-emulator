@@ -310,6 +310,7 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.nmi_occurred = false;
 	console->ppu.is_sprite_overflow = false;
 	console->ppu.status = 0;
+	console->ppu.mask = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;
 	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
@@ -500,7 +501,6 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 	if (console->ppu.nmi_output) {
 		cpu_generate_nmi(console);
 	}
-
 }
 
 static void ppu_vertical_blank_end(struct nes_emulator_console *console)

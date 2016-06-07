@@ -21,6 +21,8 @@
 #include "../ppu.h"
 #include "wayland_private.h"
 
+#include <cairo/cairo.h>
+
 static void swap_buffers(struct wayland *wayland)
 {
 	uint32_t *tmp_data;
@@ -114,11 +116,28 @@ static void render_pixel(void *pointer,
 	}
 }
 
+static int frame_count = 0;
+
 static void vertical_blank(void *pointer)
 {
   struct wayland *wayland = pointer;
 
 	wl_display_roundtrip(wayland->display);
+
+	cairo_surface_t *cairo_surface = cairo_image_surface_create_for_data(
+		wayland->back_data, CAIRO_FORMAT_ARGB32, 1024, 960, 1024 * 4);
+	cairo_t *cairo = cairo_create(cairo_surface);
+	char buffer[200];
+	sprintf(buffer, "Frame %d", frame_count);
+	cairo_set_source_rgba(cairo, 255, 255, 255, 0.8);
+	cairo_select_font_face(cairo, "Cousine",
+		CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size(cairo, 48);
+	cairo_move_to(cairo, 10, 944);
+	cairo_show_text(cairo, buffer);
+	cairo_destroy(cairo);
+	cairo_surface_destroy(cairo_surface);
+	++frame_count;
 
 	swap_buffers(wayland);
 
@@ -131,7 +150,7 @@ static void vertical_blank(void *pointer)
 	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
 	wl_surface_commit(wayland->surface);
 
-	wl_display_roundtrip(wayland->display);
+	wl_display_flush(wayland->display);
 }
 
 uint8_t nes_emulator_ppu_backend_wayland_init(

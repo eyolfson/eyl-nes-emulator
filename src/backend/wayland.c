@@ -187,7 +187,7 @@ uint8_t init_wayland(struct wayland *wayland)
 	wl_surface_attach(wayland->surface, wayland->front_buffer, 0, 0);
 	wl_surface_commit(wayland->surface);
 
-	wl_display_roundtrip(wayland->display);
+	wl_display_flush(wayland->display);
 
 	return 0;
 }
