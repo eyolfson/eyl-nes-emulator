@@ -209,19 +209,21 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 	}
 	else if (address < 0x3000) {
 		/* Mirroring */
+		uint16_t index;
 		switch (console->cartridge->mirroring) {
 		case 0:
 			if (address < 0x2C00) {
-				return console->ppu.ram[address - 0x2000];
+				index = address - 0x2000;
 			}
 			else {
-				return console->ppu.ram[address - 0x2C00];
+				index = address - 0x2C00;
 			}
 		case 1:
-			return console->ppu.ram[address - 0x2800];
+			index = address - 0x2800;
 		default:
 			return 0;
 		}
+		return console->ppu.ram[index];
 	}
 	else if (address < 0x3F00) {
 		return ppu_bus_read(console, address - 0x1000);
@@ -316,6 +318,9 @@ void ppu_init(struct nes_emulator_console *console)
 	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
 		console->ppu.backends[i] = NULL;
 	}
+	console->ppu.internal_registers.t = 0;
+	console->ppu.internal_registers.v = 0;
+	console->ppu.internal_registers.x = 0;
 }
 
 static void populate_secondary_oam(struct nes_emulator_console *console,
@@ -377,7 +382,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		bool flip_horizontal = attribute & 0x40;
 
 		uint8_t x_left = console->ppu.secondary_oam[offset + 3];
-		if (x_left >= 0xF8) {
+		if (x_left > 0xF8) {
 			continue;
 		}
 		if (!(x >= x_left && x <= (x_left + 7))) {
@@ -403,11 +408,11 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		uint16_t low_byte_address = sprite_address
 		                            + tile_index * BYTES_PER_TILE
 		                            + pixel_byte_offset;
-		const uint8_t high_byte_offset = 8;
+		const uint8_t HIGH_BYTE_OFFSET = 8;
 		uint16_t high_byte_address = sprite_address
 		                             + tile_index * BYTES_PER_TILE
 		                             + pixel_byte_offset
-		                             + high_byte_offset;
+		                             + HIGH_BYTE_OFFSET;
 		uint8_t low_byte = ppu_bus_read(console, low_byte_address);
 		uint8_t high_byte = ppu_bus_read(console, high_byte_address);
 		*pixel_value = 0;
@@ -449,9 +454,7 @@ static uint8_t background_pixel_value(
 	                            + tile_index * BYTES_PER_TILE
 	                            + pixel_byte_offset;
 	const uint8_t HIGH_BYTE_OFFSET = 8;
-	uint16_t high_byte_address = background_address
-	                             + tile_index * BYTES_PER_TILE
-	                             + pixel_byte_offset
+	uint16_t high_byte_address = low_byte_address
 	                             + HIGH_BYTE_OFFSET;
 	uint8_t low_byte = ppu_bus_read(console, low_byte_address);
 	uint8_t high_byte = ppu_bus_read(console, high_byte_address);
