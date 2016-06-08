@@ -14,12 +14,13 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
-#include <stdlib.h>
-
 #include "../exit_code.h"
 #include "../ppu.h"
 #include "wayland_private.h"
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <cairo/cairo.h>
 

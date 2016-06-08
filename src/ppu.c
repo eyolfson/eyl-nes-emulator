@@ -19,6 +19,8 @@
 #include "cartridge.h"
 #include "console.h"
 
+#include <assert.h>
+
 void nes_emulator_console_add_ppu_backend(
 	struct nes_emulator_console *console,
 	struct nes_emulator_ppu_backend *ppu_backend)
@@ -198,6 +200,27 @@ static void palette_ppu_bus_write(struct nes_emulator_console *console,
 	}
 }
 
+static uint16_t get_mirror_index(struct nes_emulator_console *console,
+                                 uint16_t address)
+{
+	assert(address >=0x2800 && address < 0x3000);
+	uint16_t index;
+	switch (console->cartridge->mirroring) {
+	case 0:
+		if (address < 0x2C00) {
+			index = address - 0x2000;
+		}
+		else {
+			index = address - 0x2C00;
+		}
+	case 1:
+		index = address - 0x2800;
+	default:
+		return 0;
+	}
+	return index;
+}
+
 uint8_t ppu_bus_read(struct nes_emulator_console *console,
                      uint16_t address)
 {
@@ -209,20 +232,7 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console,
 	}
 	else if (address < 0x3000) {
 		/* Mirroring */
-		uint16_t index;
-		switch (console->cartridge->mirroring) {
-		case 0:
-			if (address < 0x2C00) {
-				index = address - 0x2000;
-			}
-			else {
-				index = address - 0x2C00;
-			}
-		case 1:
-			index = address - 0x2800;
-		default:
-			return 0;
-		}
+		uint16_t index = get_mirror_index(console, address);
 		return console->ppu.ram[index];
 	}
 	else if (address < 0x3F00) {
@@ -264,7 +274,8 @@ void ppu_bus_write(struct nes_emulator_console *console,
 		console->ppu.ram[address - 0x2000] = value;
 	}
 	else if (address < 0x3000) {
-		console->ppu.ram[address - 0x2800] = value;
+		uint16_t index = get_mirror_index(console, address);
+		console->ppu.ram[index] = value;
 	}
 	else if (address < 0x3F00) {
 		ppu_bus_write(console, address - 0x1000, value);
