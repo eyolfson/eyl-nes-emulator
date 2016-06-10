@@ -12,6 +12,10 @@ All code is licensed under GPLv3. All documentation is licensed under CC BY-SA
 Currently the emulator passes all `nestest` CPU tests. Some basic PPU tests
 pass.
 
+## TODO
+
+- Look at background rendering for early frames.
+
 ## Resources
 
 - [Nintendo Entertainment System Architecture] [1]
