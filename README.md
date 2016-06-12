@@ -14,7 +14,7 @@ pass.
 
 ## TODO
 
-- Look at background rendering for early frames.
+- Look at background rendering for early frames (possible wrong internals).
 
 ## Resources
 
