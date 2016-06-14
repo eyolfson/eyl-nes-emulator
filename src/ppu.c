@@ -331,6 +331,7 @@ void ppu_init(struct nes_emulator_console *console)
 	}
 	console->ppu.internal_registers.t = 0;
 	console->ppu.internal_registers.v = 0;
+	console->ppu.internal_registers.w = 0;
 	console->ppu.internal_registers.x = 0;
 }
 
