@@ -213,8 +213,10 @@ static uint16_t get_mirror_index(struct nes_emulator_console *console,
 		else {
 			index = address - 0x2C00;
 		}
+		break;
 	case 1:
 		index = address - 0x2800;
+		break;
 	default:
 		return 0;
 	}
