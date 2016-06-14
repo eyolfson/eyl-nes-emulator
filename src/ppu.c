@@ -534,6 +534,19 @@ static void reset_horizontal(struct nes_emulator_console *console)
 	console->ppu.internal_registers.v = v;
 }
 
+static void copy_vertical(struct nes_emulator_console *console)
+{
+	const uint16_t MASK = 0x7BE0;
+	uint16_t t = console->ppu.internal_registers.t;
+	uint16_t v = console->ppu.internal_registers.v;
+	printf("READ v = %04X\n", console->ppu.internal_registers.v);
+	printf("READ t = %04X\n", console->ppu.internal_registers.t);
+	v = (v & ~MASK) | (t & MASK);
+	console->ppu.internal_registers.v = v;
+	printf("t = %04X\n", console->ppu.internal_registers.t);
+	printf("WRITE v = %04X\n", console->ppu.internal_registers.v);
+}
+
 static bool handle_pixel(struct nes_emulator_console *console,
                          uint8_t x,
                          uint8_t y)
@@ -600,6 +613,16 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	/* TODO: probably related to even odd frames */
 	if (scan_line == -1 && cycle == 2) {
 		ppu_vertical_blank_end(console);
+	}
+	if (scan_line == -1) {
+		if (is_show_background(console)) {
+			if (cycle == 257) {
+				reset_horizontal(console);
+			}
+			else if (cycle == 280) {
+				copy_vertical(console);
+			}
+		}
 	}
 }
 
