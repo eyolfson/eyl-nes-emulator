@@ -539,12 +539,8 @@ static void copy_vertical(struct nes_emulator_console *console)
 	const uint16_t MASK = 0x7BE0;
 	uint16_t t = console->ppu.internal_registers.t;
 	uint16_t v = console->ppu.internal_registers.v;
-	printf("READ v = %04X\n", console->ppu.internal_registers.v);
-	printf("READ t = %04X\n", console->ppu.internal_registers.t);
 	v = (v & ~MASK) | (t & MASK);
 	console->ppu.internal_registers.v = v;
-	printf("t = %04X\n", console->ppu.internal_registers.t);
-	printf("WRITE v = %04X\n", console->ppu.internal_registers.v);
 }
 
 static bool handle_pixel(struct nes_emulator_console *console,
