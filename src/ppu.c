@@ -132,12 +132,22 @@ static bool is_rendering_disabled(struct nes_emulator_console *console)
 	return (console->ppu.mask & 0x18) == 0x00;
 }
 
-static bool is_show_background(struct nes_emulator_console *console)
+static bool mask_show_leftmost_background(struct nes_emulator_console *console)
+{
+	return (console->ppu.mask & 0x02) == 0x02;
+}
+
+static bool mask_show_leftmost_sprites(struct nes_emulator_console *console)
+{
+	return (console->ppu.mask & 0x04) == 0x04;
+}
+
+static bool mask_show_background(struct nes_emulator_console *console)
 {
 	return (console->ppu.mask & 0x08) == 0x08;
 }
 
-static bool is_show_sprites(struct nes_emulator_console *console)
+static bool mask_show_sprites(struct nes_emulator_console *console)
 {
 	return (console->ppu.mask & 0x10) == 0x10;
 }
@@ -381,7 +391,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
                          uint8_t *pixel_colour)
 {
 	*pixel_value = 0;
-	if (!is_show_sprites(console) || y == 0) {
+	if (!mask_show_sprites(console) || y == 0) {
 		return;
 	}
 	y -= 1;
@@ -510,7 +520,7 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 
 	console->ppu.nmi_occurred = true;
 
-	if (is_show_background(console)) {
+	if (mask_show_background(console)) {
 		uint16_t t = console->ppu.internal_registers.t;
 		console->ppu.internal_registers.v = t;
 	}
@@ -549,7 +559,7 @@ static bool handle_pixel(struct nes_emulator_console *console,
                          uint8_t x,
                          uint8_t y)
 {
-	if (!is_show_background(console)) {
+	if (!mask_show_background(console)) {
 		render_pixel(console, x, y, 0x00);
 		return false;
 	}
@@ -581,7 +591,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	/* Draw the pixel */
 	if (scan_line >= 0 && scan_line < 240) {
 		uint8_t y = scan_line;
-		if (y > 0 && cycle == 0 && is_show_sprites(console)) {
+		if (y > 0 && cycle == 0 && mask_show_sprites(console)) {
 			/* TODO: might need +1? */
 			populate_secondary_oam(console, y);
 		}
@@ -598,7 +608,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			}
 		}
 		else if (cycle == 257) {
-			if (is_show_background(console)) {
+			if (mask_show_background(console)) {
 				reset_horizontal(console);
 			}
 		}
@@ -613,7 +623,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		ppu_vertical_blank_end(console);
 	}
 	if (scan_line == -1) {
-		if (is_show_background(console)) {
+		if (mask_show_background(console)) {
 			if (cycle == 257) {
 				reset_horizontal(console);
 			}
