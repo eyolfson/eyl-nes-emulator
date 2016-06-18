@@ -391,7 +391,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
                          uint8_t *pixel_colour)
 {
 	*pixel_value = 0;
-	if (!mask_show_sprites(console) || y == 0) {
+	if (y == 0) {
 		return;
 	}
 	y -= 1;
@@ -574,9 +574,17 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	                                                  bg_pixel_value);
 	uint8_t sprite_pixel_value = 0;
 	uint8_t sprite_pixel_colour;
-	if (!mask_show_leftmost_sprites(console) && x >= 8) {
-		sprite_pixel(console, x, y,
-		             &sprite_pixel_value, &sprite_pixel_colour);
+	if (x < 8) {
+		if (mask_show_leftmost_sprites(console)) {
+			sprite_pixel(console, x, y,
+			             &sprite_pixel_value, &sprite_pixel_colour);
+		}
+	}
+	else {
+		if (mask_show_sprites(console)) {
+			sprite_pixel(console, x, y,
+			             &sprite_pixel_value, &sprite_pixel_colour);
+		}
 	}
 
 	if (sprite_pixel_value != 0) {
@@ -599,7 +607,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 	/* Draw the pixel */
 	if (scan_line >= 0 && scan_line < 240) {
 		uint8_t y = scan_line;
-		if (y > 0 && cycle == 0 && mask_show_sprites(console)) {
+		if (y > 0 && cycle == 0) {
 			/* TODO: might need +1? */
 			populate_secondary_oam(console, y);
 		}
