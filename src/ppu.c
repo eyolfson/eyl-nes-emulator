@@ -560,7 +560,7 @@ static bool handle_pixel(struct nes_emulator_console *console,
                          uint8_t y)
 {
 	uint8_t bg_pixel_value = 0;
-	uint8_t bg_pixel_colour = 0x00;
+	uint8_t bg_pixel_colour = ppu_bus_read(console, 0x3F00);
 
 	uint8_t sprite_pixel_value = 0;
 	uint8_t sprite_pixel_colour;
