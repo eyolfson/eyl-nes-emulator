@@ -564,12 +564,20 @@ static bool handle_pixel(struct nes_emulator_console *console,
 		return false;
 	}
 
+	if (!mask_show_leftmost_background(console) && x < 8) {
+		render_pixel(console, x, y, 0x00);
+		return false;
+	}
+
 	uint8_t bg_pixel_value = background_pixel_value(console);
 	uint8_t bg_pixel_colour = background_pixel_colour(console,
 	                                                  bg_pixel_value);
-	uint8_t sprite_pixel_value;
+	uint8_t sprite_pixel_value = 0;
 	uint8_t sprite_pixel_colour;
-	sprite_pixel(console, x, y, &sprite_pixel_value, &sprite_pixel_colour);
+	if (!mask_show_leftmost_sprites(console) && x >= 8) {
+		sprite_pixel(console, x, y,
+		             &sprite_pixel_value, &sprite_pixel_colour);
+	}
 
 	if (sprite_pixel_value != 0) {
 		if (bg_pixel_value != 0) {
