@@ -559,28 +559,29 @@ static bool handle_pixel(struct nes_emulator_console *console,
                          uint8_t x,
                          uint8_t y)
 {
-	if (!mask_show_background(console)) {
-		render_pixel(console, x, y, 0x00);
-		return false;
-	}
+	uint8_t bg_pixel_value = 0;
+	uint8_t bg_pixel_colour = 0x00;
 
-	if (!mask_show_leftmost_background(console) && x < 8) {
-		render_pixel(console, x, y, 0x00);
-		return false;
-	}
-
-	uint8_t bg_pixel_value = background_pixel_value(console);
-	uint8_t bg_pixel_colour = background_pixel_colour(console,
-	                                                  bg_pixel_value);
 	uint8_t sprite_pixel_value = 0;
 	uint8_t sprite_pixel_colour;
+
 	if (x < 8) {
+		if (mask_show_leftmost_background(console)) {
+			bg_pixel_value = background_pixel_value(console);
+			bg_pixel_colour = background_pixel_colour(
+				console, bg_pixel_value);
+		}
 		if (mask_show_leftmost_sprites(console)) {
 			sprite_pixel(console, x, y,
 			             &sprite_pixel_value, &sprite_pixel_colour);
 		}
 	}
 	else {
+		if (mask_show_background(console)) {
+			bg_pixel_value = background_pixel_value(console);
+			bg_pixel_colour = background_pixel_colour(
+				console, bg_pixel_value);
+		}
 		if (mask_show_sprites(console)) {
 			sprite_pixel(console, x, y,
 			             &sprite_pixel_value, &sprite_pixel_colour);
@@ -615,6 +616,10 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			uint8_t x = cycle - 1;
 
 			if (!handle_pixel(console, x, y)) {
+				return;
+			}
+
+			if (!mask_show_background(console)) {
 				return;
 			}
 
