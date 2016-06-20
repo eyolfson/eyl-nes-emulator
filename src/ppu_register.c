@@ -150,6 +150,11 @@ static void ppu_register_oam_addr_write(struct nes_emulator_console *console,
 	console->ppu.oam_address = value;
 }
 
+static uint8_t ppu_register_oam_data_read(struct nes_emulator_console *console)
+{
+	return console->ppu.oam[console->ppu.oam_address];
+}
+
 static void ppu_register_oam_data_write(struct nes_emulator_console *console,
                                         uint8_t value)
 {
@@ -231,6 +236,8 @@ uint8_t ppu_cpu_bus_read(struct nes_emulator_console *console,
 	switch (address % 8) {
 	case 2:
 		return ppu_register_status_read(console);
+	case 4:
+		return ppu_register_oam_data_read(console);
 	case 7:
 		return ppu_register_data_read(console);
 	default:
