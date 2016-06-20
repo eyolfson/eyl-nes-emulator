@@ -406,9 +406,6 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		bool flip_horizontal = attribute & 0x40;
 
 		uint8_t x_left = console->ppu.secondary_oam[offset + 3];
-		if (x_left > 0xF8) {
-			continue;
-		}
 		if (!(x >= x_left && x <= (x_left + 7))) {
 			continue;
 		}
@@ -589,7 +586,7 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	}
 
 	if (sprite_pixel_value != 0) {
-		if (bg_pixel_value != 0) {
+		if (bg_pixel_value != 0 && x != 255) {
 			console->ppu.status = 0x40;
 		}
 		render_pixel(console, x, y, sprite_pixel_colour);
