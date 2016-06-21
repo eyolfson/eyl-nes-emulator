@@ -127,6 +127,11 @@ static void fine_y_increment(struct nes_emulator_console *console)
 	}
 }
 
+static bool control_sprite_size_8_x_16(struct nes_emulator_console *console)
+{
+	return (console->ppu.control & 0x20) == 0x20;
+}
+
 static bool is_rendering_disabled(struct nes_emulator_console *console)
 {
 	return (console->ppu.mask & 0x18) == 0x00;
@@ -360,7 +365,11 @@ static void populate_secondary_oam(struct nes_emulator_console *console,
 		if (y_top >= 0xF8) {
 			continue;
 		}
-		if (y >= y_top && y <= (y_top + 7)) {
+		uint8_t sprite_height = 8;
+		if (control_sprite_size_8_x_16(console)) {
+			sprite_height = 16;
+		}
+		if (y >= y_top && y <= (y_top + (sprite_height - 1))) {
 			/* Copy bytes to Secondary OAM */
 			if (entries < 8) {
 				for (uint8_t j = 0; j < 4; ++j) {
@@ -414,6 +423,10 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		/* This tile is within range */
 		uint8_t tile_index = console->ppu.secondary_oam[offset + 1];
 		uint16_t sprite_address = console->ppu.sprite_address;
+
+		if (control_sprite_size_8_x_16(console)) {
+			sprite_address = 0x0000;
+		}
 		if (flip_vertical) {
 			y_offset = 7 - y_offset;
 		}

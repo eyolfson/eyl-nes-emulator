@@ -67,6 +67,7 @@ struct ppu {
 	bool nmi_output;
 	bool nmi_occurred;
 
+	uint8_t control;
 	uint8_t status;
 
 	uint16_t cycle;

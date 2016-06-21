@@ -46,11 +46,6 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	uint8_t p = (value & (1 << 6)) >> 6;
 	if (p == 1) { printf("PPU master/slave select unimplemented\n"); }
 
-	/* Sprite size (0: 8x8; 1: 8x16) */
-	uint8_t h = (value & (1 << 5)) >> 5;
-	/* TODO: Remove */
-	if (h == 1) { printf("PPU sprite size unimplemented\n"); }
-
 	/* Background pattern table address (0: $0000; 1: $1000) */
 	uint8_t b = (value & (1 << 4)) >> 4;
 	if (b == 0) {
@@ -104,6 +99,8 @@ static void ppu_register_ctrl_write(struct nes_emulator_console *console,
 	t &= ~(0x0003 << 10);
 	t += (n << 10);
 	console->ppu.internal_registers.t = t;
+
+	console->ppu.control = value;
 }
 
 static void ppu_register_mask_write(struct nes_emulator_console *console,
