@@ -544,7 +544,6 @@ static void ppu_vertical_blank_start(struct nes_emulator_console *console)
 static void ppu_vertical_blank_end(struct nes_emulator_console *console)
 {
 	console->ppu.nmi_occurred = false;
-	console->ppu.is_sprite_overflow = false;
 }
 
 static void reset_horizontal(struct nes_emulator_console *console)
@@ -667,6 +666,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 			/* TODO: should be in vertical blank end, but the
 			         timing is wrong */
 			console->ppu.status = 0;
+			console->ppu.is_sprite_overflow = false;
 		}
 		if (mask_show_background(console)) {
 			if (cycle == 257) {
