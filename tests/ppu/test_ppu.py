@@ -62,7 +62,7 @@ def run_tests(suite):
 
 def run_all():
 	all_results = (0, 0)
-	for suite in ["ppu_vbl_nmi", "sprite_hit_tests"]:
+	for suite in ["blargg_ppu_tests", "ppu_vbl_nmi", "sprite_hit_tests"]:
 		results = run_tests(suite)
 		all_results = (all_results[0] + results[0],
 		               all_results[1] + results[1])
