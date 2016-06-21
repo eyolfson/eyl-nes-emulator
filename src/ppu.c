@@ -60,7 +60,7 @@ static void vertical_blank(struct nes_emulator_console *console)
 static uint16_t get_tile_address(struct nes_emulator_console *console)
 {
 	uint16_t v = console->ppu.internal_registers.v;
-	return 0x2000 | (v & 0x03FF);
+	return 0x2000 | (v & 0x0FFF);
 }
 
 static uint16_t get_attribute_address(struct nes_emulator_console *console)
