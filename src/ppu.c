@@ -621,7 +621,12 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		uint8_t y = scan_line;
 		if (y > 0 && cycle == 0) {
 			/* TODO: might need +1? */
-			populate_secondary_oam(console, y);
+			if (is_rendering_disabled(console)) {
+				console->ppu.secondary_oam_entries = 0;
+			}
+			else {
+				populate_secondary_oam(console, y);
+			}
 		}
 		else if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;

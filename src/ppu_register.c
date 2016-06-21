@@ -133,7 +133,7 @@ static uint8_t ppu_register_status_read(struct nes_emulator_console *console)
 	/* Sprite overflow */
 	if (console->ppu.is_sprite_overflow) {
 		value |= 0x20;
-		console->ppu.is_sprite_overflow = false;
+		//console->ppu.is_sprite_overflow = false;
 	}
 
 	console->ppu.internal_registers.w = 0;
