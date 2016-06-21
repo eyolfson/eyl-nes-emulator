@@ -339,7 +339,9 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.nmi_output = false;
 	console->ppu.nmi_occurred = false;
 	console->ppu.is_sprite_overflow = false;
+	console->ppu.control = 0;
 	console->ppu.status = 0;
+	console->ppu.read_buffer = 0;
 	console->ppu.mask = 0;
 	console->ppu.cycle = 0;
 	console->ppu.scan_line = 241;

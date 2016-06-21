@@ -211,11 +211,26 @@ static void ppu_register_addr_write(struct nes_emulator_console *console,
 
 static uint8_t ppu_register_data_read(struct nes_emulator_console *console)
 {
+	uint8_t buffer = console->ppu.read_buffer;
+
 	uint16_t v = console->ppu.internal_registers.v;
-	uint8_t m = ppu_bus_read(console, v);
+	uint8_t value = ppu_bus_read(console, v);
+	bool is_palette_read = v >= 0x3F00;
+
+	uint8_t ret;
+	if (is_palette_read) {
+		console->ppu.read_buffer = ppu_bus_read(console, v - 0x1000);
+		ret = value;
+	}
+	else {
+		console->ppu.read_buffer = value;
+		ret = buffer;
+	}
+
 	v += console->ppu.computed_address_increment;
 	console->ppu.internal_registers.v = v;
-	return m;
+
+	return ret;
 }
 
 static void ppu_register_data_write(struct nes_emulator_console *console,

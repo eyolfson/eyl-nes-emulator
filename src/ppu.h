@@ -70,6 +70,8 @@ struct ppu {
 	uint8_t control;
 	uint8_t status;
 
+	uint8_t read_buffer;
+
 	uint16_t cycle;
 	int16_t scan_line;
 
