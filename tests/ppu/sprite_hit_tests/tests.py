@@ -47,30 +47,54 @@ TEST_06_ROM = (
 	"06.right_edge.nes",
 	b"8e6653fcb869e06873e29e5e4423122ea72ba0bf38f3ba9e39f471420db759a4"
 )
+TEST_06_BIN = (
+	"06.bin",
+	b"b8a3085a51dde1e95385504fd428d3860299ab433f3018d77478c3355a14a8f2"
+)
 
 TEST_07_ROM = (
 	"07.screen_bottom.nes",
 	b"05849956f80267838c5b6556310266b794078a4300841cbb36339fd141905a0b"
+)
+TEST_07_BIN = (
+	"07.bin",
+	b"cf5d1b5e7e0579e045198e3cd2825557b33b441f5d8c3451553d343f1efb4b3d"
 )
 
 TEST_08_ROM = (
 	"08.double_height.nes",
 	b"127fd966b6b32d6d88a53c5f59d7e938827783c9ad056091f119be1c4ab21c71"
 )
+TEST_08_BIN = (
+	"08.bin",
+	b"7910494c0f6dc748edc2671df13e73358f365e5d41a718044bf90cdac279d7d4"
+)
 
 TEST_09_ROM = (
 	"09.timing_basics.nes",
 	b"311698c717e50150edd0b5fd0016c41de686463205c20efb5630d6adb90859fd"
+)
+TEST_09_BIN = (
+	"09.bin",
+	b"f78306de0e3ef3ca23c001101c7c97eeb4b3c457df892bb9f00daec25dbc3c1e"
 )
 
 TEST_10_ROM = (
 	"10.timing_order.nes",
 	b"0f36bc07bfe51c416e3cc1a5231053572aa6b15aa60e6d2fd0568be49b6dc2e9"
 )
+TEST_10_BIN = (
+	"10.bin",
+	b"7cf7305a709d545f044f2579798e1c41e9bd478da8de76f3369cb938a5151b46"
+)
 
 TEST_11_ROM = (
 	"11.edge_timing.nes",
 	b"5a7c121f6e76617be88a0a7035c0e402293be5c685c95b97190a8d70835736ab"
+)
+TEST_11_BIN = (
+	"11.bin",
+	b"ee0b4921701fb712c4799fe7c2fb982aab7632ea666e347fa1d44b38fab81c5f"
 )
 
 DATA = [
@@ -79,10 +103,10 @@ DATA = [
 	(TEST_03_ROM, TEST_03_BIN, '20'),
 	(TEST_04_ROM, TEST_04_BIN, '18'),
 	(TEST_05_ROM, TEST_05_BIN, '29'),
-	(TEST_06_ROM, None, None),
-	(TEST_07_ROM, None, None),
-	(TEST_08_ROM, None, None),
-	(TEST_09_ROM, None, None),
-	(TEST_10_ROM, None, None),
-	(TEST_11_ROM, None, None),
+	(TEST_06_ROM, TEST_06_BIN, '22'),
+	(TEST_07_ROM, TEST_07_BIN, '24'),
+	(TEST_08_ROM, TEST_08_BIN, '22'),
+	(TEST_09_ROM, TEST_09_BIN, '76'),
+	(TEST_10_ROM, TEST_10_BIN, '72'),
+	(TEST_11_ROM, TEST_11_BIN, '66'),
 ]
