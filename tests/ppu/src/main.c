@@ -38,14 +38,14 @@ static uint8_t buffer[SIZE];
 
 static long long frame = 0;
 static bool test_running = true;
-static bool check_success = true;
+static bool test_success = true;
 
 static void render_pixel(void *pointer, uint8_t x, uint8_t y, uint8_t c)
 {
 	if (frame == check_frame) {
 		if (buffer[y * WIDTH + x] != c) {
 			test_running = false;
-			check_success = false;
+			test_success = false;
 		}
 	}
 }
@@ -117,11 +117,11 @@ int main(int argc, char **argv)
 		exit_code = nes_emulator_console_step(console);
 	}
 
-	if (check_success) {
-		printf("Check SUCCESS\n");
+	if (test_success) {
+		printf("Test SUCCESS\n");
 	}
 	else {
-		printf("Check FAILURE\n");
+		printf("Test FAILURE\n");
 	}
 
 	nes_emulator_cartridge_fini(&cartridge);
