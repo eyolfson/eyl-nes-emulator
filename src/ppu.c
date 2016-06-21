@@ -358,7 +358,6 @@ static void populate_secondary_oam(struct nes_emulator_console *console,
                                    uint8_t y)
 {
 	uint8_t entries = 0;
-	y -= 1;
 	console->ppu.is_sprite_0_in_secondary = false;
 	for (uint8_t i = 0; i < 64; ++i) {
 		uint8_t offset = i * 4;
@@ -625,7 +624,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 				console->ppu.secondary_oam_entries = 0;
 			}
 			else {
-				populate_secondary_oam(console, y);
+				populate_secondary_oam(console, y - 1);
 			}
 		}
 		else if (cycle >= 1 && cycle <= 256) {
@@ -649,6 +648,10 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 				reset_horizontal(console);
 			}
 		}
+	}
+
+	if (scan_line == 240 && cycle == 0) {
+		populate_secondary_oam(console, scan_line - 1);
 	}
 
 	if (scan_line == 241 && cycle == 1) {
