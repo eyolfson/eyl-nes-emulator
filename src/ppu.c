@@ -60,16 +60,13 @@ static void vertical_blank(struct nes_emulator_console *console)
 static uint16_t get_tile_address(struct nes_emulator_console *console)
 {
 	uint16_t v = console->ppu.internal_registers.v;
-	uint16_t nametable_bits = (console->ppu.control & 0x03) << 10;
-	return 0x2000 | nametable_bits | (v & 0x03FF);
+	return 0x2000 | (v & 0x03FF);
 }
 
 static uint16_t get_attribute_address(struct nes_emulator_console *console)
 {
 	uint16_t v = console->ppu.internal_registers.v;
-	uint16_t nametable_bits = (console->ppu.control & 0x03) << 10;
-	return 0x23C0 | nametable_bits | (v & 0x0C00)
-	       | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
+	return 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
 }
 
 static void coarse_x_increment(struct nes_emulator_console *console)
