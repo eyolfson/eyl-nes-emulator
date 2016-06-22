@@ -56,7 +56,7 @@ static void oam_dma(struct nes_emulator_console *console,
                     uint8_t value)
 {
 	/* TODO: should suspend for 513 cycles? */
-	console->cpu.dma_suspend_cycles = 512;
+	console->cpu.dma_suspend_cycles = 513;
 	uint16_t cpu_address = value << 8;
 	for (uint8_t offset = 0; ; ++offset) {
 		uint8_t cpu_value = cpu_bus_read(console, cpu_address + offset);
