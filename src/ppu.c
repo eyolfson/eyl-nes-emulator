@@ -642,7 +642,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 				fine_y_increment(console);
 			}
 		}
-		else if (cycle == 257) {
+		else if (cycle >= 257 && cycle <= 340) {
 			if (mask_show_background(console)) {
 				reset_horizontal(console);
 			}
