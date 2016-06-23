@@ -398,7 +398,8 @@ static void sprite_pixel(struct nes_emulator_console *console,
                          uint8_t x,
                          uint8_t y,
                          uint8_t *pixel_value,
-                         uint8_t *pixel_colour)
+                         uint8_t *pixel_colour,
+                         bool *is_sprite_0_hit)
 {
 	*pixel_value = 0;
 	if (y == 0) {
@@ -406,6 +407,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
 	}
 	y -= 1;
 
+	*is_sprite_0_hit = false;
 	for (uint8_t i = 0; i < console->ppu.secondary_oam_entries; ++i) {
 		uint8_t offset = i * 4;
 		uint8_t y_top = console->ppu.secondary_oam[offset];
@@ -459,6 +461,10 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		}
 		if (*pixel_value == 0) {
 			continue;
+		}
+
+		if (i == 0 && console->ppu.is_sprite_0_in_secondary) {
+			*is_sprite_0_hit = true;
 		}
 
 		/* Lookup palette */
@@ -573,6 +579,7 @@ static bool handle_pixel(struct nes_emulator_console *console,
 
 	uint8_t sprite_pixel_value = 0;
 	uint8_t sprite_pixel_colour;
+	bool is_sprite_0_hit;
 
 	if (x < 8) {
 		if (mask_show_leftmost_background(console)) {
@@ -582,7 +589,8 @@ static bool handle_pixel(struct nes_emulator_console *console,
 		}
 		if (mask_show_leftmost_sprites(console)) {
 			sprite_pixel(console, x, y,
-			             &sprite_pixel_value, &sprite_pixel_colour);
+			             &sprite_pixel_value, &sprite_pixel_colour,
+			             &is_sprite_0_hit);
 		}
 	}
 	else {
@@ -593,12 +601,13 @@ static bool handle_pixel(struct nes_emulator_console *console,
 		}
 		if (mask_show_sprites(console)) {
 			sprite_pixel(console, x, y,
-			             &sprite_pixel_value, &sprite_pixel_colour);
+			             &sprite_pixel_value, &sprite_pixel_colour,
+			             &is_sprite_0_hit);
 		}
 	}
 
 	if (sprite_pixel_value != 0) {
-		if (bg_pixel_value != 0 && x != 255) {
+		if (bg_pixel_value != 0 && x != 255 && is_sprite_0_hit) {
 			console->ppu.status |= 0x40;
 		}
 		render_pixel(console, x, y, sprite_pixel_colour);
