@@ -607,7 +607,8 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	}
 
 	if (sprite_pixel_value != 0) {
-		if (bg_pixel_value != 0 && x != 255 && is_sprite_0_hit) {
+		if (bg_pixel_value != 0 && x != 255 && is_sprite_0_hit
+		    && ((console->ppu.status & 0x40) != 0x40)) {
 			console->ppu.status |= 0x40;
 		}
 		render_pixel(console, x, y, sprite_pixel_colour);
