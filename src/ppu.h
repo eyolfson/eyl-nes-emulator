@@ -76,6 +76,7 @@ struct ppu {
 	int16_t scan_line;
 
 	struct ppu_internal_registers internal_registers;
+	uint8_t current_x;
 
 	struct nes_emulator_ppu_backend *backends[PPU_BACKENDS_MAX];
 };

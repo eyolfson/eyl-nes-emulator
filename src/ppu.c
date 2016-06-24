@@ -84,7 +84,7 @@ static void coarse_x_increment(struct nes_emulator_console *console)
 
 static void fine_x_increment(struct nes_emulator_console *console)
 {
-	uint8_t x = console->ppu.internal_registers.x;
+	uint8_t x = console->ppu.current_x;
 	if (x == 7) {
 		coarse_x_increment(console);
 		x = 0;
@@ -92,7 +92,7 @@ static void fine_x_increment(struct nes_emulator_console *console)
 	else {
 		x += 1;
 	}
-	console->ppu.internal_registers.x = x;
+	console->ppu.current_x = x;
 }
 
 static void coarse_y_increment(struct nes_emulator_console *console)
@@ -352,6 +352,7 @@ void ppu_init(struct nes_emulator_console *console)
 	console->ppu.internal_registers.v = 0;
 	console->ppu.internal_registers.w = 0;
 	console->ppu.internal_registers.x = 0;
+	console->ppu.current_x = 0;
 }
 
 static void populate_secondary_oam(struct nes_emulator_console *console,
@@ -479,7 +480,7 @@ static uint8_t background_pixel_value(
 	struct nes_emulator_console *console)
 {
   uint16_t tile_address = get_tile_address(console);
-	uint8_t fine_x = console->ppu.internal_registers.x;
+	uint8_t fine_x = console->ppu.current_x;
 	uint16_t v = console->ppu.internal_registers.v;
 	uint8_t fine_y = (v & 0x7000) >> 12;
 	uint8_t tile_index = ppu_bus_read(console, tile_address);
@@ -638,6 +639,11 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 		}
 		else if (cycle >= 1 && cycle <= 256) {
 			uint8_t x = cycle - 1;
+
+			if (x % 8 == 0) {
+				console->ppu.current_x =
+					console->ppu.internal_registers.x;
+			}
 
 			if (!handle_pixel(console, x, y)) {
 				return;
