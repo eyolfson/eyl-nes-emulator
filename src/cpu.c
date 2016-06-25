@@ -665,37 +665,11 @@ static void execute_force_interrupt(struct nes_emulator_console *console,
 	set_break_command_flag(registers);
 }
 
-static void execute_subtract_with_carry_for_isb(
-	struct nes_emulator_console *console,
-	struct registers *registers)
-{
-	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
-
-	int8_t a = (int8_t) registers->a;
-	int8_t b = (int8_t) m;
-
-	int16_t result = a - b;
-	if (!get_carry_flag(registers)) {
-		result -= 1;
-	}
-
-	uint16_t unsigned_result = ~(registers->a) + m;
-	if (get_carry_flag(registers)) {
-		unsigned_result += 1;
-	}
-
-	assign_carry_flag(registers, unsigned_result >= 0x100);
-	assign_overflow_flag(registers, result < -128 || result > 127);
-	assign_negative_flag(registers, result & 0x80);
-	assign_zero_flag(registers, result == 0);
-	registers->a = (result & 0xFF);
-}
-
 static void execute_isb(struct nes_emulator_console *console,
                         struct registers *registers)
 {
 	execute_increment_memory(console, registers);
-	execute_subtract_with_carry_for_isb(console, registers);
+	execute_subtract_with_carry(console, registers);
 }
 
 static void execute_dcp(struct nes_emulator_console *console,
@@ -726,46 +700,11 @@ static void execute_sre(struct nes_emulator_console *console,
 	execute_logical_exclusive_or(console, registers);
 }
 
-static void execute_add_with_carry_rra(struct nes_emulator_console *console,
-                                       struct registers *registers)
-{
-	uint8_t v = cpu_bus_read(console, console->cpu.computed_address);
-
-	int8_t a = (int8_t) registers->a;
-	int8_t b = (int8_t) v;
-
-	int16_t result = a + b;
-	if (get_carry_flag(registers)) {
-		result += 1;
-	}
-
-	uint16_t unsigned_result = registers->a + v;
-	if (get_carry_flag(registers)) {
-		unsigned_result += 1;
-	}
-	assign_carry_flag(registers, unsigned_result & 0x100);
-
-	/* If the operands have opposite signs, the sum will never overflow */
-	if (a >= 0 && b >= 0 && (int8_t) result < 0) {
-		set_overflow_flag(registers);
-	}
-	else if (a < 0 && b < 0 && (int8_t) result > 0) {
-		set_overflow_flag(registers);
-	}
-	else {
-		clear_overflow_flag(registers);
-	}
-
-	assign_negative_flag(registers, result & 0x80);
-	assign_zero_flag(registers, result == 0);
-	registers->a = (result & 0xFF);
-}
-
 static void execute_rra(struct nes_emulator_console *console,
                         struct registers *registers)
 {
 	execute_rotate_right(console, registers);
-	execute_add_with_carry_rra(console, registers);
+	execute_add_with_carry(console, registers);
 }
 
 static uint8_t execute_instruction(struct nes_emulator_console *console,
