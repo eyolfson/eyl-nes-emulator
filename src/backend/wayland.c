@@ -81,6 +81,7 @@ struct wl_callback_listener frame_callback_listener = {
 static void frame_callback_done(void *data, struct wl_callback *wl_callback,
                                 uint32_t time)
 {
+	wl_callback_destroy(wl_callback);
 	/* TODO: check the time to ensure we don't have a frame miss */
 }
 
@@ -201,8 +202,8 @@ uint8_t init_wayland(struct wayland *wayland)
 
 uint8_t fini_wayland(struct wayland *wayland)
 {
+	wl_display_roundtrip(wayland->display);
 	wl_seat_destroy(wayland->seat);
-	wl_callback_destroy(wayland->frame_callback);
 	uint8_t exit_code = fini_wayland_buffer(wayland);
 	xdg_surface_destroy(wayland->shell_surface);
 	wl_surface_destroy(wayland->surface);
