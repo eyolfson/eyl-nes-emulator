@@ -192,7 +192,7 @@ uint8_t nes_emulator_ppu_backend_wayland_fini(
 	struct nes_emulator_ppu_backend **ppu_backend)
 {
 	uint8_t exit_code = 0;
-	struct wayland *wayland = (struct wayland *) &((*ppu_backend)->pointer);
+	struct wayland *wayland = (struct wayland *) (*ppu_backend)->pointer;
 	exit_code |= fini_wayland(wayland);
 	free(wayland);
 	free(*ppu_backend);
