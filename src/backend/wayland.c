@@ -45,6 +45,10 @@ static void registry_global(void *data,
 		wayland->shell = wl_registry_bind(
 			wl_registry, name, &xdg_shell_interface, version);
 	}
+	else if (strcmp(interface, wl_seat_interface.name) == 0) {
+		wayland->seat = wl_registry_bind(
+			wl_registry, name, &wl_seat_interface, version);
+	}
 }
 
 static void registry_global_remove(void *data,
@@ -97,7 +101,7 @@ uint8_t init_wayland(struct wayland *wayland)
 	                         wayland);
 	wl_display_dispatch(wayland->display);
 	if (wayland->compositor == NULL || wayland->shm == NULL
-	    || wayland->shell == NULL) {
+	    || wayland->shell == NULL || wayland->seat == NULL) {
 		if (wayland->compositor != NULL) {
 			wl_compositor_destroy(wayland->compositor);
 		}
@@ -106,6 +110,9 @@ uint8_t init_wayland(struct wayland *wayland)
 		}
 		if (wayland->shell != NULL) {
 			xdg_shell_destroy(wayland->shell);
+		}
+		if (wayland->seat != NULL) {
+			wl_seat_destroy(wayland->seat);
 		}
 		wl_registry_destroy(wayland->registry);
 		wl_display_disconnect(wayland->display);
@@ -194,6 +201,7 @@ uint8_t init_wayland(struct wayland *wayland)
 
 uint8_t fini_wayland(struct wayland *wayland)
 {
+	wl_seat_destroy(wayland->seat);
 	wl_callback_destroy(wayland->frame_callback);
 	uint8_t exit_code = fini_wayland_buffer(wayland);
 	xdg_surface_destroy(wayland->shell_surface);

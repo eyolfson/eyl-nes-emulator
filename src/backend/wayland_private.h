@@ -43,6 +43,8 @@ struct wayland {
 	struct wl_buffer *front_buffer;
 	struct wl_buffer *back_buffer;
 	struct wl_callback *frame_callback;
+
+	struct wl_seat *seat;
 };
 
 uint8_t init_wayland(struct wayland *wayland);
