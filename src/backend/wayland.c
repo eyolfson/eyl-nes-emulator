@@ -126,6 +126,7 @@ uint8_t init_wayland(struct wayland *wayland)
 
 	wayland->surface = wl_compositor_create_surface(wayland->compositor);
 	if (wayland->surface == NULL) {
+		wl_seat_destroy(wayland->seat);
 		xdg_shell_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
@@ -138,6 +139,7 @@ uint8_t init_wayland(struct wayland *wayland)
 	                                                   wayland->surface);
 	if (wayland->shell_surface == NULL) {
 		wl_surface_destroy(wayland->surface);
+		wl_seat_destroy(wayland->seat);
 		xdg_shell_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
@@ -158,6 +160,7 @@ uint8_t init_wayland(struct wayland *wayland)
 	if (exit_code != 0) {
 		xdg_surface_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
+		wl_seat_destroy(wayland->seat);
 		xdg_shell_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
@@ -179,6 +182,7 @@ uint8_t init_wayland(struct wayland *wayland)
 		exit_code |= fini_wayland_buffer(wayland);
 		xdg_surface_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
+		wl_seat_destroy(wayland->seat);
 		xdg_shell_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
