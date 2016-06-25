@@ -66,7 +66,7 @@ uint8_t nes_emulator_console_step(struct nes_emulator_console *console)
 
 void nes_emulator_console_fini(struct nes_emulator_console **console)
 {
-	if (*console == NULL) {
+	if (*console != NULL) {
 		free(*console);
 	}
 	*console = NULL;
