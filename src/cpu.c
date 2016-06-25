@@ -380,23 +380,20 @@ static void execute_add_with_carry(struct nes_emulator_console *console,
 static void execute_subtract_with_carry(struct nes_emulator_console *console,
                                         struct registers *registers)
 {
+	uint8_t a = registers->a;
 	uint8_t m = cpu_bus_read(console, console->cpu.computed_address);
 
-	int8_t a = (int8_t) registers->a;
-	int8_t b = (int8_t) m;
-
-	int16_t result = a - b;
-	uint16_t t = registers->a + ((uint8_t) (~m) + (uint8_t) 1);
+	uint16_t result = a - m;
 	if (!get_carry_flag(registers)) {
 		result -= 1;
-		t += 0xFF;
 	}
 
-	assign_carry_flag(registers, t >= 0x100);
-	assign_overflow_flag(registers, result < -128 || result > 127);
-	assign_negative_flag(registers, result & 0x80);
-	assign_zero_flag(registers, result == 0);
-	registers->a = (result & 0xFF);
+	assign_overflow_flag(registers, (a ^ result) & (a ^ m) & 0x80);
+	assign_carry_flag(registers, !(result & 0x100));
+
+	uint8_t byte_result = result;
+	assign_negative_and_zero_flags_from_value(registers, byte_result);
+	registers->a = byte_result;
 }
 
 static void execute_logical_and(struct nes_emulator_console *console,
