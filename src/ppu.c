@@ -400,7 +400,8 @@ static void sprite_pixel(struct nes_emulator_console *console,
                          uint8_t y,
                          uint8_t *pixel_value,
                          uint8_t *pixel_colour,
-                         bool *is_sprite_0_hit)
+                         bool *is_sprite_0_hit,
+                         bool *is_behind_background)
 {
 	*pixel_value = 0;
 	if (y == 0) {
@@ -467,6 +468,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
 		if (i == 0 && console->ppu.is_sprite_0_in_secondary) {
 			*is_sprite_0_hit = true;
 		}
+		*is_behind_background = attribute & 0x20;
 
 		/* Lookup palette */
 		uint8_t palette_index = attribute & 0x03;
@@ -581,6 +583,7 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	uint8_t sprite_pixel_value = 0;
 	uint8_t sprite_pixel_colour;
 	bool is_sprite_0_hit;
+	bool is_sprite_behind_background;
 
 	if (x < 8) {
 		if (mask_show_leftmost_background(console)) {
@@ -591,7 +594,8 @@ static bool handle_pixel(struct nes_emulator_console *console,
 		if (mask_show_leftmost_sprites(console)) {
 			sprite_pixel(console, x, y,
 			             &sprite_pixel_value, &sprite_pixel_colour,
-			             &is_sprite_0_hit);
+			             &is_sprite_0_hit,
+			             &is_sprite_behind_background);
 		}
 	}
 	else {
@@ -603,7 +607,8 @@ static bool handle_pixel(struct nes_emulator_console *console,
 		if (mask_show_sprites(console)) {
 			sprite_pixel(console, x, y,
 			             &sprite_pixel_value, &sprite_pixel_colour,
-			             &is_sprite_0_hit);
+			             &is_sprite_0_hit,
+			             &is_sprite_behind_background);
 		}
 	}
 
@@ -612,7 +617,18 @@ static bool handle_pixel(struct nes_emulator_console *console,
 		    && ((console->ppu.status & 0x40) != 0x40)) {
 			console->ppu.status |= 0x40;
 		}
-		render_pixel(console, x, y, sprite_pixel_colour);
+		if (bg_pixel_value == 0) {
+			render_pixel(console, x, y, sprite_pixel_colour);
+		}
+		else {
+			if (is_sprite_behind_background) {
+				render_pixel(console, x, y, bg_pixel_colour);
+			}
+			else {
+				render_pixel(console, x, y,
+				             sprite_pixel_colour);
+			}
+		}
 	}
 	else {
 		render_pixel(console, x, y, bg_pixel_colour);
