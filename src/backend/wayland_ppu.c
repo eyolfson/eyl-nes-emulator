@@ -125,6 +125,7 @@ static void vertical_blank(void *pointer)
 
 	wl_display_roundtrip(wayland->display);
 
+/*
 	cairo_surface_t *cairo_surface = cairo_image_surface_create_for_data(
 		wayland->back_data, CAIRO_FORMAT_ARGB32, 1024, 960, 1024 * 4);
 	cairo_t *cairo = cairo_create(cairo_surface);
@@ -139,6 +140,7 @@ static void vertical_blank(void *pointer)
 	cairo_destroy(cairo);
 	cairo_surface_destroy(cairo_surface);
 	++frame_count;
+*/
 
 	swap_buffers(wayland);
 
