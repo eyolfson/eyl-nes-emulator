@@ -1346,6 +1346,12 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		registers->pc += 2;
 		*step_cycles = 6;
 		break;
+	case 0x58:
+		/* CLI - Clear Interrupt Disable Flag */
+		clear_interrupt_disable_flag(registers);
+		registers->pc += 1;
+		*step_cycles = 2;
+		break;
 	case 0x59:
 		/* EOR - Exclusive OR */
 		compute_absolute_y_address(console, registers);
