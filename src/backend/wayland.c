@@ -148,6 +148,19 @@ uint8_t init_wayland(struct wayland *wayland)
 		return EXIT_CODE_WAYLAND_BIT;
 	}
 
+	wayland->keyboard = wl_seat_get_keyboard(wayland->seat);
+	if (wayland->keyboard == NULL) {
+		xdg_surface_destroy(wayland->shell_surface);
+		wl_surface_destroy(wayland->surface);
+		wl_seat_destroy(wayland->seat);
+		xdg_shell_destroy(wayland->shell);
+		wl_shm_destroy(wayland->shm);
+		wl_compositor_destroy(wayland->compositor);
+		wl_registry_destroy(wayland->registry);
+		wl_display_disconnect(wayland->display);
+		return EXIT_CODE_WAYLAND_BIT;
+	}
+
 	wayland->width = WIDTH;
 	wayland->height = HEIGHT;
 
@@ -158,6 +171,7 @@ uint8_t init_wayland(struct wayland *wayland)
 
 	uint8_t exit_code = init_wayland_buffer(wayland);
 	if (exit_code != 0) {
+		wl_keyboard_destroy(wayland->keyboard);
 		xdg_surface_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
 		wl_seat_destroy(wayland->seat);
@@ -180,6 +194,7 @@ uint8_t init_wayland(struct wayland *wayland)
 	if (wayland->frame_callback == NULL) {
 		exit_code = EXIT_CODE_WAYLAND_BIT;
 		exit_code |= fini_wayland_buffer(wayland);
+		wl_keyboard_destroy(wayland->keyboard);
 		xdg_surface_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
 		wl_seat_destroy(wayland->seat);
@@ -207,6 +222,7 @@ uint8_t init_wayland(struct wayland *wayland)
 uint8_t fini_wayland(struct wayland *wayland)
 {
 	wl_display_roundtrip(wayland->display);
+	wl_keyboard_destroy(wayland->keyboard);
 	wl_seat_destroy(wayland->seat);
 	uint8_t exit_code = fini_wayland_buffer(wayland);
 	xdg_surface_destroy(wayland->shell_surface);

@@ -45,6 +45,7 @@ struct wayland {
 	struct wl_callback *frame_callback;
 
 	struct wl_seat *seat;
+	struct wl_keyboard *keyboard;
 };
 
 uint8_t init_wayland(struct wayland *wayland);
