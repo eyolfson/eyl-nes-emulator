@@ -44,6 +44,9 @@ struct cpu {
 	bool nmi_queued;
 	bool nmi_delay; /* Allow the CPU to execute it's next instruction */
 
+	bool controller_latch;
+	uint8_t controller_shift;
+	uint8_t controller_status;
 	uint16_t dma_suspend_cycles;
 };
 

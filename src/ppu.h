@@ -35,6 +35,7 @@ struct nes_emulator_ppu_backend {
 	void *pointer;
 	void (*render_pixel)(void *, uint8_t, uint8_t, uint8_t);
 	void (*vertical_blank)(void *);
+	uint8_t (*joypad1_read)(void *);
 };
 
 struct ppu_internal_registers {
@@ -94,6 +95,8 @@ uint8_t ppu_bus_read(struct nes_emulator_console *console, uint16_t address);
 void ppu_bus_write(struct nes_emulator_console *console,
                    uint16_t address,
                    uint8_t value);
+
+uint8_t controller_read(struct nes_emulator_console *console);
 
 #ifdef __cpluscplus
 }

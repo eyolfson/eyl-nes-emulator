@@ -46,6 +46,8 @@ struct wayland {
 
 	struct wl_seat *seat;
 	struct wl_keyboard *keyboard;
+	uint8_t joypad1_press;
+	uint8_t joypad1_state;
 };
 
 uint8_t init_wayland(struct wayland *wayland);

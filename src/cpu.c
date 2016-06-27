@@ -26,6 +26,26 @@ static const uint16_t NMI_HANDLER_ADDRESS = 0xFFFA;
 static const uint16_t RESET_HANDLER_ADDRESS = 0xFFFC;
 static const uint16_t IRQ_HANDLER_ADDRESS = 0xFFFE;
 
+static uint8_t get_controller_status(struct nes_emulator_console *console)
+{
+	if (console->cpu.controller_shift > 7) {
+		/* Overflowed the shifts */
+		return 0x01;
+	}
+
+	uint8_t ret = 0x00;
+	if ((console->cpu.controller_status << console->cpu.controller_shift)
+	    & 0x80) {
+		ret = 0x01;
+	}
+
+	if (console->cpu.controller_latch == false) {
+		++(console->cpu.controller_shift);
+	}
+
+	return ret;
+}
+
 static uint8_t cpu_bus_read(struct nes_emulator_console *console,
                             uint16_t address)
 {
@@ -45,6 +65,9 @@ static uint8_t cpu_bus_read(struct nes_emulator_console *console,
 		return ppu_cpu_bus_read(console, address);
 	}
 	else if (address < 0x4020) {
+		if (address == 0x4016) {
+			return get_controller_status(console);
+		}
 		return 0x00;
 	}
 	else {
@@ -89,6 +112,15 @@ static void cpu_bus_write(struct nes_emulator_console *console,
 	else if (address < 0x4020) {
 		if (address == 0x4014) {
 			oam_dma(console, value);
+		}
+		else if (address == 0x4016) {
+			if (console->cpu.controller_latch && ((value & 0x01)
+			    == 0)) {
+				console->cpu.controller_shift = 0;
+				console->cpu.controller_status =
+					controller_read(console);
+			}
+			console->cpu.controller_latch = value & 0x01;
 		}
 	}
 	else {
@@ -2469,6 +2501,9 @@ void cpu_init(struct nes_emulator_console *console)
 	console->cpu.computed_address = 0x0000;
 	console->cpu.nmi_queued = false;
 	console->cpu.nmi_delay = false;
+	console->cpu.controller_latch = false;
+	console->cpu.controller_shift = 0;
+	console->cpu.controller_status = 0;
 	console->cpu.dma_suspend_cycles = 0;
 }
 
@@ -2479,6 +2514,9 @@ void cpu_reset(struct nes_emulator_console *console)
 	             + (cpu_bus_read(console, RESET_HANDLER_ADDRESS + 1) << 8);
 	console->cpu.nmi_queued = false;
 	console->cpu.nmi_delay = false;
+	console->cpu.controller_latch = false;
+	console->cpu.controller_shift = 0;
+	console->cpu.controller_status = 0;
 	console->cpu.dma_suspend_cycles = 0;
 }
 

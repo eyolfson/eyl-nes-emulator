@@ -117,7 +117,83 @@ static void keyboard_key(void *data,
                          uint32_t key,
                          uint32_t state)
 {
+	struct wayland *wayland = (struct wayland *) data;
 
+	const uint8_t BUTTON_A      = 1 << 7;
+	const uint8_t BUTTON_B      = 1 << 6;
+	const uint8_t BUTTON_SELECT = 1 << 5;
+	const uint8_t BUTTON_START  = 1 << 4;
+	const uint8_t BUTTON_UP     = 1 << 3;
+	const uint8_t BUTTON_DOWN   = 1 << 2;
+	const uint8_t BUTTON_LEFT   = 1 << 1;
+	const uint8_t BUTTON_RIGHT  = 1 << 0;
+
+	switch (state) {
+	case 0:
+		switch (key) {
+		case 17:
+			wayland->joypad1_press &= ~(BUTTON_UP);
+			break;
+		case 30:
+			wayland->joypad1_press &= ~(BUTTON_LEFT);
+			break;
+		case 31:
+			wayland->joypad1_press &= ~(BUTTON_DOWN);
+			break;
+		case 32:
+			wayland->joypad1_press &= ~(BUTTON_RIGHT);
+			break;
+		case 34:
+			wayland->joypad1_press &= ~(BUTTON_SELECT);
+			break;
+		case 35:
+			wayland->joypad1_press &= ~(BUTTON_START);
+			break;
+		case 37:
+			wayland->joypad1_press &= ~(BUTTON_B);
+			break;
+		case 38:
+			wayland->joypad1_press &= ~(BUTTON_A);
+			break;
+		}
+		break;
+	case 1:
+		switch (key) {
+		case 17:
+			wayland->joypad1_press |= BUTTON_UP;
+			wayland->joypad1_state |= BUTTON_UP;
+			break;
+		case 30:
+			wayland->joypad1_press |= BUTTON_LEFT;
+			wayland->joypad1_state |= BUTTON_LEFT;
+			break;
+		case 31:
+			wayland->joypad1_press |= BUTTON_DOWN;
+			wayland->joypad1_state |= BUTTON_DOWN;
+			break;
+		case 32:
+			wayland->joypad1_press |= BUTTON_RIGHT;
+			wayland->joypad1_state |= BUTTON_RIGHT;
+			break;
+		case 34:
+			wayland->joypad1_press |= BUTTON_SELECT;
+			wayland->joypad1_state |= BUTTON_SELECT;
+			break;
+		case 35:
+			wayland->joypad1_press |= BUTTON_START;
+			wayland->joypad1_state |= BUTTON_START;
+			break;
+		case 37:
+			wayland->joypad1_press |= BUTTON_B;
+			wayland->joypad1_state |= BUTTON_B;
+			break;
+		case 38:
+			wayland->joypad1_press |= BUTTON_A;
+			wayland->joypad1_state |= BUTTON_A;
+			break;
+		}
+		break;
+	}
 }
 
 static void keyboard_modifiers(void *data,

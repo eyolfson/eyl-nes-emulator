@@ -117,7 +117,7 @@ static void render_pixel(void *pointer,
 	}
 }
 
-static int frame_count = 0;
+//static int frame_count = 0;
 
 static void vertical_blank(void *pointer)
 {
@@ -156,6 +156,18 @@ static void vertical_blank(void *pointer)
 	wl_display_flush(wayland->display);
 }
 
+static uint8_t joypad1_read(void *pointer)
+{
+  struct wayland *wayland = pointer;
+
+	wl_display_roundtrip(wayland->display);
+
+	uint8_t state = wayland->joypad1_state;
+	wayland->joypad1_state = wayland->joypad1_press;
+
+	return state;
+}
+
 uint8_t nes_emulator_ppu_backend_wayland_init(
 	struct nes_emulator_ppu_backend **ppu_backend)
 {
@@ -186,6 +198,7 @@ uint8_t nes_emulator_ppu_backend_wayland_init(
 	b->pointer = w;
 	b->render_pixel = render_pixel;
 	b->vertical_blank = vertical_blank;
+	b->joypad1_read = joypad1_read;
 	*ppu_backend = b;
 	return 0;
 }
