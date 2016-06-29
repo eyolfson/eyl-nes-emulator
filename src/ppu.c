@@ -492,7 +492,7 @@ static void sprite_pixel(struct nes_emulator_console *console,
 static uint8_t background_pixel_value(
 	struct nes_emulator_console *console)
 {
-  uint16_t tile_address = get_tile_address(console);
+	uint16_t tile_address = get_tile_address(console);
 	uint8_t fine_x = console->ppu.current_x;
 	uint16_t v = console->ppu.internal_registers.v;
 	uint8_t fine_y = (v & 0x7000) >> 12;

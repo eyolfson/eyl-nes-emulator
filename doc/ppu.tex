@@ -42,15 +42,91 @@ Each sprite takes \texttt{4 B}.
 
 \section{Memory}
 
+The memory map is:
+
+\hexadecimal{0000}: Tile Data 0
+
+\hexadecimal{1000}: Tile Data 1
+
+\hexadecimal{2000}: Nametable 0
+
+\hexadecimal{2400}: Nametable 1
+
+\hexadecimal{2800}: Nametable 2
+
+\hexadecimal{2C00}: Nametable 3
+
+\hexadecimal{3F00}: Palette RAM
+
 \section{Object Attribute Memory (OAM)}
 
 \section{Registers}
+
+There are 8 registers accessible by the CPU.
 
 \section{Drawing a Pixel}
 
 Background is drawn from the current nametable.
 
-\subsection{Screen}
+\subsection{Tile}
+
+A single $8 \times 8$ tile occupies $16$ bytes.
+Consider the following tile data:
+
+\binary{00000000}
+\binary{00000000}
+\binary{01000000}
+\binary{01100000}
+
+\binary{01110000}
+\binary{01111000}
+\binary{01111100}
+\binary{01111110}
+
+\binary{00011111}
+\binary{00000001}
+\binary{01000001}
+\binary{01100001}
+
+\binary{01010001}
+\binary{01001000}
+\binary{01000100}
+\binary{01111110}
+
+The first 8 bytes encode the low bit of the palette select.
+The last 8 bytes encode the high bit of the palette select.
+The pixels themselves are in row-major order.
+
+\begin{tikzpicture}
+  \matrix [matrix of nodes, nodes in empty cells,
+           row sep=1mm, column sep=1mm,
+           nodes=draw,
+           minimum width=8mm, minimum height=8mm] {
+      0 & 0 & 0 & 2 & 2 & 2 & 2 & 2 \\
+      0 & 0 & 0 & 0 & 0 & 0 & 0 & 2 \\
+      0 & 3 & 0 & 0 & 0 & 0 & 0 & 2 \\
+      0 & 3 & 3 & 0 & 0 & 0 & 0 & 2 \\
+      0 & 3 & 1 & 3 & 0 & 0 & 0 & 2 \\
+      0 & 3 & 1 & 1 & 3 & 0 & 0 & 0 \\
+      0 & 3 & 1 & 1 & 1 & 3 & 0 & 0 \\
+      0 & 3 & 3 & 3 & 3 & 3 & 3 & 0 \\
+  };
+\end{tikzpicture}
+
+\subsection{Palettes}
+
+Held in RAM, maps the palette select to a colour.
+
+\subsection{Nametable}
+
+A nametable has $960$ bytes storing tile indices in row-major order.
+The $960$ tiles make up the background ($32 \times 30$ tiles).
+The remaining $64$ bytes stores attribute data.
+The attribute data stores which palette to use.
+
+\subsection{Background}
+
+\textit{Relevant Internal Registers: \texttt{v}, \texttt{x}}
 
 The current scanline is the $y$ coordinate.
 
@@ -66,22 +142,6 @@ A grid of the pixels is shown below:
   \node [left] at (0, -35mm) {$y$};
   \node [left] at (0, 0) {\texttt{0}};
   \node [left] at (0, -70mm) {\texttt{239}};
-\end{tikzpicture}
-
-\begin{tikzpicture}
-  \matrix [matrix of nodes, nodes in empty cells,
-           row sep=1mm, column sep=1mm,
-           nodes=draw,
-           minimum width=8mm, minimum height=8mm] {
-      & & & & & & & \\
-      & & & & & & & \\
-      & & & & & & & \\
-      & & & & & & & \\
-      & & & & & & & \\
-      & & & & & & & \\
-      & & & & & & & \\
-      & & & & & & & \\
-  };
 \end{tikzpicture}
 
 v: \hexadecimal{2000} = \binary{0010 NNYY YYYX XXXX}
@@ -114,8 +174,6 @@ The tiles are...
 \hexadecimal{28C0} ... \hexadecimal{28DF}
 
 \hexadecimal{28E0} ... \hexadecimal{28FF}
-
-\subsection{Background}
 
 \subsection{Sprite}
 
