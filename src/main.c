@@ -22,6 +22,13 @@
 
 int main(int argc, char **argv)
 {
+	for (int i = 0; i < argc; ++i) {
+		if (strcmp("--version", argv[i]) == 0) {
+			printf("NES Emulator 0.1.0-development\n");
+			return 0;
+		}
+	}
+
 	struct nes_emulator_console *console;
 	struct nes_emulator_cartridge *cartridge;
 	struct memory_mapping mm;
