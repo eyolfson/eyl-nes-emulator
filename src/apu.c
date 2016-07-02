@@ -15,3 +15,15 @@
  */
 
 #include "apu.h"
+
+uint8_t apu_cpu_bus_read(struct nes_emulator_console *console,
+                         uint16_t address)
+{
+	return 0;
+}
+
+void apu_cpu_bus_write(struct nes_emulator_console *console,
+                       uint16_t address,
+                       uint8_t value)
+{
+}
