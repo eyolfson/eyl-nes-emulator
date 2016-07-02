@@ -55,6 +55,7 @@ include_directories(
 add_executable(nes-emulator
 	main.c
 
+	apu.c
 	args.c
 	cartridge.c
 	console.c

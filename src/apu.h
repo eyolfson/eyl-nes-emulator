@@ -19,7 +19,11 @@
 #ifdef __cpluscplus
 extern "C" {
 #endif
-`
+
+#include <stdint.h>
+
+struct nes_emulator_console;
+
 uint8_t apu_cpu_bus_read(struct nes_emulator_console *console,
                          uint16_t address);
 

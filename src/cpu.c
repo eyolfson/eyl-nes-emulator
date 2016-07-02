@@ -17,6 +17,7 @@
 #include "cpu.h"
 
 #include <stdbool.h>
+#include "apu.h"
 #include "cartridge.h"
 #include "console.h"
 #include "exit_code.h"
