@@ -14,7 +14,8 @@ pass (NMI timing and Sprite 0 Hit), see `test/ppu` directory.
 
 ## TODO
 
-- Look at background rendering for early frames (possible wrong internals).
+- APU
+- Mappers
 
 ## Resources
 
