@@ -22,6 +22,7 @@ add_compile_options(-Wextra)
 add_executable(nes-emulator-nestest
 	main.c
 
+	../../../src/apu.c
 	../../../src/args.c
 	../../../src/cartridge.c
 	../../../src/console.c

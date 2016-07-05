@@ -21,6 +21,7 @@ add_compile_options(-Wextra)
 
 add_executable(nes-emulator-ppu
 	main.c
+	../../../src/apu.c
 	../../../src/args.c
 	../../../src/cartridge.c
 	../../../src/console.c

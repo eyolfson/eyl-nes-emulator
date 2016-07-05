@@ -66,10 +66,15 @@ static uint8_t cpu_bus_read(struct nes_emulator_console *console,
 		return ppu_cpu_bus_read(console, address);
 	}
 	else if (address < 0x4020) {
-		if (address == 0x4016) {
+		if (address == 0x4014) {
+			return 0x00;
+		}
+		else if (address == 0x4016) {
 			return get_controller_status(console);
 		}
-		return 0x00;
+		else {
+			return apu_cpu_bus_read(console, address);
+		}
 	}
 	else {
 		return cartridge_cpu_bus_read(console, address);
@@ -122,6 +127,9 @@ static void cpu_bus_write(struct nes_emulator_console *console,
 					controller_read(console);
 			}
 			console->cpu.controller_latch = value & 0x01;
+		}
+		else {
+			apu_cpu_bus_write(console, address, value);
 		}
 	}
 	else {
