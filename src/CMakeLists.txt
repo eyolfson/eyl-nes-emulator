@@ -24,6 +24,7 @@ add_compile_options(-Wextra)
 
 find_package(PkgConfig)
 
+pkg_check_modules(ALSA REQUIRED alsa)
 pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
@@ -48,6 +49,7 @@ add_custom_command(
 
 include_directories(
 	${CMAKE_BINARY_DIR}
+	${ALSA_INCLUDE_DIRS}
 	${CAIRO_INCLUDE_DIRS}
 	${WAYLAND_CLIENT_INCLUDE_DIRS}
 )
@@ -63,15 +65,19 @@ add_executable(nes-emulator
 	exit_code.c
 	ppu.c
 	ppu_register.c
+
 	backend/wayland.c
 	backend/wayland_buffer.c
 	backend/wayland_ppu.c
+
+	backend/alsa.c
 
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.c
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h
 )
 
 target_link_libraries(nes-emulator
+	${ALSA_LIBRARIES}
 	${CAIRO_LIBRARIES}
 	${WAYLAND_CLIENT_LIBRARIES}
 )
