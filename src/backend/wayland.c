@@ -55,6 +55,9 @@ static void registry_global_remove(void *data,
                                    struct wl_registry *wl_registry,
                                    uint32_t name)
 {
+	(void) (data);
+	(void) (wl_registry);
+	(void) (name);
 }
 
 static struct wl_registry_listener registry_listener = {
@@ -64,6 +67,8 @@ static struct wl_registry_listener registry_listener = {
 
 static void shell_ping(void *data, struct xdg_shell *xdg_shell, uint32_t serial)
 {
+	(void) (data);
+
 	xdg_shell_pong(xdg_shell, serial);
 }
 
@@ -71,26 +76,36 @@ static struct xdg_shell_listener shell_listener = {
 	.ping = shell_ping,
 };
 
-static void frame_callback_done(void *data, struct wl_callback *wl_callback,
+static void frame_callback_done(void *data,
+                                struct wl_callback *wl_callback,
                                 uint32_t time);
 
 struct wl_callback_listener frame_callback_listener = {
 	.done = frame_callback_done,
 };
 
-static void frame_callback_done(void *data, struct wl_callback *wl_callback,
+static void frame_callback_done(void *data,
+                                struct wl_callback *wl_callback,
                                 uint32_t time)
 {
-	wl_callback_destroy(wl_callback);
+	(void) (data);
 	/* TODO: check the time to ensure we don't have a frame miss */
+	(void) (time);
+
+	wl_callback_destroy(wl_callback);
 }
 
 static void keyboard_keymap(void *data,
-                            struct wl_keyboard *wl_keybord,
+                            struct wl_keyboard *wl_keyboard,
                             uint32_t format,
                             int32_t fd,
                             uint32_t size)
 {
+	(void) (data);
+	(void) (wl_keyboard);
+	(void) (format);
+	(void) (fd);
+	(void) (size);
 }
 
 static void keyboard_enter(void *data,
@@ -99,7 +114,11 @@ static void keyboard_enter(void *data,
                            struct wl_surface *surface,
                            struct wl_array *keys)
 {
-
+	(void) (data);
+	(void) (wl_keyboard);
+	(void) (serial);
+	(void) (surface);
+	(void) (keys);
 }
 
 static void keyboard_leave(void *data,
@@ -107,7 +126,10 @@ static void keyboard_leave(void *data,
                            uint32_t serial,
                            struct wl_surface *surface)
 {
-
+	(void) (data);
+	(void) (wl_keyboard);
+	(void) (serial);
+	(void) (surface);
 }
 
 static void keyboard_key(void *data,
@@ -117,6 +139,11 @@ static void keyboard_key(void *data,
                          uint32_t key,
                          uint32_t state)
 {
+	(void) (data);
+	(void) (wl_keyboard);
+	(void) (serial);
+	(void) (time);
+
 	struct wayland *wayland = (struct wayland *) data;
 
 	const uint8_t BUTTON_A      = 1 << 7;
@@ -204,7 +231,13 @@ static void keyboard_modifiers(void *data,
                                uint32_t mods_locked,
                                uint32_t group)
 {
-
+	(void) (data);
+	(void) (wl_keyboard);
+	(void) (serial);
+	(void) (mods_depressed);
+	(void) (mods_latched);
+	(void) (mods_locked);
+	(void) (group);
 }
 
 static void keyboard_repeat_info(void *data,
@@ -212,7 +245,10 @@ static void keyboard_repeat_info(void *data,
                                  int32_t rate,
                                  int32_t delay)
 {
-
+	(void) (data);
+	(void) (wl_keyboard);
+	(void) (rate);
+	(void) (delay);
 }
 
 struct wl_keyboard_listener keyboard_listener = {
