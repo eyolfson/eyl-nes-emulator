@@ -838,6 +838,14 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		registers->pc += 1;
 		*step_cycles = 2;
 		break;
+	case 0x0B:
+		/* AAC (ANC) (Illegal Opcode) */
+		compute_immediate_address(console, registers);
+		execute_logical_and(console, registers);
+		assign_carry_flag(console, get_negative_flag(console));
+		registers->pc += 2;
+		*step_cycles = 2;
+		break;
 	case 0x0C:
 		/* TOP (Illegal Opcode) */
 		compute_absolute_address(console, registers);
@@ -1045,6 +1053,14 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		registers->pc += 1;
 		*step_cycles = 2;
 		break;
+	case 0x2B:
+		/* AAC (ANC) (Illegal Opcode) */
+		compute_immediate_address(console, registers);
+		execute_logical_and(console, registers);
+		assign_carry_flag(console, get_negative_flag(console));
+		registers->pc += 2;
+		*step_cycles = 2;
+		break;
 	case 0x2C:
 		/* BIT - Bit Test */
 		compute_absolute_address(console, registers);
@@ -1248,6 +1264,14 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		/* LSR - Logical Shift Right */
 		execute_logical_shift_right_accumulator(registers);
 		registers->pc += 1;
+		*step_cycles = 2;
+		break;
+	case 0x4B:
+		/* ASR (Illegal Opcode) */
+		compute_immediate_address(console, registers);
+		execute_logical_and(console, registers);
+		execute_logical_shift_right_accumulator(console);
+		registers->pc += 2;
 		*step_cycles = 2;
 		break;
 	case 0x4C:
@@ -1455,6 +1479,20 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		/* ROR - Rotate Right */
 		execute_rotate_right_accumulator(registers);
 		registers->pc += 1;
+		*step_cycles = 2;
+		break;
+	case 0x6B:
+		/* ARR (Illegal Opcode) */
+		compute_immediate_address(console, registers);
+		execute_logical_and(console, registers);
+		execute_rotate_right_accumulator(registers);
+		{
+			bool bit6 = registers->a & (1 << 6);
+			bool bit5 = registers->a & (1 << 5);
+			assign_carry_flag(console, bit6);
+			assign_overflow_flag(console, bit6 ^ bit5);
+		}
+		registers->pc += 2;
 		*step_cycles = 2;
 		break;
 	case 0x6C:
@@ -1866,6 +1904,16 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		registers->pc += 1;
 		*step_cycles = 2;
 		break;
+	case 0xAB:
+		/* ATX (Illegal Opcode) */
+		compute_immediate_address(console, registers);
+		execute_logical_and(console, registers);
+		registers->x = registers->a;
+		assign_negative_and_zero_flags_from_value(registers,
+		                                          registers->x);
+		registers->pc += 2;
+		*step_cycles = 2;
+		break;
 	case 0xAC:
 		/* LDY - Load Y Register */
 		compute_absolute_address(console, registers);
@@ -2127,6 +2175,14 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		assign_negative_and_zero_flags_from_value(registers,
 		                                          registers->x);
 		registers->pc += 1;
+		*step_cycles = 2;
+		break;
+	case 0xCB:
+		/* AXS (Illegal Opcode) */
+		compute_immediate_address(console, registers);
+		registers->x &= registers->a;
+		execute_subtract_with_carry(console, registers);
+		registers->pc += 2;
 		*step_cycles = 2;
 		break;
 	case 0xCC:
@@ -2495,6 +2551,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		*step_cycles = 7;
 		break;
 	default:
+printf("It's %02X\n", opcode);
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
 	}
 
