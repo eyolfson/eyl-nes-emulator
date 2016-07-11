@@ -19,6 +19,10 @@
 
 #include "nes_emulator.h"
 #include "backend/wayland.h"
+#include "backend/alsa.h"
+
+#include <stdio.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
@@ -33,6 +37,12 @@ int main(int argc, char **argv)
 	struct nes_emulator_cartridge *cartridge;
 	struct memory_mapping mm;
 	uint8_t exit_code;
+
+	exit_code = alsa_init();
+	if (exit_code != 0) {
+		return exit_code;
+	}
+	alsa_fini();
 
 	exit_code = init_memory_mapping_from_args(argc, argv, &mm);
 	if (exit_code != 0) {

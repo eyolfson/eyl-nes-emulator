@@ -14,26 +14,17 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "alsa.h"
+#pragma once
 
-#define ALSA_PCM_NEW_HW_PARAMS_API
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include <alsa/asoundlib.h>
+#include <stdint.h>
 
-static snd_pcm_t *handle;
+uint8_t alsa_init();
+void alsa_fini();
 
-uint8_t alsa_init()
-{
-	int ret;
-	ret = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
-	if (ret < 0) {
-		return 1;
-	}
-	return 0;
+#ifdef __cplusplus
 }
-
-void alsa_fini()
-{
-	snd_pcm_drain(handle);
-	snd_pcm_close(handle);
-}
+#endif
