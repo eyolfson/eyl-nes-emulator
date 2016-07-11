@@ -9,8 +9,8 @@ All code is licensed under GPLv3. All documentation is licensed under CC BY-SA
 
 ## Testing
 
-Currently the emulator passes all `nestest` CPU tests. Some basic PPU tests
-pass (NMI timing and Sprite 0 Hit), see `test/ppu` directory.
+Currently the emulator passes all `nestest` CPU tests. Most PPU tests pass (NMI
+timing and Sprite 0 Hit), see `test/ppu` directory.
 
 ## TODO
 
