@@ -47,6 +47,7 @@ uint8_t alsa_init()
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
 
+/*
 	snd_pcm_sframes_t frames;
 	for (unsigned int i = 0; i < 16; i++) {
 		frames = snd_pcm_writei(handle, buffer, sizeof(buffer));
@@ -61,6 +62,7 @@ uint8_t alsa_init()
 			printf("Short write (expected %li, wrote %li)\n",
 				(long)sizeof(buffer), frames);
 	}
+*/
 
 	return 0;
 }
