@@ -214,6 +214,8 @@ uint8_t nes_emulator_ppu_backend_wayland_init(
 		free(b);
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
+	w->joypad1_state = 0;
+	w->joypad1_press = 0;
 
 	uint8_t exit_code = init_wayland(w);
 	if (exit_code != 0) {
