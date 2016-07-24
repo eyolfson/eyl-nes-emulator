@@ -117,7 +117,9 @@ static void render_pixel(void *pointer,
 	}
 }
 
-//static int frame_count = 0;
+#include <time.h>
+static struct timespec tv_prev;
+// static int frame_count = 0;
 
 static void vertical_blank(void *pointer)
 {
@@ -125,22 +127,47 @@ static void vertical_blank(void *pointer)
 
 	wl_display_roundtrip(wayland->display);
 
-/*
-	cairo_surface_t *cairo_surface = cairo_image_surface_create_for_data(
-		wayland->back_data, CAIRO_FORMAT_ARGB32, 1024, 960, 1024 * 4);
-	cairo_t *cairo = cairo_create(cairo_surface);
-	char buffer[200];
-	sprintf(buffer, "Frame %d", frame_count);
-	cairo_set_source_rgba(cairo, 255, 255, 255, 0.8);
-	cairo_select_font_face(cairo, "Cousine",
-		CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size(cairo, 48);
-	cairo_move_to(cairo, 10, 944);
-	cairo_show_text(cairo, buffer);
-	cairo_destroy(cairo);
-	cairo_surface_destroy(cairo_surface);
-	++frame_count;
-*/
+	struct timespec tv;
+	clock_gettime(CLOCK_REALTIME, &tv);
+	if (tv_prev.tv_sec == 0 && tv_prev.tv_nsec) {
+		tv_prev = tv;
+	}
+	else {
+		/* Timing */
+		int64_t sec_diff = tv.tv_sec - tv_prev.tv_sec;
+		int64_t nsec_diff;
+		if (tv.tv_nsec >= tv_prev.tv_nsec) {
+			nsec_diff = 0;
+		}
+		else {
+			nsec_diff = 1000000000;
+			sec_diff -= 1;
+		}
+		nsec_diff += tv.tv_nsec;
+		nsec_diff -= tv_prev.tv_nsec;
+		tv_prev = tv;
+
+		// assert(sec_diff == 0);
+
+		cairo_surface_t *cairo_surface =
+			cairo_image_surface_create_for_data(
+				(unsigned char *)wayland->back_data,
+				CAIRO_FORMAT_ARGB32,
+				1024, 960, 1024 * 4);
+		cairo_t *cairo = cairo_create(cairo_surface);
+		char buffer[200];
+		double fps = 1000000000.0 / ((double) nsec_diff);
+		sprintf(buffer, "FPS %.1f", fps);
+		cairo_set_source_rgba(cairo, 255, 255, 255, 0.8);
+		cairo_select_font_face(cairo, "Cousine",
+			CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+		cairo_set_font_size(cairo, 48);
+		cairo_move_to(cairo, 10, 944);
+		cairo_show_text(cairo, buffer);
+		cairo_destroy(cairo);
+		cairo_surface_destroy(cairo_surface);
+		// ++frame_count;
+	}
 
 	swap_buffers(wayland);
 
