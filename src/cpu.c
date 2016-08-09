@@ -842,7 +842,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		/* AAC (ANC) (Illegal Opcode) */
 		compute_immediate_address(console, registers);
 		execute_logical_and(console, registers);
-		assign_carry_flag(console, get_negative_flag(console));
+		assign_carry_flag(registers, get_negative_flag(registers));
 		registers->pc += 2;
 		*step_cycles = 2;
 		break;
@@ -1057,7 +1057,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		/* AAC (ANC) (Illegal Opcode) */
 		compute_immediate_address(console, registers);
 		execute_logical_and(console, registers);
-		assign_carry_flag(console, get_negative_flag(console));
+		assign_carry_flag(registers, get_negative_flag(registers));
 		registers->pc += 2;
 		*step_cycles = 2;
 		break;
@@ -1270,7 +1270,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		/* ASR (Illegal Opcode) */
 		compute_immediate_address(console, registers);
 		execute_logical_and(console, registers);
-		execute_logical_shift_right_accumulator(console);
+		execute_logical_shift_right_accumulator(registers);
 		registers->pc += 2;
 		*step_cycles = 2;
 		break;
@@ -1489,8 +1489,8 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		{
 			bool bit6 = registers->a & (1 << 6);
 			bool bit5 = registers->a & (1 << 5);
-			assign_carry_flag(console, bit6);
-			assign_overflow_flag(console, bit6 ^ bit5);
+			assign_carry_flag(registers, bit6);
+			assign_overflow_flag(registers, bit6 ^ bit5);
 		}
 		registers->pc += 2;
 		*step_cycles = 2;
@@ -2551,7 +2551,6 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		*step_cycles = 7;
 		break;
 	default:
-printf("It's %02X\n", opcode);
 		return EXIT_CODE_UNIMPLEMENTED_BIT;
 	}
 
