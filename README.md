@@ -1,6 +1,6 @@
 # NES Emulator
 
-A work-in-progress NES emulator.
+A work-in-progress NES emulator written for Wayland.
 
 ## License
 
