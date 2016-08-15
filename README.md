@@ -17,6 +17,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
 - CPU
   - [ ] ATX instruction ($AB)
   - [ ] AXS instruction ($CB)
+  - Add more automated testing
 - APU
 - Mappers
 
