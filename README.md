@@ -1,6 +1,6 @@
-# NES Emulator
+# eyl NES
 
-A work-in-progress NES emulator written for Wayland.
+A work-in-progress NES emulator written for Wayland, written in C.
 
 ## License
 
