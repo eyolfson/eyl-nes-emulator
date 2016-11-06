@@ -1,4 +1,4 @@
-# eyl NES
+# eyl NES Emulator
 
 A work-in-progress NES emulator written for Wayland, written in C.
 
