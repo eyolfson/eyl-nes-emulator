@@ -19,6 +19,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
   - [ ] AXS instruction ($CB)
   - Add more automated testing
 - APU
+  - [ ] ALSA
 - Mappers
 
 ## Resources
