@@ -1905,12 +1905,12 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		*step_cycles = 2;
 		break;
 	case 0xAB:
-		/* ATX (Illegal Opcode) */
+		/* LAX - Load Accumulator and X Register (Illegal Opcode) */
 		compute_immediate_address(console, registers);
-		execute_logical_and(console, registers);
-		registers->x = registers->a;
+		registers->a = cpu_bus_read(console, console->cpu.computed_address);
+		registers->x = cpu_bus_read(console, console->cpu.computed_address);
 		assign_negative_and_zero_flags_from_value(registers,
-		                                          registers->x);
+		                                          registers->a);
 		registers->pc += 2;
 		*step_cycles = 2;
 		break;
