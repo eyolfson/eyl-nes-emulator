@@ -586,7 +586,7 @@ static void copy_vertical(struct nes_emulator_console *console)
 	console->ppu.internal_registers.v = v;
 }
 
-static bool handle_pixel(struct nes_emulator_console *console,
+static void handle_pixel(struct nes_emulator_console *console,
                          uint8_t x,
                          uint8_t y)
 {
@@ -646,8 +646,6 @@ static bool handle_pixel(struct nes_emulator_console *console,
 	else {
 		render_pixel(console, x, y, bg_pixel_colour);
 	}
-
-	return true;
 }
 
 static void ppu_single_cycle(struct nes_emulator_console *console,
@@ -674,9 +672,7 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 					console->ppu.internal_registers.x;
 			}
 
-			if (!handle_pixel(console, x, y)) {
-				return;
-			}
+			handle_pixel(console, x, y);
 
 			if (!mask_show_background(console)) {
 				return;
