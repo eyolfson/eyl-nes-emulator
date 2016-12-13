@@ -674,13 +674,11 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 
 			handle_pixel(console, x, y);
 
-			if (!mask_show_background(console)) {
-				return;
-			}
-
-			fine_x_increment(console);
-			if (cycle == 256) {
-				fine_y_increment(console);
+			if (mask_show_background(console)) {
+				fine_x_increment(console);
+				if (cycle == 256) {
+					fine_y_increment(console);
+				}
 			}
 		}
 		else if (cycle >= 257 && cycle <= 340) {
