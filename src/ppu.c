@@ -675,39 +675,38 @@ static void ppu_scan_line_visible(struct nes_emulator_console *console,
                                   uint16_t cycle)
 {
 	/* Draw the pixel */
-		uint8_t y = scan_line;
-		if (y != 0 && cycle == 0) {
-			/* TODO: might need +1? */
-			if (is_rendering_disabled(console)) {
-				console->ppu.secondary_oam_entries = 0;
-			}
-			else {
-				populate_secondary_oam(console, y - 1);
-			}
+	uint8_t y = scan_line;
+	if (y != 0 && cycle == 0) {
+		/* TODO: might need +1? */
+		if (is_rendering_disabled(console)) {
+			console->ppu.secondary_oam_entries = 0;
 		}
-		else if (cycle >= 1 && cycle <= 256) {
-			uint8_t x = cycle - 1;
-
-			if (x % 8 == 0) {
-				console->ppu.current_x =
-					console->ppu.internal_registers.x;
-			}
-
-			handle_pixel(console, x, y);
-
-			if (mask_show_background(console)) {
-				fine_x_increment(console);
-				if (cycle == 256) {
-					fine_y_increment(console);
-				}
-			}
+		else {
+			populate_secondary_oam(console, y - 1);
 		}
-		else if (cycle >= 257 && cycle <= 340) {
-			if (mask_show_background(console)) {
-				reset_horizontal(console);
-			}
+	}
+	else if (cycle >= 1 && cycle <= 256) {
+		uint8_t x = cycle - 1;
+
+		if (x % 8 == 0) {
+			console->ppu.current_x =
+				console->ppu.internal_registers.x;
 		}
 
+		handle_pixel(console, x, y);
+
+		if (mask_show_background(console)) {
+			fine_x_increment(console);
+			if (cycle == 256) {
+				fine_y_increment(console);
+			}
+		}
+	}
+	else if (cycle >= 257 && cycle <= 340) {
+		if (mask_show_background(console)) {
+			reset_horizontal(console);
+		}
+	}
 }
 
 static void ppu_single_cycle(struct nes_emulator_console *console,
