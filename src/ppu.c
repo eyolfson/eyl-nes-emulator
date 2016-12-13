@@ -648,14 +648,35 @@ static void handle_pixel(struct nes_emulator_console *console,
 	}
 }
 
-static void ppu_single_cycle(struct nes_emulator_console *console,
-                             int16_t scan_line,
-                             uint16_t cycle)
+static void ppu_scan_line_prerender(struct nes_emulator_console *console,
+                                    uint16_t cycle)
+{
+	if (cycle == 0) {
+		/* TODO: should be in vertical blank end, but the
+		         timing is wrong */
+		console->ppu.status = 0;
+		console->ppu.is_sprite_overflow = false;
+	}
+	else if (cycle == 2) {
+		ppu_vertical_blank_end(console);
+	}
+	else if (mask_show_background(console)) {
+		if (cycle == 257) {
+			reset_horizontal(console);
+		}
+		else if (cycle == 280) {
+			copy_vertical(console);
+		}
+	}
+}
+
+static void ppu_scan_line_visible(struct nes_emulator_console *console,
+                                  int16_t scan_line,
+                                  uint16_t cycle)
 {
 	/* Draw the pixel */
-	if (scan_line >= 0 && scan_line < 240) {
 		uint8_t y = scan_line;
-		if (y > 0 && cycle == 0) {
+		if (y != 0 && cycle == 0) {
 			/* TODO: might need +1? */
 			if (is_rendering_disabled(console)) {
 				console->ppu.secondary_oam_entries = 0;
@@ -686,35 +707,31 @@ static void ppu_single_cycle(struct nes_emulator_console *console,
 				reset_horizontal(console);
 			}
 		}
-	}
 
-	if (scan_line == 240 && cycle == 0) {
+}
+
+static void ppu_single_cycle(struct nes_emulator_console *console,
+                             int16_t scan_line,
+                             uint16_t cycle)
+{
+	const int16_t SCAN_LINE_PRERENDER = -1;
+	const int16_t SCAN_LINE_VISIBLE_START = 0;
+	const int16_t SCAN_LINE_VISIBLE_END = 239;
+	const int16_t SCAN_LINE_POST_RENDER = 240;
+	const int16_t SCAN_LINE_VERTICAL_BLANK_START = 241;
+
+	if (scan_line == SCAN_LINE_PRERENDER) {
+		ppu_scan_line_prerender(console, cycle);
+	}
+	else if (scan_line >= SCAN_LINE_VISIBLE_START
+	         && scan_line <= SCAN_LINE_VISIBLE_END) {
+		ppu_scan_line_visible(console, scan_line, cycle);
+	}
+	else if (scan_line == SCAN_LINE_POST_RENDER && cycle == 0) {
 		populate_secondary_oam(console, scan_line - 1);
 	}
-
-	if (scan_line == 241 && cycle == 1) {
+	else if (scan_line == SCAN_LINE_VERTICAL_BLANK_START && cycle == 1) {
 		ppu_vertical_blank_start(console);
-	}
-
-	/* TODO: probably related to even odd frames */
-	if (scan_line == -1 && cycle == 2) {
-		ppu_vertical_blank_end(console);
-	}
-	if (scan_line == -1) {
-		if (cycle == 0) {
-			/* TODO: should be in vertical blank end, but the
-			         timing is wrong */
-			console->ppu.status = 0;
-			console->ppu.is_sprite_overflow = false;
-		}
-		if (mask_show_background(console)) {
-			if (cycle == 257) {
-				reset_horizontal(console);
-			}
-			else if (cycle == 280) {
-				copy_vertical(console);
-			}
-		}
 	}
 }
 
