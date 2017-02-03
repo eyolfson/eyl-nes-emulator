@@ -2179,9 +2179,16 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		break;
 	case 0xCB:
 		/* AXS (Illegal Opcode) */
-		compute_immediate_address(console, registers);
-		registers->x &= registers->a;
-		execute_subtract_with_carry(console, registers);
+		{
+			compute_immediate_address(console, registers);
+			uint8_t saved_a = registers->a;
+			registers->a = registers->x;
+			registers->a &= saved_a;
+			set_carry_flag(registers);
+			execute_subtract_with_carry(console, registers);
+			registers->x = registers->a;
+			registers->a = saved_a;
+		}
 		registers->pc += 2;
 		*step_cycles = 2;
 		break;
