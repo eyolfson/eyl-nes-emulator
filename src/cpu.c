@@ -1374,7 +1374,7 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		break;
 	case 0x5B:
 		/* SRE (Illegal Opcode) */
-		compute_absolute_x_address(console, registers);
+		compute_absolute_y_address(console, registers);
 		execute_sre(console, registers);
 		registers->pc += 3;
 		*step_cycles = 7;
@@ -1798,10 +1798,36 @@ static uint8_t execute_instruction(struct nes_emulator_console *console,
 		registers->pc += 1;
 		*step_cycles = 2;
 		break;
+	case 0x9C:
+		/* SHY (Illegal Opcode) */
+		compute_absolute_x_address(console, registers);
+		{
+			uint8_t high_byte = cpu_bus_read(console,
+			                    registers->pc + 2);
+			uint8_t result = registers->y & (high_byte + 1);
+			cpu_bus_write(console, console->cpu.computed_address,
+			                       result);
+		}
+		registers->pc += 3;
+		*step_cycles = 5;
+		break;
 	case 0x9D:
 		/* STA - Store Accumulator */
 		compute_absolute_x_address(console, registers);
 		cpu_bus_write(console, console->cpu.computed_address, registers->a);
+		registers->pc += 3;
+		*step_cycles = 5;
+		break;
+	case 0x9E:
+		/* SHX (Illegal Opcode) */
+		compute_absolute_y_address(console, registers);
+		{
+			uint8_t high_byte = cpu_bus_read(console,
+			                    registers->pc + 2);
+			uint8_t result = registers->x & (high_byte + 1);
+			cpu_bus_write(console, console->cpu.computed_address,
+			                       result);
+		}
 		registers->pc += 3;
 		*step_cycles = 5;
 		break;
