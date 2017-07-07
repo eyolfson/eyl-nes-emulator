@@ -22,6 +22,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
 - APU
   - [ ] ALSA
 - Mappers
+- Controller support
 
 ## Resources
 
