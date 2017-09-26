@@ -21,6 +21,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
   - [ ] Use proper shift registers
 - APU
   - [ ] ALSA
+  - [ ] PulseAudio
 - Mappers
 - Controller support
 
