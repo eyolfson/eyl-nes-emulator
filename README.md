@@ -25,6 +25,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
     - [ ] Toggle backends
 - Mappers
 - Controller support
+  - Joy-con controller
 
 ## Resources
 
