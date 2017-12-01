@@ -16,6 +16,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
 
 - CPU
   - [ ] Add two ABS X/Y illegal opcodes
+  - [ ] AXS instruction ($CB)
   - [ ] Add more automated testing
 - PPU
   - [ ] Use proper shift registers
