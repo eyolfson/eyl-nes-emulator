@@ -26,7 +26,9 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
     - [ ] Toggle backends
 - Mappers
 - Controller support
-  - Joy-con controller
+  - [x] PS4 controller
+    - [ ] Enumerate input devices
+  - [ ] Joy-con controller
 
 ## Resources
 
