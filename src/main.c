@@ -20,6 +20,7 @@
 #include "nes_emulator.h"
 #include "backend/wayland.h"
 #include "backend/alsa.h"
+#include "backend/evdev.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -74,12 +75,24 @@ int main(int argc, char **argv)
 	}
 	nes_emulator_console_add_ppu_backend(console, ppu_backend);
 
+	struct nes_emulator_controller_backend *controller_backend;
+	exit_code = nes_emulator_backend_evdev_init(&controller_backend);
+	if (exit_code != 0) {
+		exit_code |= nes_emulator_ppu_backend_wayland_fini(&ppu_backend);
+		nes_emulator_cartridge_fini(&cartridge);
+		nes_emulator_console_fini(&console);
+		exit_code |= fini_memory_mapping(&mm);
+		return exit_code;
+	}
+	nes_emulator_console_add_controller_backend(console, controller_backend);
+
 	nes_emulator_console_insert_cartridge(console, cartridge);
 
 	while (exit_code == 0) {
 		exit_code = nes_emulator_console_step(console);
 	}
 
+	exit_code |= nes_emulator_backend_evdev_fini(&controller_backend);
 	exit_code |= nes_emulator_ppu_backend_wayland_fini(&ppu_backend);
 	nes_emulator_cartridge_fini(&cartridge);
 	nes_emulator_console_fini(&console);

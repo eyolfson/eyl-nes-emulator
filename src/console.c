@@ -33,6 +33,7 @@ uint8_t nes_emulator_console_init(struct nes_emulator_console **console)
 	cpu_init(c);
 	ppu_init(c);
 
+	c->controller = NULL;
 	c->cartridge = NULL;
 
 	*console = c;

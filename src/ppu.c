@@ -57,19 +57,6 @@ static void vertical_blank(struct nes_emulator_console *console)
 	}
 }
 
-uint8_t controller_read(struct nes_emulator_console *console)
-{
-	/* TODO: indicate that only one controller supported */
-	for (size_t i = 0; i < PPU_BACKENDS_MAX; ++i) {
-		struct nes_emulator_ppu_backend *backend;
-		backend = console->ppu.backends[i];
-		if (backend != NULL) {
-			return backend->joypad1_read(backend->pointer);
-		}
-	}
-	return 0;
-}
-
 static uint16_t get_tile_address(struct nes_emulator_console *console)
 {
 	uint16_t v = console->ppu.internal_registers.v;

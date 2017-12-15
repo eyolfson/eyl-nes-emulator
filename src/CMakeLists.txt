@@ -26,6 +26,7 @@ find_package(PkgConfig)
 
 pkg_check_modules(ALSA REQUIRED alsa)
 pkg_check_modules(CAIRO REQUIRED cairo)
+pkg_check_modules(LIBEVDEV REQUIRED libevdev)
 pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 pkg_get_variable(WAYLAND_PROTOCOLS_DATADIR wayland-protocols pkgdatadir)
@@ -51,6 +52,7 @@ include_directories(
 	${CMAKE_BINARY_DIR}
 	${ALSA_INCLUDE_DIRS}
 	${CAIRO_INCLUDE_DIRS}
+	${LIBEVDEV_INCLUDE_DIRS}
 	${WAYLAND_CLIENT_INCLUDE_DIRS}
 )
 
@@ -61,6 +63,7 @@ add_executable(nes-emulator
 	args.c
 	cartridge.c
 	console.c
+	controller.c
 	cpu.c
 	exit_code.c
 	ppu.c
@@ -72,6 +75,8 @@ add_executable(nes-emulator
 
 	backend/alsa.c
 
+	backend/evdev.c
+
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.c
 	${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h
 )
@@ -79,5 +84,6 @@ add_executable(nes-emulator
 target_link_libraries(nes-emulator
 	${ALSA_LIBRARIES}
 	${CAIRO_LIBRARIES}
+	${LIBEVDEV_LIBRARIES}
 	${WAYLAND_CLIENT_LIBRARIES}
 )

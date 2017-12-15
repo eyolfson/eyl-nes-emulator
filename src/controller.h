@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Jonathan Eyolfson
+ * Copyright 2017 Jonathan Eyolfson
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License version 3 as published by the
@@ -16,19 +16,17 @@
 
 #pragma once
 
-#include "../ppu.h"
-
-#include <stdint.h>
-
-#ifdef __cplusplus
+#ifdef __cpluscplus
 extern "C" {
 #endif
 
-uint8_t nes_emulator_ppu_backend_wayland_init(
-	struct nes_emulator_ppu_backend **ppu_backend);
-uint8_t nes_emulator_ppu_backend_wayland_fini(
-	struct nes_emulator_ppu_backend **ppu_backend);
+#include <stdint.h>
 
-#ifdef __cplusplus
+struct nes_emulator_controller_backend {
+	void *pointer;
+	uint8_t (*controller1_read)(void *);
+};
+
+#ifdef __cpluscplus
 }
 #endif

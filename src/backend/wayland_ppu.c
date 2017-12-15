@@ -185,7 +185,7 @@ static void vertical_blank(void *pointer)
 
 static uint8_t joypad1_read(void *pointer)
 {
-  struct wayland *wayland = pointer;
+	struct wayland *wayland = pointer;
 
 	wl_display_roundtrip(wayland->display);
 

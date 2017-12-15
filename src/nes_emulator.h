@@ -26,6 +26,7 @@ extern "C" {
 struct nes_emulator_cartridge;
 struct nes_emulator_console;
 struct nes_emulator_ppu_backend;
+struct nes_emulator_controller_backend;
 
 uint8_t nes_emulator_cartridge_init(struct nes_emulator_cartridge **cartridge,
                                     uint8_t *data,
@@ -38,6 +39,9 @@ void nes_emulator_console_insert_cartridge(
 void nes_emulator_console_add_ppu_backend(
 	struct nes_emulator_console *console,
 	struct nes_emulator_ppu_backend *ppu_backend);
+void nes_emulator_console_add_controller_backend(
+	struct nes_emulator_console *console,
+	struct nes_emulator_controller_backend *controller_backend);
 uint8_t nes_emulator_console_step(struct nes_emulator_console *console);
 void nes_emulator_console_fini(struct nes_emulator_console **console);
 
