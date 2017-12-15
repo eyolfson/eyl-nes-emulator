@@ -22,8 +22,8 @@
 
 #include "../exit_code.h"
 
-static const int32_t WIDTH = 256 * 4;
-static const int32_t HEIGHT = 240 * 4;
+static const int32_t WIDTH = 256 * SCALE;
+static const int32_t HEIGHT = 240 * SCALE;
 
 static void registry_global(void *data,
                             struct wl_registry *wl_registry,

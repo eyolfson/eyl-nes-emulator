@@ -24,6 +24,8 @@ extern "C" {
 
 #include "xdg-shell-client-protocol.h"
 
+#define SCALE 2
+
 struct wayland {
 	struct wl_display *display;
 	struct wl_registry *registry;

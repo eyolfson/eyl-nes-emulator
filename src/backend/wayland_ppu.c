@@ -109,8 +109,8 @@ static void render_pixel(void *pointer,
 		[0x3E] = 0xFF000000,
 		[0x3F] = 0xFF000000,
 	};
-	for (int32_t i = x * 4; i < x * 4 + 4; ++i) {
-		for (int32_t j = y * 4; j < y * 4 + 4; ++j) {
+	for (int32_t i = x * SCALE; i < x * SCALE + SCALE; ++i) {
+		for (int32_t j = y * SCALE; j < y * SCALE + SCALE; ++j) {
 			wayland->back_data[i + (j * wayland->width)] =
 				palette[c];
 		}
@@ -123,7 +123,7 @@ static struct timespec tv_prev;
 
 static void vertical_blank(void *pointer)
 {
-  struct wayland *wayland = pointer;
+	struct wayland *wayland = pointer;
 
 	wl_display_roundtrip(wayland->display);
 
@@ -153,7 +153,7 @@ static void vertical_blank(void *pointer)
 			cairo_image_surface_create_for_data(
 				(unsigned char *)wayland->back_data,
 				CAIRO_FORMAT_ARGB32,
-				1024, 960, 1024 * 4);
+				256 * SCALE, 240 * SCALE, 256 * SCALE * 4);
 		cairo_t *cairo = cairo_create(cairo_surface);
 		char buffer[200];
 		double fps = 1000000000.0 / ((double) nsec_diff);
@@ -161,8 +161,8 @@ static void vertical_blank(void *pointer)
 		cairo_set_source_rgba(cairo, 255, 255, 255, 0.8);
 		cairo_select_font_face(cairo, "Cousine",
 			CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-		cairo_set_font_size(cairo, 48);
-		cairo_move_to(cairo, 10, 944);
+		cairo_set_font_size(cairo, 12 * SCALE);
+		cairo_move_to(cairo, 2 * SCALE, 236 * SCALE);
 		cairo_show_text(cairo, buffer);
 		cairo_destroy(cairo);
 		cairo_surface_destroy(cairo_surface);
