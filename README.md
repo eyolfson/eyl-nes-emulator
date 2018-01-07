@@ -28,6 +28,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
 - Controller support
   - [x] PS4 controller
     - [ ] Enumerate input devices
+  - [ ] Xbox One controller
   - [ ] Joy-con controller
 
 ## Resources
