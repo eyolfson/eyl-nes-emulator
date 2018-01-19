@@ -22,8 +22,6 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
   - [ ] Use proper shift registers
 - APU
   - [ ] ALSA
-  - [ ] PulseAudio
-    - [ ] Toggle backends
 - Mappers
 - Controller support
   - [x] PS4 controller
