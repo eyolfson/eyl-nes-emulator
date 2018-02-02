@@ -34,20 +34,33 @@ uint8_t alsa_init()
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
 
+	unsigned int channels = 1;
+	unsigned int sample_rate = 48000; // Hz
+	int soft_resample = 1;
+	unsigned int latency = 500000; // us
+
 	ret = snd_pcm_set_params(
 		handle,
 		SND_PCM_FORMAT_U8,
 		SND_PCM_ACCESS_RW_INTERLEAVED,
-		1,     /* Number of PCM channels */
-		48000, /* Sample rate (Hz) */
-		1,     /* Allow resampling */
-		500000 /* Required letency (us) */
+		channels,
+		sample_rate,
+		soft_resample,
+		latency
 	);
 	if (ret != 0) {
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
 
-/*
+	for (int i = 0; i < sizeof(buffer); ++i) {
+		if ((i / 16) % 2 == 0) {
+			buffer[i] = 10;
+		}
+		else {
+			buffer[i] = 0;
+		}
+	}
+
 	snd_pcm_sframes_t frames;
 	for (unsigned int i = 0; i < 16; i++) {
 		frames = snd_pcm_writei(handle, buffer, sizeof(buffer));
@@ -62,7 +75,6 @@ uint8_t alsa_init()
 			printf("Short write (expected %li, wrote %li)\n",
 				(long)sizeof(buffer), frames);
 	}
-*/
 
 	return 0;
 }

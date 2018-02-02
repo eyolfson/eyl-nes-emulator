@@ -24,6 +24,12 @@ extern "C" {
 
 struct nes_emulator_console;
 
+struct apu {
+	uint8_t status;
+};
+
+void apu_init(struct nes_emulator_console *console);
+
 uint8_t apu_cpu_bus_read(struct nes_emulator_console *console,
                          uint16_t address);
 

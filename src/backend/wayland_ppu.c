@@ -118,8 +118,25 @@ static void render_pixel(void *pointer,
 }
 
 #include <time.h>
-static struct timespec tv_prev;
+static struct timespec tv_prev = {
+	.tv_sec = 0,
+	.tv_nsec = 0,
+};
 // static int frame_count = 0;
+
+static int32_t nano_elapsed(struct timespec *start, struct timespec *end)
+{
+	uint32_t ret;
+	if ((end->tv_nsec - start->tv_nsec) < 0) {
+		ret = (end->tv_sec - start->tv_sec - 1) * 1000000000;
+		ret += end->tv_nsec - start->tv_nsec + 1000000000;
+	}
+	else {
+		ret = (end->tv_sec - start->tv_sec) * 1000000000;
+		ret += end->tv_nsec - start->tv_nsec;
+	}
+	return ret;
+}
 
 static void vertical_blank(void *pointer)
 {
@@ -128,23 +145,14 @@ static void vertical_blank(void *pointer)
 	wl_display_roundtrip(wayland->display);
 
 	struct timespec tv;
-	clock_gettime(CLOCK_REALTIME, &tv);
-	if (tv_prev.tv_sec == 0 && tv_prev.tv_nsec) {
+	int32_t nsec_diff;
+	clock_gettime(CLOCK_MONOTONIC, &tv);
+	if (tv_prev.tv_sec == 0 && tv_prev.tv_nsec == 0) {
+		nsec_diff = 0;
 		tv_prev = tv;
 	}
 	else {
-		/* Timing */
-		int64_t sec_diff = tv.tv_sec - tv_prev.tv_sec;
-		int64_t nsec_diff;
-		if (tv.tv_nsec >= tv_prev.tv_nsec) {
-			nsec_diff = 0;
-		}
-		else {
-			nsec_diff = 1000000000;
-			sec_diff -= 1;
-		}
-		nsec_diff += tv.tv_nsec;
-		nsec_diff -= tv_prev.tv_nsec;
+		nsec_diff = nano_elapsed(&tv_prev, &tv);
 		tv_prev = tv;
 
 		// assert(sec_diff == 0);
@@ -181,6 +189,16 @@ static void vertical_blank(void *pointer)
 	wl_surface_commit(wayland->surface);
 
 	wl_display_flush(wayland->display);
+
+	const int32_t NSEC_PER_60FPS_TICK = 16666666;
+	if (nsec_diff != 0) {
+		struct timespec req = {
+			.tv_sec = 0,
+			.tv_nsec = NSEC_PER_60FPS_TICK - nsec_diff,
+		};
+		struct timespec rem;
+		nanosleep(&req, &rem);
+	}
 }
 
 static uint8_t joypad1_read(void *pointer)

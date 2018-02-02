@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+#include "apu.h"
 #include "cpu.h"
 #include "ppu.h"
 #include "controller.h"
@@ -29,6 +30,7 @@ struct nes_emulator_console {
 	uint16_t cpu_step_cycles;
 
 	struct ppu ppu;
+	struct apu apu;
 
 	struct nes_emulator_controller_backend *controller;
 

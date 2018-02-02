@@ -182,6 +182,10 @@ uint8_t nes_emulator_backend_evdev_init(
 uint8_t nes_emulator_backend_evdev_fini(
 	struct nes_emulator_controller_backend **controller_backend)
 {
+	if (*controller_backend == NULL) {
+		return 0;
+	}
+
 	struct evdev_backend *e = (struct evdev_backend *)
 	                          (*controller_backend)->pointer;
 	libevdev_free(e->dev);

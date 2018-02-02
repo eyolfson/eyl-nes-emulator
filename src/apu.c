@@ -16,16 +16,35 @@
 
 #include "apu.h"
 
+#include "console.h"
+
+void apu_init(struct nes_emulator_console *console)
+{
+	console->apu.status = 0;
+}
+
 uint8_t apu_cpu_bus_read(struct nes_emulator_console *console,
                          uint16_t address)
 {
-	return 0;
+	switch (address) {
+	case 0x4015:
+		return console->apu.status;
+	default:
+		return 0;
+	}
 }
 
 void apu_cpu_bus_write(struct nes_emulator_console *console,
                        uint16_t address,
                        uint8_t value)
 {
+	switch (address) {
+	case 0x4015:
+		console->apu.status = value;
+		break;
+	default:
+		break;
+	}
 	/* Pulse 1 */
 	/* Pulse 2 */
 	/* Triangle */
