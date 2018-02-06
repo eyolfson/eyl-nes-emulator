@@ -29,6 +29,8 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
     - [ ] Enumerate input devices
   - [ ] Xbox One controller
   - [ ] Joy-con controller
+- Console
+  - [ ] Limit to 60 FPS
 
 ## Resources
 
