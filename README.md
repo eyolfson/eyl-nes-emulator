@@ -30,7 +30,7 @@ timing and Sprite 0 Hit), see `test/ppu` directory.
   - [ ] Xbox One controller
   - [ ] Joy-con controller
 - Console
-  - [ ] Limit to 60 FPS
+  - [ ] Limit to 60 FPS (Wayland doesn't seem to?)
 
 ## Resources
 
