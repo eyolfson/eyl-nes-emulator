@@ -25,6 +25,7 @@ add_executable(nes-emulator-ppu
 	../../../src/args.c
 	../../../src/cartridge.c
 	../../../src/console.c
+	../../../src/controller.c
 	../../../src/cpu.c
 	../../../src/exit_code.c
 	../../../src/ppu.c
