@@ -52,7 +52,7 @@ uint8_t alsa_init()
 		return EXIT_CODE_OS_ERROR_BIT;
 	}
 
-	for (int i = 0; i < sizeof(buffer); ++i) {
+	for (unsigned i = 0; i < sizeof(buffer); ++i) {
 		if ((i / 16) % 2 == 0) {
 			buffer[i] = 10;
 		}

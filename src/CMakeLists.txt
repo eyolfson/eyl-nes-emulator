@@ -36,7 +36,7 @@ add_custom_command(
 	OUTPUT ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h
 	COMMAND wayland-scanner
 	ARGS client-header
-	     ${WAYLAND_PROTOCOLS_DATADIR}/unstable/xdg-shell/xdg-shell-unstable-v5.xml
+	     ${WAYLAND_PROTOCOLS_DATADIR}/unstable/xdg-shell/xdg-shell-unstable-v6.xml
 	     ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h
 )
 
@@ -44,7 +44,7 @@ add_custom_command(
 	OUTPUT ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.c
 	COMMAND wayland-scanner
 	ARGS code
-	     ${WAYLAND_PROTOCOLS_DATADIR}/unstable/xdg-shell/xdg-shell-unstable-v5.xml
+	     ${WAYLAND_PROTOCOLS_DATADIR}/unstable/xdg-shell/xdg-shell-unstable-v6.xml
 	     ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.c
 )
 

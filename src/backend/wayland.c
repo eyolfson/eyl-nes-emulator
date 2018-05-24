@@ -41,9 +41,9 @@ static void registry_global(void *data,
 		wayland->shm = wl_registry_bind(
 			wl_registry, name, &wl_shm_interface, version);
 	}
-	else if (strcmp(interface, xdg_shell_interface.name) == 0) {
+	else if (strcmp(interface, zxdg_shell_v6_interface.name) == 0) {
 		wayland->shell = wl_registry_bind(
-			wl_registry, name, &xdg_shell_interface, version);
+			wl_registry, name, &zxdg_shell_v6_interface, version);
 	}
 	else if (strcmp(interface, wl_seat_interface.name) == 0) {
 		wayland->seat = wl_registry_bind(
@@ -65,15 +65,54 @@ static struct wl_registry_listener registry_listener = {
 	.global_remove = registry_global_remove,
 };
 
-static void shell_ping(void *data, struct xdg_shell *xdg_shell, uint32_t serial)
+static void shell_ping(void *data, struct zxdg_shell_v6 *xdg_shell,
+                       uint32_t serial)
 {
 	(void) (data);
 
-	xdg_shell_pong(xdg_shell, serial);
+	zxdg_shell_v6_pong(xdg_shell, serial);
 }
 
-static struct xdg_shell_listener shell_listener = {
+static struct zxdg_shell_v6_listener shell_listener = {
 	.ping = shell_ping,
+};
+
+static void shell_surface_configure(void *data,
+                                    struct zxdg_surface_v6 *shell_surface,
+                                    uint32_t serial)
+{
+	(void) data;
+
+	zxdg_surface_v6_ack_configure(shell_surface, serial);
+}
+
+static struct zxdg_surface_v6_listener shell_surface_listener = {
+	.configure = shell_surface_configure,
+};
+
+static void toplevel_configure(void *data,
+                               struct zxdg_toplevel_v6 *toplevel,
+                               int32_t width,
+                               int32_t height,
+                               struct wl_array *states)
+{
+	(void) data;
+	(void) toplevel;
+	(void) width;
+	(void) height;
+	(void) states;
+}
+
+static void toplevel_close(void *data,
+                           struct zxdg_toplevel_v6 *toplevel)
+{
+	(void) data;
+	(void) toplevel;
+}
+
+static struct zxdg_toplevel_v6_listener toplevel_listener = {
+	.configure = toplevel_configure,
+	.close = toplevel_close,
 };
 
 static void frame_callback_done(void *data,
@@ -285,7 +324,7 @@ uint8_t init_wayland(struct wayland *wayland)
 			wl_shm_destroy(wayland->shm);
 		}
 		if (wayland->shell != NULL) {
-			xdg_shell_destroy(wayland->shell);
+			zxdg_shell_v6_destroy(wayland->shell);
 		}
 		if (wayland->seat != NULL) {
 			wl_seat_destroy(wayland->seat);
@@ -295,14 +334,12 @@ uint8_t init_wayland(struct wayland *wayland)
 		return EXIT_CODE_WAYLAND_BIT;
 	}
 
-	xdg_shell_use_unstable_version(wayland->shell,
-	                               XDG_SHELL_VERSION_CURRENT);
-	xdg_shell_add_listener(wayland->shell, &shell_listener, NULL);
+	zxdg_shell_v6_add_listener(wayland->shell, &shell_listener, NULL);
 
 	wayland->surface = wl_compositor_create_surface(wayland->compositor);
 	if (wayland->surface == NULL) {
 		wl_seat_destroy(wayland->seat);
-		xdg_shell_destroy(wayland->shell);
+		zxdg_shell_v6_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
 		wl_registry_destroy(wayland->registry);
@@ -310,25 +347,54 @@ uint8_t init_wayland(struct wayland *wayland)
 		return EXIT_CODE_WAYLAND_BIT;
 	}
 
-	wayland->shell_surface = xdg_shell_get_xdg_surface(wayland->shell,
-	                                                   wayland->surface);
+	wayland->shell_surface = zxdg_shell_v6_get_xdg_surface(
+		wayland->shell, wayland->surface);
 	if (wayland->shell_surface == NULL) {
 		wl_surface_destroy(wayland->surface);
 		wl_seat_destroy(wayland->seat);
-		xdg_shell_destroy(wayland->shell);
+		zxdg_shell_v6_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
 		wl_registry_destroy(wayland->registry);
 		wl_display_disconnect(wayland->display);
 		return EXIT_CODE_WAYLAND_BIT;
 	}
+	zxdg_surface_v6_add_listener(wayland->shell_surface,
+	                             &shell_surface_listener, NULL);
+
+	wayland->width = WIDTH;
+	wayland->height = HEIGHT;
+
+	wayland->toplevel = zxdg_surface_v6_get_toplevel(wayland->shell_surface);
+	if (wayland->toplevel == NULL) {
+		zxdg_surface_v6_destroy(wayland->shell_surface);
+		wl_surface_destroy(wayland->surface);
+		wl_seat_destroy(wayland->seat);
+		zxdg_shell_v6_destroy(wayland->shell);
+		wl_shm_destroy(wayland->shm);
+		wl_compositor_destroy(wayland->compositor);
+		wl_registry_destroy(wayland->registry);
+		wl_display_disconnect(wayland->display);
+		return EXIT_CODE_WAYLAND_BIT;
+	}
+	zxdg_toplevel_v6_add_listener(wayland->toplevel, &toplevel_listener,
+	                              NULL);
+
+	zxdg_toplevel_v6_set_title(wayland->toplevel, "NES Emulator");
+	zxdg_toplevel_v6_set_app_id(wayland->toplevel, "io.eyl.NESEmulator");
+	zxdg_surface_v6_set_window_geometry(wayland->shell_surface,
+	                                    0, 0,
+	                                    wayland->width, wayland->height);
+	wl_surface_commit(wayland->surface);
+	wl_display_roundtrip(wayland->display);
 
 	wayland->keyboard = wl_seat_get_keyboard(wayland->seat);
 	if (wayland->keyboard == NULL) {
-		xdg_surface_destroy(wayland->shell_surface);
+		zxdg_toplevel_v6_destroy(wayland->toplevel);
+		zxdg_surface_v6_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
 		wl_seat_destroy(wayland->seat);
-		xdg_shell_destroy(wayland->shell);
+		zxdg_shell_v6_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
 		wl_registry_destroy(wayland->registry);
@@ -338,21 +404,14 @@ uint8_t init_wayland(struct wayland *wayland)
 	wl_keyboard_add_listener(wayland->keyboard, &keyboard_listener,
 	                         wayland);
 
-	wayland->width = WIDTH;
-	wayland->height = HEIGHT;
-
-	xdg_surface_set_title(wayland->shell_surface, "NES Emulator");
-	xdg_surface_set_window_geometry(wayland->shell_surface,
-	                                0, 0,
-	                                wayland->width, wayland->height);
-
 	uint8_t exit_code = init_wayland_buffer(wayland);
 	if (exit_code != 0) {
 		wl_keyboard_release(wayland->keyboard);
-		xdg_surface_destroy(wayland->shell_surface);
+		zxdg_toplevel_v6_destroy(wayland->toplevel);
+		zxdg_surface_v6_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
 		wl_seat_destroy(wayland->seat);
-		xdg_shell_destroy(wayland->shell);
+		zxdg_shell_v6_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
 		wl_registry_destroy(wayland->registry);
@@ -372,10 +431,11 @@ uint8_t init_wayland(struct wayland *wayland)
 		exit_code = EXIT_CODE_WAYLAND_BIT;
 		exit_code |= fini_wayland_buffer(wayland);
 		wl_keyboard_release(wayland->keyboard);
-		xdg_surface_destroy(wayland->shell_surface);
+		zxdg_toplevel_v6_destroy(wayland->toplevel);
+		zxdg_surface_v6_destroy(wayland->shell_surface);
 		wl_surface_destroy(wayland->surface);
 		wl_seat_destroy(wayland->seat);
-		xdg_shell_destroy(wayland->shell);
+		zxdg_shell_v6_destroy(wayland->shell);
 		wl_shm_destroy(wayland->shm);
 		wl_compositor_destroy(wayland->compositor);
 		wl_registry_destroy(wayland->registry);
@@ -399,12 +459,13 @@ uint8_t init_wayland(struct wayland *wayland)
 uint8_t fini_wayland(struct wayland *wayland)
 {
 	wl_display_roundtrip(wayland->display);
+	zxdg_toplevel_v6_destroy(wayland->toplevel);
 	wl_keyboard_release(wayland->keyboard);
 	wl_seat_destroy(wayland->seat);
 	uint8_t exit_code = fini_wayland_buffer(wayland);
-	xdg_surface_destroy(wayland->shell_surface);
+	zxdg_surface_v6_destroy(wayland->shell_surface);
 	wl_surface_destroy(wayland->surface);
-	xdg_shell_destroy(wayland->shell);
+	zxdg_shell_v6_destroy(wayland->shell);
 	wl_shm_destroy(wayland->shm);
 	wl_compositor_destroy(wayland->compositor);
 	wl_registry_destroy(wayland->registry);

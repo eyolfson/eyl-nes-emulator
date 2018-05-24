@@ -31,9 +31,10 @@ struct wayland {
 	struct wl_registry *registry;
 	struct wl_compositor *compositor;
 	struct wl_shm *shm;
-	struct xdg_shell *shell;
+	struct zxdg_shell_v6 *shell;
 	struct wl_surface *surface;
-	struct xdg_surface *shell_surface;
+	struct zxdg_surface_v6 *shell_surface;
+	struct zxdg_toplevel_v6 *toplevel;
 	int32_t width;
 	int32_t height;
 	int32_t fd;
